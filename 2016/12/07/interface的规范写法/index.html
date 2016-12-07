@@ -68,7 +68,7 @@
 <link href="/css/main.css?v=5.0.1" rel="stylesheet" type="text/css" />
 
 
-  <meta name="keywords" content="Hexo, NexT" />
+  <meta name="keywords" content="iOS," />
 
 
 
@@ -86,15 +86,48 @@
 
 
 
-<meta name="description" content="记录踩过的坑">
-<meta property="og:type" content="website">
-<meta property="og:title" content="zuik's blog">
-<meta property="og:url" content="http://yoursite.com/index.html">
+<meta name="description" content="总结一些interface声明时的规范，相关宏的介绍，定义方法时有用的修饰符，编写注释的规范，最终写出一个合格的头文件。
+
+1.读写权限
+1.1实例变量的@public,@protected,@private关键字
+1.2属性的readonly,readwrite关键字
+
+
+2.前向声明
+3.只暴露必要的接口和实现
+3.1不要暴露任何只在类内部使用的私有方法
+3.2不要在头文件里声明类内部遵循的p">
+<meta property="og:type" content="article">
+<meta property="og:title" content="@inerface的11条规范写法">
+<meta property="og:url" content="http://yoursite.com/2016/12/07/interface的规范写法/index.html">
 <meta property="og:site_name" content="zuik's blog">
-<meta property="og:description" content="记录踩过的坑">
+<meta property="og:description" content="总结一些interface声明时的规范，相关宏的介绍，定义方法时有用的修饰符，编写注释的规范，最终写出一个合格的头文件。
+
+1.读写权限
+1.1实例变量的@public,@protected,@private关键字
+1.2属性的readonly,readwrite关键字
+
+
+2.前向声明
+3.只暴露必要的接口和实现
+3.1不要暴露任何只在类内部使用的私有方法
+3.2不要在头文件里声明类内部遵循的p">
+<meta property="og:image" content="http://upload-images.jianshu.io/upload_images/1865432-dfc9a9b1de31ec47.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240">
+<meta property="og:updated_time" content="2016-12-07T03:33:02.790Z">
 <meta name="twitter:card" content="summary">
-<meta name="twitter:title" content="zuik's blog">
-<meta name="twitter:description" content="记录踩过的坑">
+<meta name="twitter:title" content="@inerface的11条规范写法">
+<meta name="twitter:description" content="总结一些interface声明时的规范，相关宏的介绍，定义方法时有用的修饰符，编写注释的规范，最终写出一个合格的头文件。
+
+1.读写权限
+1.1实例变量的@public,@protected,@private关键字
+1.2属性的readonly,readwrite关键字
+
+
+2.前向声明
+3.只暴露必要的接口和实现
+3.1不要暴露任何只在类内部使用的私有方法
+3.2不要在头文件里声明类内部遵循的p">
+<meta name="twitter:image" content="http://upload-images.jianshu.io/upload_images/1865432-dfc9a9b1de31ec47.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240">
 
 
 
@@ -115,9 +148,9 @@
 
 
 
-  <link rel="canonical" href="http://yoursite.com/"/>
+  <link rel="canonical" href="http://yoursite.com/2016/12/07/interface的规范写法/"/>
 
-  <title> zuik's blog </title>
+  <title> @inerface的11条规范写法 | zuik's blog </title>
 </head>
 
 <body itemscope itemtype="http://schema.org/WebPage" lang="zh-Hans">
@@ -138,9 +171,7 @@
     
   
 
-  <div class="container one-collumn sidebar-position-left 
-   page-home 
- ">
+  <div class="container one-collumn sidebar-position-left page-post-detail ">
     <div class="headband"></div>
 
     <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
@@ -227,9 +258,9 @@
         <div class="content-wrap">
           <div id="content" class="content">
             
-  <section id="posts" class="posts-expand">
+
+  <div id="posts" class="posts-expand">
     
-      
 
   
   
@@ -249,10 +280,7 @@
             
             
               
-                
-                <a class="post-title-link" href="/2016/12/07/interface的规范写法/" itemprop="url">
-                  @inerface的11条规范写法
-                </a>
+                @inerface的11条规范写法
               
             
           </h1>
@@ -319,9 +347,7 @@
       
 
       
-        
-          
-            <p>总结一些interface声明时的规范，相关宏的介绍，定义方法时有用的修饰符，编写注释的规范，最终写出一个合格的头文件。</p>
+        <p>总结一些interface声明时的规范，相关宏的介绍，定义方法时有用的修饰符，编写注释的规范，最终写出一个合格的头文件。</p>
 <ul>
 <li><a href="#readwrite">1.读写权限</a><ul>
 <li><a href="#readwrite-1">1.1实例变量的@public,@protected,@private关键字</a></li>
@@ -531,36 +557,51 @@
 <li><a href="http://blog.sunnyxx.com/2015/06/12/objc-new-features-in-2015/" target="_blank" rel="external">http://blog.sunnyxx.com/2015/06/12/objc-new-features-in-2015/</a></li>
 </ul>
 
-          
+      
+    </div>
+
+    <div>
+      
         
+
       
     </div>
 
     <div>
       
-    </div>
+        
 
-    <div>
       
     </div>
 
     <footer class="post-footer">
       
-
+        <div class="post-tags">
+          
+            <a href="/tags/iOS/" rel="tag">#iOS</a>
+          
+        </div>
       
 
       
+
       
-        <div class="post-eof"></div>
       
     </footer>
   </article>
 
 
-    
-  </section>
 
-  
+    <div class="post-spread">
+      
+    </div>
+  </div>
+
+<script async src="https://dn-lbstatics.qbox.me/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+
+<span id="busuanzi_container_page_pv">
+</br>本文总阅读量<span id="busuanzi_value_page_pv"></span>次
+</span>
 
 
           </div>
@@ -568,6 +609,14 @@
 
 
           
+  <div class="comments" id="comments">
+    
+      <div class="ds-thread" data-thread-key="2016/12/07/interface的规范写法/"
+           data-title="@inerface的11条规范写法" data-url="http://yoursite.com/2016/12/07/interface的规范写法/">
+      </div>
+    
+  </div>
+
 
         </div>
         
@@ -587,8 +636,17 @@
       
 
       
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap" >
+            文章目录
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview">
+            站点概览
+          </li>
+        </ul>
+      
 
-      <section class="site-overview sidebar-panel  sidebar-panel-active ">
+      <section class="site-overview sidebar-panel ">
         <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
           <img class="site-author-image" itemprop="image"
                src="/images/avatar.png"
@@ -645,6 +703,17 @@
 
       </section>
 
+      
+        <section class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc">
+            
+              
+            
+            
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#1-读写权限"><span class="nav-number">1.</span> <span class="nav-text">1.读写权限</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#1-1-实例变量的-public-protected-private关键字"><span class="nav-number">1.1.</span> <span class="nav-text">1.1 实例变量的@public,@protected,@private关键字</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#1-2-属性的readonly-readwrite关键字"><span class="nav-number">1.2.</span> <span class="nav-text">1.2 属性的readonly,readwrite关键字</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#2-前向声明"><span class="nav-number">2.</span> <span class="nav-text">2.前向声明</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#3-只暴露必要的接口和实现"><span class="nav-number">3.</span> <span class="nav-text">3.只暴露必要的接口和实现</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#3-1不要暴露任何只在类内部使用的私有方法"><span class="nav-number">3.1.</span> <span class="nav-text">3.1不要暴露任何只在类内部使用的私有方法</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#3-2不要在头文件里声明类内部遵循的protocol"><span class="nav-number">3.2.</span> <span class="nav-text">3.2不要在头文件里声明类内部遵循的protocol</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#4-nullability说明"><span class="nav-number">4.</span> <span class="nav-text">4.nullability说明</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#5-定义枚举"><span class="nav-number">5.</span> <span class="nav-text">5.定义枚举</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#5-1-NS-ENUM"><span class="nav-number">5.1.</span> <span class="nav-text">5.1 NS_ENUM</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#5-2-NS-OPTIONS"><span class="nav-number">5.2.</span> <span class="nav-text">5.2 NS_OPTIONS</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#5-3-字符串枚举"><span class="nav-number">5.3.</span> <span class="nav-text">5.3 字符串枚举</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#6-使用extern向外部提供只读常量"><span class="nav-number">6.</span> <span class="nav-text">6.使用extern向外部提供只读常量</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#7-向子类和category提供父类的私有属性"><span class="nav-number">7.</span> <span class="nav-text">7.向子类和category提供父类的私有属性</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#8-标明designated-initializer"><span class="nav-number">8.</span> <span class="nav-text">8.标明designated initializer</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#9-API版本控制"><span class="nav-number">9.</span> <span class="nav-text">9.API版本控制</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#9-1-available"><span class="nav-number">9.1.</span> <span class="nav-text">9.1 available</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#9-2-unavailable"><span class="nav-number">9.2.</span> <span class="nav-text">9.2 unavailable</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#9-3-deprecated"><span class="nav-number">9.3.</span> <span class="nav-text">9.3 deprecated</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#10-额外的修饰符"><span class="nav-number">10.</span> <span class="nav-text">10.额外的修饰符</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#10-1-泛型"><span class="nav-number">10.1.</span> <span class="nav-text">10.1 泛型</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#10-2-NS-REQUIRES-SUPER"><span class="nav-number">10.2.</span> <span class="nav-text">10.2 NS_REQUIRES_SUPER</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#10-3-NS-NOESCAPE"><span class="nav-number">10.3.</span> <span class="nav-text">10.3 NS_NOESCAPE</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#11-写注释"><span class="nav-number">11.</span> <span class="nav-text">11.写注释</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#11-1单行注释"><span class="nav-number">11.1.</span> <span class="nav-text">11.1单行注释</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#11-2多行注释"><span class="nav-number">11.2.</span> <span class="nav-text">11.2多行注释</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#11-3-枚举注释"><span class="nav-number">11.3.</span> <span class="nav-text">11.3 枚举注释</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#11-4-几个注释约定"><span class="nav-number">11.4.</span> <span class="nav-text">11.4 几个注释约定</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#参考"><span class="nav-number">12.</span> <span class="nav-text">参考</span></a></li></ol></div>
+            
+          </div>
+        </section>
       
 
     </div>
@@ -741,6 +810,10 @@
   
 
   
+  <script type="text/javascript" src="/js/src/scrollspy.js?v=5.0.1"></script>
+<script type="text/javascript" src="/js/src/post-details.js?v=5.0.1"></script>
+
+
 
   
 
