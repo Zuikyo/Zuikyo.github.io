@@ -1,0 +1,727 @@
+<!doctype html>
+
+
+
+  
+
+
+<html class="theme-next muse use-motion">
+<head>
+  <meta charset="UTF-8"/>
+<meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1"/>
+
+
+
+<meta http-equiv="Cache-Control" content="no-transform" />
+<meta http-equiv="Cache-Control" content="no-siteapp" />
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+  <link href="/vendors/fancybox/source/jquery.fancybox.css?v=2.1.5" rel="stylesheet" type="text/css" />
+
+
+
+
+  
+  
+  
+  
+
+  
+    
+    
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+    
+    
+    <link href="//fonts.googleapis.com/css?family=Lato:300,300italic,400,400italic,700,700italic&subset=latin,latin-ext" rel="stylesheet" type="text/css">
+  
+
+
+
+
+
+
+<link href="/vendors/font-awesome/css/font-awesome.min.css?v=4.4.0" rel="stylesheet" type="text/css" />
+
+<link href="/css/main.css?v=5.0.1" rel="stylesheet" type="text/css" />
+
+
+  <meta name="keywords" content="iOS," />
+
+
+
+
+
+  <link rel="alternate" href="/atom.xml" title="zuik's blog" type="application/atom+xml" />
+
+
+
+
+  <link rel="shortcut icon" type="image/x-icon" href="/favicon.ico?v=5.0.1" />
+
+
+
+
+
+
+<meta name="description" content="功能：
+
+在非调试模式下，获取出错的具体约束。
+监测约束冲突，并获取出错的view和viewController。
+监测iOS7上layoutSubViews导致的crash问题
+
+现状iOS7对Auto Layout的支持问题
+iOS7的约束有一些奇怪的bug，对Auto Layout支持并不完美。
+在出现约束冲突时，系统会尝试修复约束。iOS7和iOS8的修复结果有可能不一样。
+如果view的">
+<meta property="og:type" content="article">
+<meta property="og:title" content="约束冲突调试工具：解决iOS7调试难题">
+<meta property="og:url" content="http://yoursite.com/2016/12/13/约束冲突调试工具/index.html">
+<meta property="og:site_name" content="zuik's blog">
+<meta property="og:description" content="功能：
+
+在非调试模式下，获取出错的具体约束。
+监测约束冲突，并获取出错的view和viewController。
+监测iOS7上layoutSubViews导致的crash问题
+
+现状iOS7对Auto Layout的支持问题
+iOS7的约束有一些奇怪的bug，对Auto Layout支持并不完美。
+在出现约束冲突时，系统会尝试修复约束。iOS7和iOS8的修复结果有可能不一样。
+如果view的">
+<meta property="og:updated_time" content="2017-05-03T08:35:22.900Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="约束冲突调试工具：解决iOS7调试难题">
+<meta name="twitter:description" content="功能：
+
+在非调试模式下，获取出错的具体约束。
+监测约束冲突，并获取出错的view和viewController。
+监测iOS7上layoutSubViews导致的crash问题
+
+现状iOS7对Auto Layout的支持问题
+iOS7的约束有一些奇怪的bug，对Auto Layout支持并不完美。
+在出现约束冲突时，系统会尝试修复约束。iOS7和iOS8的修复结果有可能不一样。
+如果view的">
+
+
+
+<script type="text/javascript" id="hexo.configuration">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    scheme: 'Muse',
+    sidebar: {"position":"left","display":"post"},
+    fancybox: true,
+    motion: true,
+    duoshuo: {
+      userId: 0,
+      author: '博主'
+    }
+  };
+</script>
+
+
+
+
+  <link rel="canonical" href="http://yoursite.com/2016/12/13/约束冲突调试工具/"/>
+
+  <title> 约束冲突调试工具：解决iOS7调试难题 | zuik's blog </title>
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" lang="zh-Hans">
+
+  
+
+
+
+
+
+
+
+
+
+
+  
+  
+    
+  
+
+  <div class="container one-collumn sidebar-position-left page-post-detail ">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-meta ">
+  
+
+  <div class="custom-logo-site-title">
+    <a href="/"  class="brand" rel="start">
+      <span class="logo-line-before"><i></i></span>
+      <span class="site-title">zuik's blog</span>
+      <span class="logo-line-after"><i></i></span>
+    </a>
+  </div>
+  <p class="site-subtitle">写点iOS的经验</p>
+</div>
+
+<div class="site-nav-toggle">
+  <button>
+    <span class="btn-bar"></span>
+    <span class="btn-bar"></span>
+    <span class="btn-bar"></span>
+  </button>
+</div>
+
+<nav class="site-nav">
+  
+
+  
+    <ul id="menu" class="menu">
+      
+        
+        <li class="menu-item menu-item-home">
+          <a href="/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-home"></i> <br />
+            
+            首页
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-categories">
+          <a href="/categories" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-th"></i> <br />
+            
+            分类
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-archives">
+          <a href="/archives" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-archive"></i> <br />
+            
+            归档
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-tags">
+          <a href="/tags" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-tags"></i> <br />
+            
+            标签
+          </a>
+        </li>
+      
+
+      
+    </ul>
+  
+
+  
+</nav>
+
+ </div>
+    </header>
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          <div id="content" class="content">
+            
+
+  <div id="posts" class="posts-expand">
+    
+
+  
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal " itemscope itemtype="http://schema.org/Article">
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">
+            
+            
+              
+                约束冲突调试工具：解决iOS7调试难题
+              
+            
+          </h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            <span class="post-meta-item-icon">
+              <i class="fa fa-calendar-o"></i>
+            </span>
+            <span class="post-meta-item-text">发表于</span>
+            <time itemprop="dateCreated" datetime="2016-12-13T21:43:29+08:00" content="2016-12-13">
+              2016-12-13
+            </time>
+          </span>
+
+          
+            <span class="post-category" >
+              &nbsp; | &nbsp;
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+              
+                <span itemprop="about" itemscope itemtype="https://schema.org/Thing">
+                  <a href="/categories/调试技巧/" itemprop="url" rel="index">
+                    <span itemprop="name">调试技巧</span>
+                  </a>
+                </span>
+
+                
+                
+
+              
+            </span>
+          
+
+          
+            
+              <span class="post-comments-count">
+                &nbsp; | &nbsp;
+                <a href="/2016/12/13/约束冲突调试工具/#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count ds-thread-count" data-thread-key="2016/12/13/约束冲突调试工具/" itemprop="commentsCount"></span>
+                </a>
+              </span>
+            
+          
+
+          
+
+          
+          
+
+          
+
+        </div>
+      </header>
+    
+
+
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        <p><em>功能</em>：</p>
+<ul>
+<li>在非调试模式下，获取出错的具体约束。</li>
+<li>监测约束冲突，并获取出错的view和viewController。</li>
+<li>监测iOS7上layoutSubViews导致的crash问题</li>
+</ul>
+<h2 id="现状"><a href="#现状" class="headerlink" title="现状"></a>现状</h2><h3 id="iOS7对Auto-Layout的支持问题"><a href="#iOS7对Auto-Layout的支持问题" class="headerlink" title="iOS7对Auto Layout的支持问题"></a>iOS7对Auto Layout的支持问题</h3><ul>
+<li>iOS7的约束有一些奇怪的bug，对Auto Layout支持并不完美。</li>
+<li>在出现约束冲突时，系统会尝试修复约束。iOS7和iOS8的修复结果有可能不一样。</li>
+<li>如果view的<code>layoutSubviews</code>里没有调用<code>[super layoutSubviews]</code>，那么在往这个view上添加子view时，在iOS7以下会crash。例如<code>UITableView</code>，<code>UITableViewCell</code>。</li>
+</ul>
+<h3 id="iOS7的调试问题"><a href="#iOS7的调试问题" class="headerlink" title="iOS7的调试问题"></a>iOS7的调试问题</h3><ul>
+<li>Xcode7虽然不能使用iOS7模拟器调试，但是还能使用iOS7真机调试。而Xcode8已经连iOS7的真机调试都不支持了。</li>
+<li>Xcode8中编辑过的xib文件在Xcode7上会有兼容性问题，需要手动删除xib中的<code>&lt;capability name=&quot;documents saved in the Xcode 8 format&quot; minToolsVersion=&quot;8.0&quot;/&gt;</code>这一行才能在Xcode7上编译。如果要继续使用Xcode7调试，就需要修改这些xib，十分麻烦。</li>
+<li>内网开发时，无法进行真机调试，如果要用模拟器调试，需要另一台低版本的Mac OSX系统的机子以安装Xcode6，同时也会遇到Xcode的兼容性问题，因此遇到iOS7的约束问题十分麻烦，如果没有环境的话只能靠猜。</li>
+<li>约束冲突导致的crash往往在堆栈上无法得到有用的信息，因为是在系统库里crash，无法直接看出是哪个界面的约束出错。如果是在Xcode里调试，还能使用llvm的内存命令进行调试，但是在真机上就没办法了。</li>
+</ul>
+<h2 id="解决思路"><a href="#解决思路" class="headerlink" title="解决思路"></a>解决思路</h2><p>如果app能用代码监测到约束冲突，就可以在非调试模式下捕获到有用的信息，帮助快速定位问题。<br>当发生约束冲突时，控制台会输出这样的提示:</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div></pre></td><td class="code"><pre><div class="line">**Unable to simultaneously satisfy constraints.**</div><div class="line">    Probably at least one of the constraints in the following list is one you don&apos;t want. Try this: (1) look at each constraint and try to figure out which you don&apos;t expect; (2) find the code that added the unwanted constraint or constraints and fix it. (Note: If you&apos;re seeing NSAutoresizingMaskLayoutConstraints that you don&apos;t understand, refer to the documentation for the UIView property translatesAutoresizingMaskIntoConstraints)</div><div class="line">(</div><div class="line">    &quot;&lt;NSLayoutConstraint:0x7fc82d3e18a0 H:[UIView:0x7fc82aba1210(768)]&gt;&quot;,</div><div class="line">    &quot;&lt;NSLayoutConstraint:0x7fc82d6369e0 H:[UIView:0x7fc82aba1210]-(0)-|   (Names: &apos;|&apos;:UIView:0x7fc82d6b9f80 )&gt;&quot;,</div><div class="line">    &quot;&lt;NSLayoutConstraint:0x7fc82d636a30 H:|-(0)-[UIView:0x7fc82aba1210]   (Names: &apos;|&apos;:UIView:0x7fc82d6b9f80 )&gt;&quot;,</div><div class="line">    &quot;&lt;NSLayoutConstraint:0x7fc82d3e7fd0 &apos;UIView-Encapsulated-Layout-Width&apos; H:[UIView:0x7fc82d6b9f80(50)]&gt;&quot;</div><div class="line">)</div><div class="line"></div><div class="line">Will attempt to recover by breaking constraint</div><div class="line">&lt;NSLayoutConstraint:0x7fc82d3e18a0 H:[UIView:0x7fc82aba1210(768)]&gt;</div><div class="line"></div><div class="line">Make a symbolic breakpoint at UIViewAlertForUnsatisfiableConstraints to catch this in the debugger.</div><div class="line">The methods in the UIConstraintBasedLayoutDebugging category on UIView listed in &lt;UIKit/UIView.h&gt; may also be helpful.</div></pre></td></tr></table></figure>
+<p>提示我们在<code>UIViewAlertForUnsatisfiableConstraints</code>上打断点调试。<br>这是一个检测到出错约束时，进行处理的C函数。上面那串控制台的log就是在这个函数里输出的。</p>
+<p>于是可以尝试用method swizzling替换系统库的方法，记录出现冲突时的信息。<br>监测iOS7的crash问题也是同理。</p>
+<h2 id="实现方法"><a href="#实现方法" class="headerlink" title="实现方法"></a>实现方法</h2><h3 id="获取UIView"><a href="#获取UIView" class="headerlink" title="获取UIView"></a>获取UIView</h3><p>runtime无法替换私有C函数，而调用栈里<code>NSISEngine</code>的那几个方法都没附带什么有用的信息，于是用hopper反编译<code>UIKit.framework</code>，找到使用<code>UIViewAlertForUnsatisfiableConstraints</code>的地方，是<code>-[UIView engine:willBreakConstraint:dueToMutuallyExclusiveConstraints:]</code>。</p>
+<p>这个方法附带了出错约束的信息，也可以获取到冲突所在的UIView，于是也能通过UIView获取对应的viewController。接下来只要hook这个方法就可以了。</p>
+<h3 id="获取view-controller"><a href="#获取view-controller" class="headerlink" title="获取view controller"></a>获取view controller</h3><p>获取view对应的view controller的方法有两种。</p>
+<ul>
+<li>使用<code>UIView</code>的私有API:<code>_viewDelegate</code>。</li>
+<li>使用<code>UIResponder</code>的<code>nextResponder</code>：</li>
+</ul>
+<p>&gt;<br>The UIResponder class does not store or set the next responder automatically, instead returning nil by default. Subclasses must override this method to set the next responder. <strong>UIView implements this method by returning the UIViewController object that manages it (if it has one) or its superview (if it doesn’t)</strong>; UIViewController implements the method by returning its view’s superview; UIWindow returns the application object, and UIApplication returns nil.<br>&gt;</p>
+<p>参考:<a href="http://stackoverflow.com/questions/1372977/given-a-view-how-do-i-get-its-viewcontroller" target="_blank" rel="external">Given a view, how do I get its viewController?</a></p>
+<p>我选择了第二种方式。</p>
+<h3 id="监测iOS7约束导致的crash"><a href="#监测iOS7约束导致的crash" class="headerlink" title="监测iOS7约束导致的crash"></a>监测iOS7约束导致的crash</h3><p>当你在实现自定义view的<code>layoutSubviews</code>方法时，记住：</p>
+<ul>
+<li>调用<code>[super layoutSubviews]</code></li>
+<li>不要在<code>layoutSubviews</code>里增加约束</li>
+</ul>
+<p>如果不遵守这两条，当你向这个view上增加子view时，在iOS6和iOS7上会crash，控制台会输出提示：<code>&#39;Auto Layout still required after executing - layoutSubviews..&#39;</code> 。iOS8开始则不会crash。</p>
+<p>某些系统控件，例如<code>UITableView</code>，<code>UITableViewCell</code>没有调用<code>[super layoutSubviews]</code>，所以在iOS6和iOS7上不能在它们上面增加子view，除非你用method swizlling修复它们的<code>layoutSubviews</code>方法。</p>
+<p>经过反编译分析，<code>&#39;Auto Layout still required after executing - layoutSubviews..&#39;</code>发生在<code>UIView</code>的<code>layoutSublayersOfLayer:</code>里，发生错误之前会用<code>-[UIView _wantsWarningForMissingSuperLayoutSubviews]</code>来监测是否调用了<code>[super layoutSubviews]</code>，如果没有则抛出异常。<br>因此只需要hook<code>_wantsWarningForMissingSuperLayoutSubviews</code>就可以了。</p>
+<h2 id="最终效果"><a href="#最终效果" class="headerlink" title="最终效果"></a>最终效果</h2><p>设置监听方式如下，返回约束冲突所在的view，viewController，系统尝试打破的约束，目前所有的约束。</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div></pre></td><td class="code"><pre><div class="line">[ZIKConstraintsGuard monitorUnsatisfiableConstraintWithHandler:^(UIView *view, UIViewController *viewController, NSLayoutConstraint *constraintToBreak, NSArray&lt;NSLayoutConstraint *&gt; *currentConstraints) &#123;</div><div class="line">    NSLog(@&quot;检测到约束冲突！&quot;);</div><div class="line">    NSString *className = NSStringFromClass([viewController class]);</div><div class="line">    if ([className hasPrefix:@&quot;UI&quot;] &amp;&amp; ![className isEqualToString:@&quot;UIApplication&quot;]) &#123;</div><div class="line">    	  //使用某些系统控件时会出现约束冲突，例如UIAlertController</div><div class="line">        NSLog(@&quot;ignore conflict in UIKit:%@&quot;,viewController);</div><div class="line">        return;</div><div class="line">    &#125;</div><div class="line">    NSLog(@&quot;冲突所在的viewController:\n%@ \nview:\n%@&quot;,viewController,view);</div><div class="line">    //使用recursiveDescription来打印view的层级，注意这是private API</div><div class="line">    NSLog(@&quot;view hierarchy:\n%@&quot;,[view valueForKeyPath:@&quot;recursiveDescription&quot;]);</div><div class="line">    NSLog(@&quot;目前所有的约束:\n%@&quot;,currentConstraints);</div><div class="line">    NSLog(@&quot;系统尝试打破的约束:\n%@&quot;,constraintToBreak);</div><div class="line">    </div><div class="line">&#125;];</div></pre></td></tr></table></figure>
+<p>打印结果如下:</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div></pre></td><td class="code"><pre><div class="line">检测到约束冲突！</div><div class="line"></div><div class="line">冲突所在的viewController:</div><div class="line">&lt;MyViewController: 0x100201ba0&gt; </div><div class="line">view:</div><div class="line">&lt;UIView: 0x10020cbb0; frame = (0 0; 375 667); autoresize = W+H; gestureRecognizers = &lt;NSArray: 0x170242b50&gt;; layer = &lt;UIWindowLayer: 0x17002b240&gt;&gt;</div><div class="line"></div><div class="line">view hierarchy:</div><div class="line"></div><div class="line">&lt;UIView: 0x10020cbb0; frame = (0 0; 375 667); autoresize = W+H; gestureRecognizers = &lt;NSArray: 0x170242b50&gt;; layer = &lt;UIWindowLayer: 0x17002b240&gt;&gt;</div><div class="line">   | &lt;UIView: 0x10020fd00; frame = (0 0; 375 667); autoresize = W+H; layer = &lt;CALayer: 0x17002b780&gt;&gt;</div><div class="line">   |    | &lt;_UILayoutGuide: 0x1002100a0; frame = (0 0; 0 0); hidden = YES; layer = &lt;CALayer: 0x17002b820&gt;&gt;</div><div class="line">   |    | &lt;_UILayoutGuide: 0x100210650; frame = (0 0; 0 0); hidden = YES; layer = &lt;CALayer: 0x17002b8e0&gt;&gt;</div><div class="line">   |    | &lt;UITableView: 0x10081cc00; frame = (100 100; 100 100); clipsToBounds = YES; gestureRecognizers = &lt;NSArray: 0x170243e70&gt;; layer = &lt;CALayer: 0x17002bf20&gt;; contentOffset: &#123;0, 0&#125;; contentSize: &#123;0, 0&#125;&gt;</div><div class="line">   |    |    | &lt;UITableViewWrapperView: 0x10080fe00; frame = (0 0; 100 100); gestureRecognizers = &lt;NSArray: 0x1702441a0&gt;; layer = &lt;CALayer: 0x17002bf80&gt;; contentOffset: &#123;0, 0&#125;; contentSize: &#123;100, 100&#125;&gt;</div><div class="line"></div><div class="line">目前所有的约束:</div><div class="line">(</div><div class="line">    &quot;&lt;NSLayoutConstraint:0x17008a500 UITableView:0x10081cc00.top == UITableView:0x10081cc00.top + 10   (active)&gt;&quot;</div><div class="line">)</div><div class="line"></div><div class="line">系统尝试打破的约束:</div><div class="line">&lt;NSLayoutConstraint:0x17008a500 UITableView:0x10081cc00.top == UITableView:0x10081cc00.top + 10   (active)&gt;</div></pre></td></tr></table></figure>
+<p>这样就能根据记录到的内存地址，准确地找到是哪个界面的哪个控件的约束出错了，即便在iOS7上crash，也能在crash之前记录到错误信息。</p>
+<h2 id="需要注意的问题"><a href="#需要注意的问题" class="headerlink" title="需要注意的问题"></a>需要注意的问题</h2><ul>
+<li>某些系统控件本身存在约束冲突的问题，例如在使用<code>UIAlertController</code>的时候。目前是在检测到冲突时，再检测viewController的类型前缀，如果是<code>UI</code>前缀则忽略。</li>
+<li>同一个约束冲突有时候会有多次回调。这些回调来自处理auto layout的不同阶段，例如添加重复约束时、<code>addSubview</code>时，<code>layoutSubLayer</code>时等。</li>
+</ul>
+<h2 id="源代码"><a href="#源代码" class="headerlink" title="源代码"></a>源代码</h2><p>工具地址在此：<a href="https://github.com/Zuikyo/ZIKConstraintsGuard" target="_blank" rel="external">ZIKConstraintsGuard</a>。</p>
+
+      
+    </div>
+
+    <div>
+      
+        
+
+      
+    </div>
+
+    <div>
+      
+        
+
+      
+    </div>
+
+    <footer class="post-footer">
+      
+        <div class="post-tags">
+          
+            <a href="/tags/iOS/" rel="tag">#iOS</a>
+          
+        </div>
+      
+
+      
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
+            
+              <a href="/2016/12/07/interface的规范写法/" rel="next" title="@inerface的11条规范写法">
+                <i class="fa fa-chevron-left"></i> @inerface的11条规范写法
+              </a>
+            
+          </div>
+
+          <div class="post-nav-prev post-nav-item">
+            
+              <a href="/2016/12/18/iOS Crash日志分析必备：符号化系统库方法/" rel="prev" title="iOS Crash分析必备：符号化系统库方法">
+                iOS Crash分析必备：符号化系统库方法 <i class="fa fa-chevron-right"></i>
+              </a>
+            
+          </div>
+        </div>
+      
+
+      
+      
+    </footer>
+  </article>
+
+
+
+    <div class="post-spread">
+      
+    </div>
+  </div>
+
+<script async src="https://dn-lbstatics.qbox.me/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+
+<span id="busuanzi_container_page_pv">
+</br>本文总阅读量<span id="busuanzi_value_page_pv"></span>次
+</span>
+
+
+          </div>
+          
+
+
+          
+  <div class="comments" id="comments">
+    
+      <div class="ds-thread" data-thread-key="2016/12/13/约束冲突调试工具/"
+           data-title="约束冲突调试工具：解决iOS7调试难题" data-url="http://yoursite.com/2016/12/13/约束冲突调试工具/">
+      </div>
+    
+  </div>
+
+
+        </div>
+        
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    <div class="sidebar-inner">
+
+      
+
+      
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap" >
+            文章目录
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview">
+            站点概览
+          </li>
+        </ul>
+      
+
+      <section class="site-overview sidebar-panel ">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+          <img class="site-author-image" itemprop="image"
+               src="/images/avatar.png"
+               alt="zuik" />
+          <p class="site-author-name" itemprop="name">zuik</p>
+          <p class="site-description motion-element" itemprop="description">记录踩过的坑</p>
+        </div>
+        <nav class="site-state motion-element">
+          <div class="site-state-item site-state-posts">
+            <a href="/archives">
+              <span class="site-state-item-count">5</span>
+              <span class="site-state-item-name">日志</span>
+            </a>
+          </div>
+
+          
+            <div class="site-state-item site-state-categories">
+              <a href="/categories">
+                <span class="site-state-item-count">5</span>
+                <span class="site-state-item-name">分类</span>
+              </a>
+            </div>
+          
+
+          
+            <div class="site-state-item site-state-tags">
+              <a href="/tags">
+                <span class="site-state-item-count">1</span>
+                <span class="site-state-item-name">标签</span>
+              </a>
+            </div>
+          
+
+        </nav>
+
+        
+          <div class="feed-link motion-element">
+            <a href="/atom.xml" rel="alternate">
+              <i class="fa fa-rss"></i>
+              RSS
+            </a>
+          </div>
+        
+
+        <div class="links-of-author motion-element">
+          
+        </div>
+
+        
+        
+
+        
+        
+
+      </section>
+
+      
+        <section class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc">
+            
+              
+            
+            
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#现状"><span class="nav-number">1.</span> <span class="nav-text">现状</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#iOS7对Auto-Layout的支持问题"><span class="nav-number">1.1.</span> <span class="nav-text">iOS7对Auto Layout的支持问题</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#iOS7的调试问题"><span class="nav-number">1.2.</span> <span class="nav-text">iOS7的调试问题</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#解决思路"><span class="nav-number">2.</span> <span class="nav-text">解决思路</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#实现方法"><span class="nav-number">3.</span> <span class="nav-text">实现方法</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#获取UIView"><span class="nav-number">3.1.</span> <span class="nav-text">获取UIView</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#获取view-controller"><span class="nav-number">3.2.</span> <span class="nav-text">获取view controller</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#监测iOS7约束导致的crash"><span class="nav-number">3.3.</span> <span class="nav-text">监测iOS7约束导致的crash</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#最终效果"><span class="nav-number">4.</span> <span class="nav-text">最终效果</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#需要注意的问题"><span class="nav-number">5.</span> <span class="nav-text">需要注意的问题</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#源代码"><span class="nav-number">6.</span> <span class="nav-text">源代码</span></a></li></ol></div>
+            
+          </div>
+        </section>
+      
+
+    </div>
+  </aside>
+
+
+        
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright" >
+  
+  &copy; 
+  <span itemprop="copyrightYear">2017</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">zuik</span>
+</div>
+
+<div class="powered-by">
+  由 <a class="theme-link" href="https://hexo.io">Hexo</a> 强力驱动
+</div>
+
+<div class="theme-info">
+  主题 -
+  <a class="theme-link" href="https://github.com/iissnan/hexo-theme-next">
+    NexT.Muse
+  </a>
+</div>
+
+<script>
+(function(){
+var bp = document.createElement('script');
+bp.src = '//push.zhanzhang.baidu.com/push.js';
+var s = document.getElementsByTagName("script")[0];
+s.parentNode.insertBefore(bp, s);
+})();
+</script>
+
+        
+
+        
+      </div>
+    </footer>
+
+    <div class="back-to-top">
+      <i class="fa fa-arrow-up"></i>
+    </div>
+  </div>
+
+  
+
+<script type="text/javascript">
+  if (Object.prototype.toString.call(window.Promise) !== '[object Function]') {
+    window.Promise = null;
+  }
+</script>
+
+
+
+
+
+
+
+
+
+  
+
+
+
+  
+  <script type="text/javascript" src="/vendors/jquery/index.js?v=2.1.3"></script>
+
+  
+  <script type="text/javascript" src="/vendors/fastclick/lib/fastclick.min.js?v=1.0.6"></script>
+
+  
+  <script type="text/javascript" src="/vendors/jquery_lazyload/jquery.lazyload.js?v=1.9.7"></script>
+
+  
+  <script type="text/javascript" src="/vendors/velocity/velocity.min.js?v=1.2.1"></script>
+
+  
+  <script type="text/javascript" src="/vendors/velocity/velocity.ui.min.js?v=1.2.1"></script>
+
+  
+  <script type="text/javascript" src="/vendors/fancybox/source/jquery.fancybox.pack.js?v=2.1.5"></script>
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/utils.js?v=5.0.1"></script>
+
+  <script type="text/javascript" src="/js/src/motion.js?v=5.0.1"></script>
+
+
+
+  
+  
+
+  
+  <script type="text/javascript" src="/js/src/scrollspy.js?v=5.0.1"></script>
+<script type="text/javascript" src="/js/src/post-details.js?v=5.0.1"></script>
+
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/bootstrap.js?v=5.0.1"></script>
+
+
+
+  
+
+  
+    
+  
+
+  <script type="text/javascript">
+    var duoshuoQuery = {short_name:"zuik"};
+    (function() {
+      var ds = document.createElement('script');
+      ds.type = 'text/javascript';ds.async = true;
+      ds.id = 'duoshuo-script';
+      ds.src = (document.location.protocol == 'https:' ? 'https:' : 'http:') + '//static.duoshuo.com/embed.js';
+      ds.charset = 'UTF-8';
+      (document.getElementsByTagName('head')[0]
+      || document.getElementsByTagName('body')[0]).appendChild(ds);
+    })();
+  </script>
+
+  
+    
+    <script src="/vendors/ua-parser-js/dist/ua-parser.min.js?v=0.7.9"></script>
+    <script src="/js/src/hook-duoshuo.js"></script>
+  
+
+
+
+
+
+
+  
+  
+
+  
+
+  
+
+  
+
+</body>
+</html>

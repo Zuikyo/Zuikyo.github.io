@@ -1,0 +1,1091 @@
+<!doctype html>
+
+
+
+  
+
+
+<html class="theme-next muse use-motion">
+<head>
+  <meta charset="UTF-8"/>
+<meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1"/>
+
+
+
+<meta http-equiv="Cache-Control" content="no-transform" />
+<meta http-equiv="Cache-Control" content="no-siteapp" />
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+  <link href="/vendors/fancybox/source/jquery.fancybox.css?v=2.1.5" rel="stylesheet" type="text/css" />
+
+
+
+
+  
+  
+  
+  
+
+  
+    
+    
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+    
+    
+    <link href="//fonts.googleapis.com/css?family=Lato:300,300italic,400,400italic,700,700italic&subset=latin,latin-ext" rel="stylesheet" type="text/css">
+  
+
+
+
+
+
+
+<link href="/vendors/font-awesome/css/font-awesome.min.css?v=4.4.0" rel="stylesheet" type="text/css" />
+
+<link href="/css/main.css?v=5.0.1" rel="stylesheet" type="text/css" />
+
+
+  <meta name="keywords" content="iOS," />
+
+
+
+
+
+  <link rel="alternate" href="/atom.xml" title="zuik's blog" type="application/atom+xml" />
+
+
+
+
+  <link rel="shortcut icon" type="image/x-icon" href="/favicon.ico?v=5.0.1" />
+
+
+
+
+
+
+<meta name="description" content="如果你有过分析iOS崩溃日志的经验，一定经常看到日志里出现很多&amp;lt;redacted&amp;gt;的字段。这篇文章就是帮助开发者将这些字段符号化为对应的系统库方法名。
+如果你已经掌握了这方面的知识，就直接去下面的网盘下载地址目录，下载我整理好的系统库符号文件吧。
+符号化的作用当获取到app的crash日志时，第一步就是将其符号化。作用是把日志堆栈中的方法调用显示出来，对于来自app内部的方法，还能直接">
+<meta property="og:type" content="article">
+<meta property="og:title" content="iOS Crash分析必备：符号化系统库方法">
+<meta property="og:url" content="http://yoursite.com/2016/12/18/iOS Crash日志分析必备：符号化系统库方法/index.html">
+<meta property="og:site_name" content="zuik's blog">
+<meta property="og:description" content="如果你有过分析iOS崩溃日志的经验，一定经常看到日志里出现很多&amp;lt;redacted&amp;gt;的字段。这篇文章就是帮助开发者将这些字段符号化为对应的系统库方法名。
+如果你已经掌握了这方面的知识，就直接去下面的网盘下载地址目录，下载我整理好的系统库符号文件吧。
+符号化的作用当获取到app的crash日志时，第一步就是将其符号化。作用是把日志堆栈中的方法调用显示出来，对于来自app内部的方法，还能直接">
+<meta property="og:updated_time" content="2017-05-03T08:20:19.180Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="iOS Crash分析必备：符号化系统库方法">
+<meta name="twitter:description" content="如果你有过分析iOS崩溃日志的经验，一定经常看到日志里出现很多&amp;lt;redacted&amp;gt;的字段。这篇文章就是帮助开发者将这些字段符号化为对应的系统库方法名。
+如果你已经掌握了这方面的知识，就直接去下面的网盘下载地址目录，下载我整理好的系统库符号文件吧。
+符号化的作用当获取到app的crash日志时，第一步就是将其符号化。作用是把日志堆栈中的方法调用显示出来，对于来自app内部的方法，还能直接">
+
+
+
+<script type="text/javascript" id="hexo.configuration">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    scheme: 'Muse',
+    sidebar: {"position":"left","display":"post"},
+    fancybox: true,
+    motion: true,
+    duoshuo: {
+      userId: 0,
+      author: '博主'
+    }
+  };
+</script>
+
+
+
+
+  <link rel="canonical" href="http://yoursite.com/2016/12/18/iOS Crash日志分析必备：符号化系统库方法/"/>
+
+  <title> iOS Crash分析必备：符号化系统库方法 | zuik's blog </title>
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" lang="zh-Hans">
+
+  
+
+
+
+
+
+
+
+
+
+
+  
+  
+    
+  
+
+  <div class="container one-collumn sidebar-position-left page-post-detail ">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-meta ">
+  
+
+  <div class="custom-logo-site-title">
+    <a href="/"  class="brand" rel="start">
+      <span class="logo-line-before"><i></i></span>
+      <span class="site-title">zuik's blog</span>
+      <span class="logo-line-after"><i></i></span>
+    </a>
+  </div>
+  <p class="site-subtitle">写点iOS的经验</p>
+</div>
+
+<div class="site-nav-toggle">
+  <button>
+    <span class="btn-bar"></span>
+    <span class="btn-bar"></span>
+    <span class="btn-bar"></span>
+  </button>
+</div>
+
+<nav class="site-nav">
+  
+
+  
+    <ul id="menu" class="menu">
+      
+        
+        <li class="menu-item menu-item-home">
+          <a href="/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-home"></i> <br />
+            
+            首页
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-categories">
+          <a href="/categories" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-th"></i> <br />
+            
+            分类
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-archives">
+          <a href="/archives" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-archive"></i> <br />
+            
+            归档
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-tags">
+          <a href="/tags" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-tags"></i> <br />
+            
+            标签
+          </a>
+        </li>
+      
+
+      
+    </ul>
+  
+
+  
+</nav>
+
+ </div>
+    </header>
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          <div id="content" class="content">
+            
+
+  <div id="posts" class="posts-expand">
+    
+
+  
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal " itemscope itemtype="http://schema.org/Article">
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">
+            
+            
+              
+                iOS Crash分析必备：符号化系统库方法
+              
+            
+          </h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            <span class="post-meta-item-icon">
+              <i class="fa fa-calendar-o"></i>
+            </span>
+            <span class="post-meta-item-text">发表于</span>
+            <time itemprop="dateCreated" datetime="2016-12-18T04:52:00+08:00" content="2016-12-18">
+              2016-12-18
+            </time>
+          </span>
+
+          
+            <span class="post-category" >
+              &nbsp; | &nbsp;
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+              
+                <span itemprop="about" itemscope itemtype="https://schema.org/Thing">
+                  <a href="/categories/调试技巧/" itemprop="url" rel="index">
+                    <span itemprop="name">调试技巧</span>
+                  </a>
+                </span>
+
+                
+                
+                  ， 
+                
+
+              
+                <span itemprop="about" itemscope itemtype="https://schema.org/Thing">
+                  <a href="/categories/调试技巧/crash分析/" itemprop="url" rel="index">
+                    <span itemprop="name">crash分析</span>
+                  </a>
+                </span>
+
+                
+                
+
+              
+            </span>
+          
+
+          
+            
+              <span class="post-comments-count">
+                &nbsp; | &nbsp;
+                <a href="/2016/12/18/iOS Crash日志分析必备：符号化系统库方法/#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count ds-thread-count" data-thread-key="2016/12/18/iOS Crash日志分析必备：符号化系统库方法/" itemprop="commentsCount"></span>
+                </a>
+              </span>
+            
+          
+
+          
+
+          
+          
+
+          
+
+        </div>
+      </header>
+    
+
+
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        <p>如果你有过分析iOS崩溃日志的经验，一定经常看到日志里出现很多<code>&lt;redacted&gt;</code>的字段。这篇文章就是帮助开发者将这些字段符号化为对应的系统库方法名。</p>
+<p>如果你已经掌握了这方面的知识，就直接去下面的<a href="#wang-pan">网盘下载地址</a>目录，下载我整理好的系统库符号文件吧。</p>
+<h2 id="符号化的作用"><a href="#符号化的作用" class="headerlink" title="符号化的作用"></a>符号化的作用</h2><p>当获取到app的crash日志时，第一步就是将其符号化。作用是把日志堆栈中的方法调用显示出来，对于来自app内部的方法，还能直接给出方法对应.m文件的所在行。</p>
+<p>符号化前（这里项目的<code>Build Settings</code>里的<code>Strip Style</code>设为了<code>Debugging Symbols</code>，所以这里能直接看到<code>MyApp</code>的方法名。更多和symbol相关的设置，请看<a href="http://www.jianshu.com/p/11710e7ab661" target="_blank" rel="external">这里</a>）：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div></pre></td><td class="code"><pre><div class="line">Thread 7:</div><div class="line">0   libsystem_kernel.dylib          0x000000018efb416c 0x18efb3000 + 4460 (mach_msg_trap + 8)</div><div class="line">1   libsystem_kernel.dylib          0x000000018efb3fdc 0x18efb3000 + 4060 (mach_msg + 72)</div><div class="line">2   MyApp                           0x000000010091e558 0x1000bc000 + 8791384 (ksmachexc_i_handleExceptions + 148)</div><div class="line">3   libsystem_pthread.dylib         0x000000018f097860 0x18f094000 + 14432 (&lt;redacted&gt; + 240)</div><div class="line">4   libsystem_pthread.dylib         0x000000018f097770 0x18f094000 + 14192 (_pthread_start + 284)</div></pre></td></tr></table></figure>
+<p>符号化后：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div></pre></td><td class="code"><pre><div class="line">Thread 7:</div><div class="line">0   libsystem_kernel.dylib          0x000000018efb416c mach_msg_trap + 8</div><div class="line">1   libsystem_kernel.dylib          0x000000018efb3fdc mach_msg + 72</div><div class="line">2   MyApp                           0x000000010091e558 ksmachexc_i_handleExceptions (KSCrashSentry_MachException.c:233)</div><div class="line">3   libsystem_pthread.dylib         0x000000018f097860 _pthread_body + 240</div><div class="line">4   libsystem_pthread.dylib         0x000000018f097770 _pthread_body + 0</div></pre></td></tr></table></figure>
+<p>可以发现，frame 3里<code>libsystem_pthread.dylib</code>的<code>&lt;redacted&gt;</code>变成了<code>_pthread_body</code>，frame 2里<code>MyApp</code>的<code>ksmachexc_i_handleExceptions</code>变成了更为完整的<code>ksmachexc_i_handleExceptions (KSCrashSentry_MachException.c:233)</code>，直接给出了方法及其所在文件和行数。</p>
+<p>详细的符号化方法，请参考<a href="http://wufawei.com/2014/03/symbolicating-ios-crash-logs/" target="_blank" rel="external">符号化iOS Crash文件的3种方法</a>。这里就不重复了。</p>
+<p>需要注意的是，很多时候，crash日志里并不会有MyApp的调用，而全都是系统库的调用：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div></pre></td><td class="code"><pre><div class="line">Thread 0 name:  Dispatch queue: com.apple.main-thread</div><div class="line">Thread 0 Crashed:</div><div class="line">0   libobjc.A.dylib                 0x000000018b816f30 0x18b7fc000 + 110384 (objc_msgSend + 16)</div><div class="line">1   UIKit                           0x0000000192e0a79c 0x192c05000 + 2119580 (&lt;redacted&gt; + 72)</div><div class="line">2   UIKit                           0x0000000192c4db48 0x192c05000 + 297800 (&lt;redacted&gt; + 312)</div><div class="line">3   UIKit                           0x0000000192c4d988 0x192c05000 + 297352 (&lt;redacted&gt; + 160)</div><div class="line">4   QuartzCore                      0x00000001900d6404 0x18ffc5000 + 1119236 (&lt;redacted&gt; + 260)</div><div class="line">5   libdispatch.dylib               0x000000018bc551c0 0x18bc54000 + 4544 (&lt;redacted&gt; + 16)</div><div class="line">6   libdispatch.dylib               0x000000018bc59d6c 0x18bc54000 + 23916 (_dispatch_main_queue_callback_4CF + 1000)</div><div class="line">7   CoreFoundation                  0x000000018cd79f2c 0x18cc9d000 + 905004 (&lt;redacted&gt; + 12)</div><div class="line">8   CoreFoundation                  0x000000018cd77b18 0x18cc9d000 + 895768 (&lt;redacted&gt; + 1660)</div><div class="line">9   CoreFoundation                  0x000000018cca6048 0x18cc9d000 + 36936 (CFRunLoopRunSpecific + 444)</div><div class="line">10  GraphicsServices                0x000000018e729198 0x18e71d000 + 49560 (GSEventRunModal + 180)</div><div class="line">11  UIKit                           0x0000000192c80628 0x192c05000 + 505384 (&lt;redacted&gt; + 684)</div><div class="line">12  UIKit                           0x0000000192c7b360 0x192c05000 + 484192 (UIApplicationMain + 208)</div><div class="line">13  MyApp                           0x0000000100016e54 0x100004000 + 77396 (_mh_execute_header + 77396)</div><div class="line">14  libdyld.dylib                   0x000000018bc885b8 0x18bc84000 + 17848 (&lt;redacted&gt; + 4)</div></pre></td></tr></table></figure>
+<p>这时候就必须符号化系统库了。符号化后的日志：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div></pre></td><td class="code"><pre><div class="line">Thread 0 name:  Dispatch queue: com.apple.main-thread</div><div class="line">Thread 0 Crashed:</div><div class="line">0   libobjc.A.dylib                 0x000000018b816f30 objc_msgSend + 16</div><div class="line">1   UIKit                           0x0000000192e0a79c -[UISearchDisplayController _sendDelegateDidBeginDidEndSearch] + 72</div><div class="line">2   UIKit                           0x0000000192c4db48 -[UIViewAnimationState sendDelegateAnimationDidStop:finished:] + 312</div><div class="line">3   UIKit                           0x0000000192c4d988 -[UIViewAnimationState animationDidStop:finished:] + 160</div><div class="line">4   QuartzCore                      0x00000001900d6404 CA::Layer::run_animation_callbacks(void*) + 260</div><div class="line">5   libdispatch.dylib               0x000000018bc551c0 _dispatch_client_callout + 16</div><div class="line">6   libdispatch.dylib               0x000000018bc59d6c _dispatch_main_queue_callback_4CF + 1000</div><div class="line">7   CoreFoundation                  0x000000018cd79f2c __CFRUNLOOP_IS_SERVICING_THE_MAIN_DISPATCH_QUEUE__ + 12</div><div class="line">8   CoreFoundation                  0x000000018cd77b18 __CFRunLoopRun + 1660</div><div class="line">9   CoreFoundation                  0x000000018cca6048 CFRunLoopRunSpecific + 444</div><div class="line">10  GraphicsServices                0x000000018e729198 GSEventRunModal + 180</div><div class="line">11  UIKit                           0x0000000192c80628 -[UIApplication _run] + 684</div><div class="line">12  UIKit                           0x0000000192c7b360 UIApplicationMain + 208</div><div class="line">13  MyApp                           0x0000000100016e54 main (main.m:15)</div><div class="line">14  libdyld.dylib                   0x000000018bc885b8 start + 4</div></pre></td></tr></table></figure>
+<p>可以看出是<code>UISearchController</code>的<code>delegate</code>导致的问题，检查一下就发现<code>UISearchDisplayController</code>的<code>delegate</code>是<code>assign</code>的，是由于点击搜索条的同时pop了界面导致的crash。</p>
+<p>从这里可以发现，符号化系统库是很有必要的。</p>
+<p>##如何符号化系统库</p>
+<p>符号化自己app的方法名，需要编译ipa时生成的dySYM文件。而要将系统库的<code>&lt;redacted&gt;</code>符号化为完整的方法名，也需要系统库的符号文件。</p>
+<h3 id="1-匹配对应的符号文件版本"><a href="#1-匹配对应的符号文件版本" class="headerlink" title="1. 匹配对应的符号文件版本"></a>1. 匹配对应的符号文件版本</h3><p>系统库符号文件不是通用的，而是对应crash所在设备的系统版本和CPU型号的。</p>
+<p>crash日志中有这样两个信息：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div></pre></td><td class="code"><pre><div class="line">Code Type:       ARM-64</div><div class="line">OS Version:      iOS 10.2 (14C82)</div></pre></td></tr></table></figure>
+<p><code>Code Type</code>表示此设备的CPU为<code>armv7</code>、<code>armv7s</code>还是<code>arm64</code>。</p>
+<p><code>OS Version</code>表示此设备的系统版本号，括号中的字符串代表了此系统的build号。可以在这里查找build号：<a href="https://en.wikipedia.org/wiki/IOS_SDK" target="_blank" rel="external">iOS SDK</a>，<a href="https://en.wikipedia.org/wiki/IOS_version_history#iOS_10" target="_blank" rel="external">iOS version history</a>。</p>
+<h3 id="2-将对应版本的符号文件放到指定目录"><a href="#2-将对应版本的符号文件放到指定目录" class="headerlink" title="2. 将对应版本的符号文件放到指定目录"></a>2. 将对应版本的符号文件放到指定目录</h3><p>这时候，把获取到的对应版本的符号文件放到Mac的<code>~/Library/Developer/Xcode/iOS DeviceSupport</code>目录下，再使用<a href="http://wufawei.com/2014/03/symbolicating-ios-crash-logs/" target="_blank" rel="external">符号化iOS Crash文件的3种方法</a>里提到的Xcode自带的符号化工具<code>symbolicatecrash</code>进行符号化。这个工具会自动搜索系统库符号文件。</p>
+<h2 id="获取系统符号文件的4个方法"><a href="#获取系统符号文件的4个方法" class="headerlink" title="获取系统符号文件的4个方法"></a>获取系统符号文件的4个方法</h2><h3 id="从真机上获取"><a href="#从真机上获取" class="headerlink" title="从真机上获取"></a>从真机上获取</h3><p>大部分系统库符号文件只能从真机上获取，苹果也没有提供下载。<br>当你用Xcode第一次连接某台设备进行真机调试时，会看到Xcode显示<code>Processing symbol files</code>，这时候就是在拷贝真机上的符号文件到Mac系统的<code>/Users/xxx/Library/Developer/Xcode/iOS DeviceSupport</code>目录下。</p>
+<p>目录下的<code>10.2(14C82)</code>这样的文件夹就是对应的符号文件，通常都有1-3GB的大小，很占用空间，动不动就累积成3、40GB。很多讲清理Mac垃圾文件的教程都会说要删除这个目录下的文件，真是坑爹。正确做法是做成压缩包保存到外部硬盘里，需要符号化的时候再重新解压到此目录。</p>
+<h3 id="寻找苹果官方的下载地址"><a href="#寻找苹果官方的下载地址" class="headerlink" title="寻找苹果官方的下载地址"></a>寻找苹果官方的下载地址</h3><p>之前watch的调试出现bug时，有人找出过几个watch的符号文件下载地址。见<a href="https://forums.developer.apple.com/thread/3380" target="_blank" rel="external">No symbols for paired Apple Watch</a>。<br>但是我尝试按照对应的命名格式，并没有找到iOS符号文件的下载地址。</p>
+<h3 id="从已解密的固件中提取符号文件"><a href="#从已解密的固件中提取符号文件" class="headerlink" title="从已解密的固件中提取符号文件"></a>从已解密的固件中提取符号文件</h3><p>某些已经被破解的固件可以直接提取系统文件，但是未破解的固件（较新的固件和<code>arm64</code>的固件），无法用这种方式获取。</p>
+<p>固件解密步骤：</p>
+<p>1.下载对应版本的.ipsw固件，直接解压，解压后里面有几个<code>.dmg</code>格式的镜像文件，最大的<code>.dmg</code>文件就是系统镜像。<br>2.从<a href="https://www.theiphonewiki.com/wiki/Firmware_Keys" target="_blank" rel="external">Firmware_Keys</a>找到对应固件的解密key（页面上<code>Root Filesystem</code>字段的key）。<br>3.用一个<code>dmg</code>工具进行解密，<a href="http://modmyi.com/attachments/forums/general-verizon-sprint-cdma-iphone-chat/643832d1372672304-cant-decrypt-ios-7-beta-help-dmg.zip" target="_blank" rel="external">下载地址</a>。使用方式：<code>cd</code>到解压后的ipsw文件夹，执行<code>./dmg extract xxx-xxxx-xxx.dmg dec.dmg -k &lt;key&gt;</code>。<code>extract</code>后面跟两个参数，分别是系统镜像dmg的名字和解密后的文件名，-k 后面填写第2步获取到的key，如果key不对，解密会失败。<br>4.等待。最终会生成一个<code>dec.dmg</code>文件，双击打开即可加载系统镜像。</p>
+<p>提取符号文件方法：<br>参考<a href="http://crash.163.com/#news/!newsId=31" target="_blank" rel="external">聊聊从iOS固件提取系统库符号</a>中的<code>二、系统库符号提取</code>部分。</p>
+<h3 id="下载旧版本Xcode，提取SDK"><a href="#下载旧版本Xcode，提取SDK" class="headerlink" title="下载旧版本Xcode，提取SDK"></a>下载旧版本Xcode，提取SDK</h3><p>旧版本的Xcode里包含了对应的iPhoneSDK，可以从中获得符号文件。<br>路径是<code>/Applications/Xcode.app/Contents/Developer/Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS.sdk/</code>。里面的<code>System/Library</code>里就可以看到framework，而且同时包含了<code>armv7</code>,<code>armv7s</code>,<code>arm64</code>3个平台的版本。</p>
+<p><code>/Applications/Xcode.app/Contents/Developer/Platforms/iPhoneOS.platform/version.plist</code>可以查看是哪个版本。把<code>iPhoneOS.sdk</code>文件夹的名字改成对应的<code>CFBundleVersion (ProductBuildVersion)</code>格式，然后在里面加一层<code>Symbols</code>子文件夹，把<code>System</code>,<code>Library</code>,<code>usr</code>都放进<code>Symbols</code>里，就可以和其他符号文件一样使用了。</p>
+<p>但是当iOS版本只包含了bug修复，而没有改变API，Xcode就不会有附带对应的SDK，还是需要从真机上获取。而且从Xcode7开始，苹果用<code>tbd</code>文件代替了真机符号文件，所以这个方法也失效了。<br>参考：<a href="http://stackoverflow.com/questions/14941773/xcode-software-image-for-user-ios-in-order-to-symbolicate-ios-calls" target="_blank" rel="external">Xcode software image for user iOS in order to symbolicate iOS calls</a>, <a href="http://stackoverflow.com/a/28408052/6380485" target="_blank" rel="external">Missing iOS symbols at “~/Library/Developer/Xcode/iOS DeviceSupport”</a>。</p>
+<h2 id="获取符号文件的难题"><a href="#获取符号文件的难题" class="headerlink" title="获取符号文件的难题"></a>获取符号文件的难题</h2><p>这个时候，游戏就开始了：</p>
+<ul>
+<li>很多时候crash日志只给出了系统的调用栈，不能直接定位到自己app的代码，因此需要符号化系统库。</li>
+<li>用户的crash来自各种系统版本，需要对应版本的系统符号文件才能符号化。</li>
+<li>系统库符号文件只能从真机上获取，苹果没有提供下载。</li>
+<li>从<code>iOS 7.0(11A465)</code>到<code>iOS 10.2(14C92)</code>一共有50个build版本，公司的测试机是不会覆盖到这么变态的完整度的。</li>
+<li>同一个版本，有时候会给iPhone和iPad、甚至6和6s提供不同build的固件。</li>
+<li>某些版本是某些机子的特供版，例如<code>10.0.3(14A551)</code>是iPhone 7和 7 Plus独有的，这就更加大了收集难度。</li>
+<li>同一个iOS版本可能有多个build，例如<code>10.1(14B72)</code>和<code>10.1(14B72c)</code>，苹果觉得更新幅度太小，就没有提升版本号。</li>
+<li>除了build号的区别，符号文件在不同CPU平台上也有区别，意味着来自4s(<code>armv7</code>)和6s(<code>arm64</code>)的符号文件，即便build号是一样的，也无法通用。所以50个build号又要翻倍，达到了88个，所以精确来说我只是收集了（63/88）的进度。幸运的是，<code>arm64</code>机型的系统库里附带了<code>armv7s</code>。</li>
+</ul>
+<p>规则好厉害的收集游戏啊。收集品其实还有稀有度的区别，其中最厉害的应该是<code>10.0</code>，这是iPhone 7和7 Plus独有的出厂系统，而且没有固件可以下载，因此即便有iPhone 7也不能通过刷机来得到<code>10.0</code>。</p>
+<p>其实我一直很奇怪为什么很少见到开发者抱怨找不到系统符号文件，从而召集大家进行收集并分享，猜测可能的原因是：</p>
+<ul>
+<li>懒。遇到无法符号化的问题，没有去解决。</li>
+<li>有些公司可能很早就开始对crash日志自动符号化了，因此很早就开始收集符号文件。只要一直跟着苹果的每一个版本升级，收集起来还是挺简单的。而这些资源，开发者并不会注意到可以共享出来。</li>
+<li>crash收集和符号化使用的是第三方服务，第三方平台会帮助符号化系统库。</li>
+</ul>
+<p>但是我找了一下，没有找到一家明确声明了能够符号化所有系统库的第三方平台。从腾讯的Bugly论坛里也能发现，有些系统方法并没有符号化出来，系统库是缺失的。（<strong>update</strong>：找到了一个国外的平台，在<a href="http://stackoverflow.com/questions/12058901/ios-system-symbol-symbolication-service" target="_blank" rel="external">stack overflow</a>上说能符号化所有版本的系统库，但是是收费服务，我也没有测试）</p>
+<p>在公司小组里，大部分时候都是我来分析crash日志，所以当遇到缺少系统符号文件的情况，就会十分无奈。很多时候，没有符号化的crash日志根本无法提供有用信息。</p>
+<h2 id="系统符号文件下载地址"><a href="#系统符号文件下载地址" class="headerlink" title="系统符号文件下载地址"></a>系统符号文件下载地址</h2><h3 id="暴力收集"><a href="#暴力收集" class="headerlink" title="暴力收集"></a>暴力收集</h3><p>收集不全一直让我很不爽。之前搜刮了组内的测试机，只收集到了有限的几个（感谢无私提供iPhone 7让我刷机降级的同事）。终于，这周末特意跑去了一趟二手机市场寻找旧版本的设备来拷贝，总算是收集得完整了一点，但是也花了我121块钱。</p>
+<p>心情总算愉悦了。</p>
+<p>其中大部分都是拷贝自<code>arm64</code>设备的，<code>armv7</code>的符号文件收集我是放弃了。有哪位大侠有兴趣把这个游戏玩通关的吗？还有 tvOS 和 watchOS的符号，我也放弃了。<br>(update:又花了些时间从Xcode的SDK和固件里提取了<code>armv7s</code>和<code>armv7</code>的固件，现在只剩下几个<code>arm64</code>的版本了)。</p>
+<p>整理了一下传到了网盘，地址见下方，有需要的去下载吧。</p>
+<h3 id="目前还缺少的符号文件"><a href="#目前还缺少的符号文件" class="headerlink" title="目前还缺少的符号文件"></a>目前还缺少的符号文件</h3><p>如果有人有这几个符号文件的，恳请你分享！</p>
+<p>分享可以直接贴下载地址，也可以提交到这个github项目<a href="https://github.com/Zuikyo/iOS-System-Symbols" target="_blank" rel="external">iOS-System-Symbols</a>。如果我得到了新的符号文件，也会在这个项目里更新。</p>
+<table>
+<thead>
+<tr>
+<th>缺失符号的版本</th>
+<th>缺失的CPU版本</th>
+<th>描述</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>10.0(14A346)</td>
+<td>arm64</td>
+<td>iPhone 7 和 7 Plus独占，出厂自带系统</td>
+</tr>
+<tr>
+<td>9.3.2(13F72)</td>
+<td>arm64</td>
+<td>iPad Pro 9.7寸独占，修复了变砖的问题</td>
+</tr>
+<tr>
+<td>9.3(13E237)</td>
+<td>arm64</td>
+<td>5s, iPad Air 和 iPad mini2独占，修复了不能激活的问题</td>
+</tr>
+<tr>
+<td>9.3(13E234)</td>
+<td>arm64</td>
+<td>6s, 6s Plus 和 iPad Pro 9.7寸 独占</td>
+</tr>
+<tr>
+<td>8.1.1 (12B435)</td>
+<td>arm64</td>
+<td>5s, iPad Air 和 iPad mini2 独占</td>
+</tr>
+<tr>
+<td>8.0.1(12A402)</td>
+<td>arm64</td>
+<td><code>8.0.1</code>有导致变砖的bug，发布后很快就停止推送了</td>
+</tr>
+<tr>
+<td>7.1.2 (11D257)</td>
+<td>arm64</td>
+<td></td>
+</tr>
+<tr>
+<td>7.0.2(11A501)</td>
+<td>arm64</td>
+<td></td>
+</tr>
+<tr>
+<td>7.0.1(11A470a)</td>
+<td>arm64</td>
+<td>5s 独占</td>
+</tr>
+</tbody>
+</table>
+<p>注意，arm64，armv7s，armv7版本的文件都是在同一个文件里的（例如<code>/Symbols/System/Library/Frameworks/UIKit.framework/UIKit</code>），Xcode在拷贝armv7的符号文件时，如果<code>iOS DeviceSupport</code>目录里已经有<code>arm64</code>或<code>armv7s</code>的符号文件，则会自动进行合并。因此如果你要分享一个<code>armv7</code>版本的符号文件，请先把arm64等其他版本的拷贝到<code>/Users/zhangweike/Library/Developer/Xcode/iOS DeviceSupport/</code>里，然后再用Xcode进行合并后再压缩分享。</p>
+<h3 id="网盘下载地址"><a href="#网盘下载地址" class="headerlink" title="网盘下载地址"></a><a name="wang-pan"></a>网盘下载地址</h3><p><strong>网盘链接: <a href="https://pan.baidu.com/s/1nvfi4g5" target="_blank" rel="external">https://pan.baidu.com/s/1nvfi4g5</a> 密码: <code>79m8</code></strong></p>
+<p>如果是在国外，可以用Google Driver：<br><a href="https://drive.google.com/drive/folders/0B-0LZDbSzubRaUdMdTJQc1ZzMUU?usp=sharing" target="_blank" rel="external">google drive分享(7.0.3-9.2)</a><br>,<br><a href="https://drive.google.com/drive/folders/0B5oBYvBG2NS7aDVTR1JzX2JXaFE?usp=sharing" target="_blank" rel="external">google drive分享(9.2.1-10.2)</a></p>
+<p>如果我得到了新的符号文件，会在这个项目里更新：<a href="https://github.com/Zuikyo/iOS-System-Symbols" target="_blank" rel="external">iOS-System-Symbols</a>。</p>
+<p>我把里面的那几个<code>dyld_shared_cache_xxxx</code>大文件单独拿出来了，目的是减小压缩包大小。如果只是符号化的话，用不到这几个文件，只是在真机调试的时候才需要。</p>
+<h3 id="符号文件版本列表"><a href="#符号文件版本列表" class="headerlink" title="符号文件版本列表"></a>符号文件版本列表</h3><p>这些是我已经收集到的符号文件，包括了对应的CPU信息。iOS10系统开始不支持<code>armv7</code>的机器。但是iOS9以下还是支持<code>armv7</code>的，这里很多都缺失了<code>armv7</code>。</p>
+<p>查看是否带有对应CPU架构的符号文件的方式：到<code>10.2 (14C92)/Symbols/System/Library/Caches/com.apple.dyld</code>这样的目录下，会有对应的<code>dyld_shared_cache_arm64</code>，<code>dyld_shared_cache_armv7s</code>，<code>dyld_shared_cache_armv7</code>文件，如果缺失了，就说明对应的CPU架构符号文件还不存在。（经过试验，这几个大文件并不影响符号化，只是在真机调试的时候才有用，因此如果嫌太占用空间，可以删去）。</p>
+<table>
+<thead>
+<tr>
+<th>版本</th>
+<th>已收集到的CPU版本</th>
+<th>描述</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>10.2 (14C92)</td>
+<td>arm64,armv7s</td>
+<td></td>
+</tr>
+<tr>
+<td>10.1.1 (14B150)</td>
+<td>arm64,armv7s</td>
+<td></td>
+</tr>
+<tr>
+<td>10.1.1 (14B100)</td>
+<td>arm64,armv7s</td>
+<td></td>
+</tr>
+<tr>
+<td>10.1 (14B72c)</td>
+<td>arm64,armv7s</td>
+<td></td>
+</tr>
+<tr>
+<td>10.1 (14B72)</td>
+<td>arm64,armv7s</td>
+<td></td>
+</tr>
+<tr>
+<td>10.0.3 (14A551)</td>
+<td>arm64,armv7s</td>
+<td></td>
+</tr>
+<tr>
+<td>10.0.2 (14A456)</td>
+<td>arm64,armv7s</td>
+<td></td>
+</tr>
+<tr>
+<td>10.0.1 (14A403)</td>
+<td>arm64,armv7s</td>
+<td></td>
+</tr>
+<tr>
+<td><strong>10.0(14A346)</strong></td>
+<td><strong>none</strong></td>
+<td>iPhone 7 和 7 Plus独占，出厂自带系统</td>
+</tr>
+<tr>
+<td>9.3.5 (13G36)</td>
+<td>arm64,armv7s,armv7</td>
+<td></td>
+</tr>
+<tr>
+<td>9.3.4 (13G35)</td>
+<td>arm64,armv7s,armv7</td>
+<td></td>
+</tr>
+<tr>
+<td>9.3.3 (13G34)</td>
+<td>arm64,armv7s,armv7</td>
+<td></td>
+</tr>
+<tr>
+<td><strong>9.3.2(13F72)</strong></td>
+<td><strong>none</strong></td>
+<td>iPad Pro 9.7寸独占，修复了变砖的问题</td>
+</tr>
+<tr>
+<td>9.3.2 (13F69)</td>
+<td>arm64,armv7s,armv7</td>
+<td></td>
+</tr>
+<tr>
+<td>9.3.1 (13E238)</td>
+<td>arm64,armv7s,armv7</td>
+<td></td>
+</tr>
+<tr>
+<td>9.3(13E237)</td>
+<td>armv7s,armv7</td>
+<td>5s和更旧机型独占，修复了不能激活的问题</td>
+</tr>
+<tr>
+<td>9.3(13E236)</td>
+<td>armv7</td>
+<td>iPad2独占，修复了不能激活的问题</td>
+</tr>
+<tr>
+<td><strong>9.3(13E234)</strong></td>
+<td><strong>none</strong></td>
+<td>6s, 6s Plus and iPad Pro 9.7寸独占</td>
+</tr>
+<tr>
+<td>9.3 (13E233)</td>
+<td>arm64,armv7s,armv7</td>
+<td></td>
+</tr>
+<tr>
+<td>9.2.1 (13D20)</td>
+<td>arm64,armv7s</td>
+<td>iPhone 6 和更新的机型独占</td>
+</tr>
+<tr>
+<td>9.2.1 (13D15)</td>
+<td>arm64,armv7s,armv7</td>
+<td></td>
+</tr>
+<tr>
+<td>9.2 (13C75)</td>
+<td>arm64,armv7s,armv7</td>
+<td></td>
+</tr>
+<tr>
+<td>9.1 (13B143)</td>
+<td>arm64,armv7s,armv7</td>
+<td></td>
+</tr>
+<tr>
+<td>9.0.2(13A452)</td>
+<td>arm64,armv7s,armv7</td>
+<td></td>
+</tr>
+<tr>
+<td>9.0.1(13A404)</td>
+<td>arm64,armv7s,armv7</td>
+<td></td>
+</tr>
+<tr>
+<td>9.0 (13A344)</td>
+<td>arm64,armv7s,armv7</td>
+<td></td>
+</tr>
+<tr>
+<td>8.4.1 (12H321)</td>
+<td>arm64,armv7s,armv7</td>
+<td></td>
+</tr>
+<tr>
+<td>8.4 (12H143)</td>
+<td>arm64,armv7s,armv7</td>
+<td></td>
+</tr>
+<tr>
+<td>8.3 (12F70)</td>
+<td>arm64,armv7s,armv7</td>
+<td>iPhone独占</td>
+</tr>
+<tr>
+<td>8.3 (12F69)</td>
+<td>arm64,armv7s,armv7</td>
+<td>iPad独占</td>
+</tr>
+<tr>
+<td>8.2 (12D508)</td>
+<td>arm64,armv7s,armv7</td>
+<td></td>
+</tr>
+<tr>
+<td>8.1.3 (12B466)</td>
+<td>arm64,armv7s,armv7</td>
+<td></td>
+</tr>
+<tr>
+<td>8.1.2 (12B440)</td>
+<td>arm64,armv7s,armv7</td>
+<td></td>
+</tr>
+<tr>
+<td>8.1.1 (12B436)</td>
+<td>arm64,armv7s</td>
+<td>iPhone 6 和更新的机型独占</td>
+</tr>
+<tr>
+<td>8.1.1 (12B435)</td>
+<td>armv7s,armv7</td>
+<td>5s和更旧机型独占</td>
+</tr>
+<tr>
+<td>8.1 (12B411)</td>
+<td>arm64,armv7s,armv7</td>
+<td>iPhone独占</td>
+</tr>
+<tr>
+<td>8.1 (12B410)</td>
+<td>arm64,armv7s,armv7</td>
+<td>iPad独占</td>
+</tr>
+<tr>
+<td>8.0.2 (12A405)</td>
+<td>arm64,armv7s,armv7</td>
+<td></td>
+</tr>
+<tr>
+<td>8.0.1(12A402)</td>
+<td>armv7s,armv7</td>
+<td><code>8.0.1</code>有导致变砖的bug，发布后很快就停止推送了</td>
+</tr>
+<tr>
+<td>8.0 (12A366)</td>
+<td>arm64,armv7s</td>
+<td>6 Plus独占</td>
+</tr>
+<tr>
+<td>8.0 (12A365)</td>
+<td>arm64,armv7s,armv7</td>
+<td></td>
+</tr>
+<tr>
+<td>7.1.2 (11D257)</td>
+<td>armv7s,armv7</td>
+<td></td>
+</tr>
+<tr>
+<td>7.1.1 (11D201)</td>
+<td>arm64,armv7s,armv7</td>
+<td></td>
+</tr>
+<tr>
+<td>7.1 (11D167)</td>
+<td>arm64,armv7s,armv7</td>
+<td></td>
+</tr>
+<tr>
+<td>7.0.6 (11B651)</td>
+<td>arm64,armv7s,armv7</td>
+<td></td>
+</tr>
+<tr>
+<td>7.0.4 (11B554a)</td>
+<td>arm64,armv7s,armv7</td>
+<td></td>
+</tr>
+<tr>
+<td>7.0.3 (11B511)</td>
+<td>arm64,armv7s,armv7</td>
+<td></td>
+</tr>
+<tr>
+<td>7.0.2(11A501)</td>
+<td>armv7s,armv7</td>
+<td></td>
+</tr>
+<tr>
+<td>7.0.1(11A470a)</td>
+<td>armv7s</td>
+<td>5s 和 5c 独占</td>
+</tr>
+<tr>
+<td>7.0(11A465)</td>
+<td>arm64,armv7s,armv7</td>
+<td></td>
+</tr>
+</tbody>
+</table>
+<h3 id="机型对应CPU架构"><a href="#机型对应CPU架构" class="headerlink" title="机型对应CPU架构"></a>机型对应CPU架构</h3><table>
+<thead>
+<tr>
+<th>CPU</th>
+<th>机型</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>armv6</td>
+<td>iPhone, iPhone2, iPhone3G, iPod Touch 1 and 2</td>
+</tr>
+<tr>
+<td>armv7</td>
+<td>iPhone3GS, iPhone4, iPhone4S，iPad, iPad2, iPad3(The New iPad), iPad mini，iPod Touch 3G, iPod Touch4, iPod Touch5</td>
+</tr>
+<tr>
+<td>armv7s</td>
+<td>iPhone5, iPhone5C, iPad4(iPad with Retina Display)</td>
+</tr>
+<tr>
+<td>arm64</td>
+<td>iPhone5S, iPad Air, iPad mini2(iPad mini with Retina Display), iPhone6, iPhone6s, iPhone7, iPhone7s and any new device in the future</td>
+</tr>
+</tbody>
+</table>
+<h2 id="结束语"><a href="#结束语" class="headerlink" title="结束语"></a>结束语</h2><p>最后再次呼吁一下，如果谁有上面缺失的符号文件，就请共享一下吧。虽然只是做一点微小的工作，但是能够有很大帮助。</p>
+<p>不觉得填满上面那个列表会很爽吗？</p>
+<h3 id="额外提示"><a href="#额外提示" class="headerlink" title="额外提示"></a>额外提示</h3><p>其实这些符号文件就是真机上的系统库，包括了完整的系统库二进制文件。有时候要反编译某些系统framework，但是模拟器SDK里没有对应的framework（比如只有真机上才有的<code>CoreMotion.framework</code>），就可以在这些真机上的系统库里找到了。</p>
+<h2 id="参考"><a href="#参考" class="headerlink" title="参考"></a>参考</h2><ul>
+<li><a href="http://www.jianshu.com/p/11710e7ab661" target="_blank" rel="external">http://www.jianshu.com/p/11710e7ab661</a></li>
+<li><a href="http://wufawei.com/2014/03/symbolicating-ios-crash-logs/" target="_blank" rel="external">符号化iOS Crash文件的3种方法</a></li>
+<li><a href="https://en.wikipedia.org/wiki/IOS_SDK" target="_blank" rel="external">iOS SDK</a></li>
+<li><a href="https://en.wikipedia.org/wiki/IOS_version_history#iOS_10" target="_blank" rel="external">iOS version history</a></li>
+<li><a href="https://forums.developer.apple.com/thread/3380" target="_blank" rel="external">No symbols for paired Apple Watch</a></li>
+<li><a href="http://crash.163.com/#news/!newsId=31" target="_blank" rel="external">聊聊从iOS固件提取系统库符号</a></li>
+<li><a href="http://stackoverflow.com/questions/14941773/xcode-software-image-for-user-ios-in-order-to-symbolicate-ios-calls" target="_blank" rel="external">Xcode software image for user iOS in order to symbolicate iOS calls</a></li>
+<li><a href="http://stackoverflow.com/a/28408052/6380485" target="_blank" rel="external">Missing iOS symbols at “~/Library/Developer/Xcode/iOS DeviceSupport”</a></li>
+</ul>
+
+      
+    </div>
+
+    <div>
+      
+        
+
+      
+    </div>
+
+    <div>
+      
+        
+
+      
+    </div>
+
+    <footer class="post-footer">
+      
+        <div class="post-tags">
+          
+            <a href="/tags/iOS/" rel="tag">#iOS</a>
+          
+        </div>
+      
+
+      
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
+            
+              <a href="/2016/12/13/约束冲突调试工具/" rel="next" title="约束冲突调试工具：解决iOS7调试难题">
+                <i class="fa fa-chevron-left"></i> 约束冲突调试工具：解决iOS7调试难题
+              </a>
+            
+          </div>
+
+          <div class="post-nav-prev post-nav-item">
+            
+              <a href="/2017/02/05/私有API-修复iOS 10不弹出是否允许xxx访问数据导致app无法联网的bug/" rel="prev" title="私有API-修复iOS10不弹出"是否允许xxx访问数据"导致app无法联网的bug">
+                私有API-修复iOS10不弹出"是否允许xxx访问数据"导致app无法联网的bug <i class="fa fa-chevron-right"></i>
+              </a>
+            
+          </div>
+        </div>
+      
+
+      
+      
+    </footer>
+  </article>
+
+
+
+    <div class="post-spread">
+      
+    </div>
+  </div>
+
+<script async src="https://dn-lbstatics.qbox.me/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+
+<span id="busuanzi_container_page_pv">
+</br>本文总阅读量<span id="busuanzi_value_page_pv"></span>次
+</span>
+
+
+          </div>
+          
+
+
+          
+  <div class="comments" id="comments">
+    
+      <div class="ds-thread" data-thread-key="2016/12/18/iOS Crash日志分析必备：符号化系统库方法/"
+           data-title="iOS Crash分析必备：符号化系统库方法" data-url="http://yoursite.com/2016/12/18/iOS Crash日志分析必备：符号化系统库方法/">
+      </div>
+    
+  </div>
+
+
+        </div>
+        
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    <div class="sidebar-inner">
+
+      
+
+      
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap" >
+            文章目录
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview">
+            站点概览
+          </li>
+        </ul>
+      
+
+      <section class="site-overview sidebar-panel ">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+          <img class="site-author-image" itemprop="image"
+               src="/images/avatar.png"
+               alt="zuik" />
+          <p class="site-author-name" itemprop="name">zuik</p>
+          <p class="site-description motion-element" itemprop="description">记录踩过的坑</p>
+        </div>
+        <nav class="site-state motion-element">
+          <div class="site-state-item site-state-posts">
+            <a href="/archives">
+              <span class="site-state-item-count">5</span>
+              <span class="site-state-item-name">日志</span>
+            </a>
+          </div>
+
+          
+            <div class="site-state-item site-state-categories">
+              <a href="/categories">
+                <span class="site-state-item-count">5</span>
+                <span class="site-state-item-name">分类</span>
+              </a>
+            </div>
+          
+
+          
+            <div class="site-state-item site-state-tags">
+              <a href="/tags">
+                <span class="site-state-item-count">1</span>
+                <span class="site-state-item-name">标签</span>
+              </a>
+            </div>
+          
+
+        </nav>
+
+        
+          <div class="feed-link motion-element">
+            <a href="/atom.xml" rel="alternate">
+              <i class="fa fa-rss"></i>
+              RSS
+            </a>
+          </div>
+        
+
+        <div class="links-of-author motion-element">
+          
+        </div>
+
+        
+        
+
+        
+        
+
+      </section>
+
+      
+        <section class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc">
+            
+              
+            
+            
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#符号化的作用"><span class="nav-number">1.</span> <span class="nav-text">符号化的作用</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#1-匹配对应的符号文件版本"><span class="nav-number">1.1.</span> <span class="nav-text">1. 匹配对应的符号文件版本</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-将对应版本的符号文件放到指定目录"><span class="nav-number">1.2.</span> <span class="nav-text">2. 将对应版本的符号文件放到指定目录</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#获取系统符号文件的4个方法"><span class="nav-number">2.</span> <span class="nav-text">获取系统符号文件的4个方法</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#从真机上获取"><span class="nav-number">2.1.</span> <span class="nav-text">从真机上获取</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#寻找苹果官方的下载地址"><span class="nav-number">2.2.</span> <span class="nav-text">寻找苹果官方的下载地址</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#从已解密的固件中提取符号文件"><span class="nav-number">2.3.</span> <span class="nav-text">从已解密的固件中提取符号文件</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#下载旧版本Xcode，提取SDK"><span class="nav-number">2.4.</span> <span class="nav-text">下载旧版本Xcode，提取SDK</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#获取符号文件的难题"><span class="nav-number">3.</span> <span class="nav-text">获取符号文件的难题</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#系统符号文件下载地址"><span class="nav-number">4.</span> <span class="nav-text">系统符号文件下载地址</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#暴力收集"><span class="nav-number">4.1.</span> <span class="nav-text">暴力收集</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#目前还缺少的符号文件"><span class="nav-number">4.2.</span> <span class="nav-text">目前还缺少的符号文件</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#网盘下载地址"><span class="nav-number">4.3.</span> <span class="nav-text">网盘下载地址</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#符号文件版本列表"><span class="nav-number">4.4.</span> <span class="nav-text">符号文件版本列表</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#机型对应CPU架构"><span class="nav-number">4.5.</span> <span class="nav-text">机型对应CPU架构</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#结束语"><span class="nav-number">5.</span> <span class="nav-text">结束语</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#额外提示"><span class="nav-number">5.1.</span> <span class="nav-text">额外提示</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#参考"><span class="nav-number">6.</span> <span class="nav-text">参考</span></a></li></ol></div>
+            
+          </div>
+        </section>
+      
+
+    </div>
+  </aside>
+
+
+        
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright" >
+  
+  &copy; 
+  <span itemprop="copyrightYear">2017</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">zuik</span>
+</div>
+
+<div class="powered-by">
+  由 <a class="theme-link" href="https://hexo.io">Hexo</a> 强力驱动
+</div>
+
+<div class="theme-info">
+  主题 -
+  <a class="theme-link" href="https://github.com/iissnan/hexo-theme-next">
+    NexT.Muse
+  </a>
+</div>
+
+<script>
+(function(){
+var bp = document.createElement('script');
+bp.src = '//push.zhanzhang.baidu.com/push.js';
+var s = document.getElementsByTagName("script")[0];
+s.parentNode.insertBefore(bp, s);
+})();
+</script>
+
+        
+
+        
+      </div>
+    </footer>
+
+    <div class="back-to-top">
+      <i class="fa fa-arrow-up"></i>
+    </div>
+  </div>
+
+  
+
+<script type="text/javascript">
+  if (Object.prototype.toString.call(window.Promise) !== '[object Function]') {
+    window.Promise = null;
+  }
+</script>
+
+
+
+
+
+
+
+
+
+  
+
+
+
+  
+  <script type="text/javascript" src="/vendors/jquery/index.js?v=2.1.3"></script>
+
+  
+  <script type="text/javascript" src="/vendors/fastclick/lib/fastclick.min.js?v=1.0.6"></script>
+
+  
+  <script type="text/javascript" src="/vendors/jquery_lazyload/jquery.lazyload.js?v=1.9.7"></script>
+
+  
+  <script type="text/javascript" src="/vendors/velocity/velocity.min.js?v=1.2.1"></script>
+
+  
+  <script type="text/javascript" src="/vendors/velocity/velocity.ui.min.js?v=1.2.1"></script>
+
+  
+  <script type="text/javascript" src="/vendors/fancybox/source/jquery.fancybox.pack.js?v=2.1.5"></script>
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/utils.js?v=5.0.1"></script>
+
+  <script type="text/javascript" src="/js/src/motion.js?v=5.0.1"></script>
+
+
+
+  
+  
+
+  
+  <script type="text/javascript" src="/js/src/scrollspy.js?v=5.0.1"></script>
+<script type="text/javascript" src="/js/src/post-details.js?v=5.0.1"></script>
+
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/bootstrap.js?v=5.0.1"></script>
+
+
+
+  
+
+  
+    
+  
+
+  <script type="text/javascript">
+    var duoshuoQuery = {short_name:"zuik"};
+    (function() {
+      var ds = document.createElement('script');
+      ds.type = 'text/javascript';ds.async = true;
+      ds.id = 'duoshuo-script';
+      ds.src = (document.location.protocol == 'https:' ? 'https:' : 'http:') + '//static.duoshuo.com/embed.js';
+      ds.charset = 'UTF-8';
+      (document.getElementsByTagName('head')[0]
+      || document.getElementsByTagName('body')[0]).appendChild(ds);
+    })();
+  </script>
+
+  
+    
+    <script src="/vendors/ua-parser-js/dist/ua-parser.min.js?v=0.7.9"></script>
+    <script src="/js/src/hook-duoshuo.js"></script>
+  
+
+
+
+
+
+
+  
+  
+
+  
+
+  
+
+  
+
+</body>
+</html>
