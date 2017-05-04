@@ -86,16 +86,38 @@
 
 
 
-<meta name="description" content="问题在iOS10之前，跳转到系统设置界面的某个指定界面的方式如下：12345//打开定位服务界面NSURL*url=[NSURL URLWithString:@&amp;quot;prefs:root=Privacy&amp;amp;path=LOCATION&amp;quot;];if ([[UIApplication sharedApplication] canOpenURL:url]) &amp;#123;    [[UI">
+<meta name="description" content="一般动态调试app时，都是在终端里用lldb直接调试，但是用Xcode的Attach to Process也可以连接到真机上的进程进行调试。但是只能调试用自己的证书签名的app。
+在Xcode上调试的优点：
+
+有UI界面，查看堆栈更直接，可以用Xcode打断点。
+可以使用debug gauges里的Disk和Network等工具。
+输入lldb命令时有自动补全。
+可以使用Xcode的Debug U">
 <meta property="og:type" content="article">
-<meta property="og:title" content="私有API-iOS10 openURL方法跳转到设置界面失效的解决方法">
-<meta property="og:url" content="http://yoursite.com/2016/10/10/私有API-iOS10 openURL方法跳转到设置界面失效的解决方法/index.html">
+<meta property="og:title" content="iOS逆向：用Xcode直接调试第三方app">
+<meta property="og:url" content="http://yoursite.com/2017/05/04/iOS逆向：在Xcode里调试重签名的app/index.html">
 <meta property="og:site_name" content="zuik's blog">
-<meta property="og:description" content="问题在iOS10之前，跳转到系统设置界面的某个指定界面的方式如下：12345//打开定位服务界面NSURL*url=[NSURL URLWithString:@&amp;quot;prefs:root=Privacy&amp;amp;path=LOCATION&amp;quot;];if ([[UIApplication sharedApplication] canOpenURL:url]) &amp;#123;    [[UI">
-<meta property="og:updated_time" content="2017-05-03T08:23:01.770Z">
+<meta property="og:description" content="一般动态调试app时，都是在终端里用lldb直接调试，但是用Xcode的Attach to Process也可以连接到真机上的进程进行调试。但是只能调试用自己的证书签名的app。
+在Xcode上调试的优点：
+
+有UI界面，查看堆栈更直接，可以用Xcode打断点。
+可以使用debug gauges里的Disk和Network等工具。
+输入lldb命令时有自动补全。
+可以使用Xcode的Debug U">
+<meta property="og:image" content="http://upload-images.jianshu.io/upload_images/1865432-b3652b738ff07228.jpg">
+<meta property="og:image" content="http://upload-images.jianshu.io/upload_images/1865432-26b34a3342df43a6.jpg">
+<meta property="og:image" content="http://upload-images.jianshu.io/upload_images/1865432-80d24111380e2e44.jpg">
+<meta property="og:updated_time" content="2017-05-04T12:49:18.090Z">
 <meta name="twitter:card" content="summary">
-<meta name="twitter:title" content="私有API-iOS10 openURL方法跳转到设置界面失效的解决方法">
-<meta name="twitter:description" content="问题在iOS10之前，跳转到系统设置界面的某个指定界面的方式如下：12345//打开定位服务界面NSURL*url=[NSURL URLWithString:@&amp;quot;prefs:root=Privacy&amp;amp;path=LOCATION&amp;quot;];if ([[UIApplication sharedApplication] canOpenURL:url]) &amp;#123;    [[UI">
+<meta name="twitter:title" content="iOS逆向：用Xcode直接调试第三方app">
+<meta name="twitter:description" content="一般动态调试app时，都是在终端里用lldb直接调试，但是用Xcode的Attach to Process也可以连接到真机上的进程进行调试。但是只能调试用自己的证书签名的app。
+在Xcode上调试的优点：
+
+有UI界面，查看堆栈更直接，可以用Xcode打断点。
+可以使用debug gauges里的Disk和Network等工具。
+输入lldb命令时有自动补全。
+可以使用Xcode的Debug U">
+<meta name="twitter:image" content="http://upload-images.jianshu.io/upload_images/1865432-b3652b738ff07228.jpg">
 
 
 
@@ -116,9 +138,9 @@
 
 
 
-  <link rel="canonical" href="http://yoursite.com/2016/10/10/私有API-iOS10 openURL方法跳转到设置界面失效的解决方法/"/>
+  <link rel="canonical" href="http://yoursite.com/2017/05/04/iOS逆向：在Xcode里调试重签名的app/"/>
 
-  <title> 私有API-iOS10 openURL方法跳转到设置界面失效的解决方法 | zuik's blog </title>
+  <title> iOS逆向：用Xcode直接调试第三方app | zuik's blog </title>
 </head>
 
 <body itemscope itemtype="http://schema.org/WebPage" lang="zh-Hans">
@@ -248,7 +270,7 @@
             
             
               
-                私有API-iOS10 openURL方法跳转到设置界面失效的解决方法
+                iOS逆向：用Xcode直接调试第三方app
               
             
           </h1>
@@ -260,8 +282,8 @@
               <i class="fa fa-calendar-o"></i>
             </span>
             <span class="post-meta-item-text">发表于</span>
-            <time itemprop="dateCreated" datetime="2016-10-10T08:48:29+08:00" content="2016-10-10">
-              2016-10-10
+            <time itemprop="dateCreated" datetime="2017-05-04T20:48:00+08:00" content="2017-05-04">
+              2017-05-04
             </time>
           </span>
 
@@ -274,8 +296,8 @@
               <span class="post-meta-item-text">分类于</span>
               
                 <span itemprop="about" itemscope itemtype="https://schema.org/Thing">
-                  <a href="/categories/私有API/" itemprop="url" rel="index">
-                    <span itemprop="name">私有API</span>
+                  <a href="/categories/逆向工程/" itemprop="url" rel="index">
+                    <span itemprop="name">逆向工程</span>
                   </a>
                 </span>
 
@@ -290,8 +312,8 @@
             
               <span class="post-comments-count">
                 &nbsp; | &nbsp;
-                <a href="/2016/10/10/私有API-iOS10 openURL方法跳转到设置界面失效的解决方法/#comments" itemprop="discussionUrl">
-                  <span class="post-comments-count ds-thread-count" data-thread-key="2016/10/10/私有API-iOS10 openURL方法跳转到设置界面失效的解决方法/" itemprop="commentsCount"></span>
+                <a href="/2017/05/04/iOS逆向：在Xcode里调试重签名的app/#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count ds-thread-count" data-thread-key="2017/05/04/iOS逆向：在Xcode里调试重签名的app/" itemprop="commentsCount"></span>
                 </a>
               </span>
             
@@ -315,22 +337,27 @@
       
 
       
-        <h2 id="问题"><a href="#问题" class="headerlink" title="问题"></a>问题</h2><p>在iOS10之前，跳转到系统设置界面的某个指定界面的方式如下：<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div></pre></td><td class="code"><pre><div class="line">//打开定位服务界面</div><div class="line">NSURL*url=[NSURL URLWithString:@&quot;prefs:root=Privacy&amp;path=LOCATION&quot;];</div><div class="line">if ([[UIApplication sharedApplication] canOpenURL:url]) &#123;</div><div class="line">    [[UIApplication sharedApplication] openURL:url];</div><div class="line">&#125;;</div></pre></td></tr></table></figure></p>
-<p>但是在iOS10上，调用canOpenURL:打开系统设置界面时控制台会报如下错误，并且无法跳转：<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line">-canOpenURL: failed for URL: &quot;Prefs:root=Privacy&amp;path=LOCATION&quot; - error: &quot;The operation couldn’t be completed. (OSStatus error -10814.)&quot;</div></pre></td></tr></table></figure></p>
-<p>原因是iOS10只允许如下方式跳转到设置里自己app的界面，对跳转到其他界面做了限制：<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line">[[UIApplication sharedApplication] openURL:[NSURL URLWithString:UIApplicationOpenSettingsURLString]];</div></pre></td></tr></table></figure></p>
-<h2 id="解决方法"><a href="#解决方法" class="headerlink" title="解决方法"></a>解决方法</h2><p>可以使用<code>MobileCoreServices.framework</code>里的私有API:<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line">- (BOOL)openSensitiveURL:(id)arg1 withOptions:(id)arg2;</div></pre></td></tr></table></figure></p>
-<p>头文件参考：<a href="https://github.com/JaviSoto/iOS10-Runtime-Headers/blob/master/Frameworks/MobileCoreServices.framework/LSApplicationWorkspace.h" target="_blank" rel="external">LSApplicationWorkspace.h</a><br>使用方法：<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div></pre></td><td class="code"><pre><div class="line">//注意首字母改成了大写，prefs-&gt;Prefs</div><div class="line">NSURL*url=[NSURL URLWithString:@&quot;Prefs:root=Privacy&amp;path=LOCATION&quot;];</div><div class="line">Class LSApplicationWorkspace = NSClassFromString(@&quot;LSApplicationWorkspace&quot;);</div><div class="line">[[LSApplicationWorkspace performSelector:@selector(defaultWorkspace)] performSelector:@selector(openSensitiveURL:withOptions:) withObject:url withObject:nil];</div></pre></td></tr></table></figure></p>
-<p><code>MobileCoreServices.framework</code>不是私有库，所以直接使用<code>performSelector:</code>即可调用私有API。</p>
-<h2 id="注意"><a href="#注意" class="headerlink" title="注意"></a>注意</h2><ul>
-<li>iOS10的系统URLScheme改成了首字母大写，使用小写的方式会无法打开。</li>
-<li>使用私有API的app无法通过App Store审核。你也可以尝试把私有类名和selector字符串混淆一下，绕过审核。例如<a href="http://blog.csdn.net/wenmingzheng/article/details/50475671" target="_blank" rel="external">这位仁兄</a>用ASCII混淆的方法：</li>
+        <p>一般动态调试app时，都是在终端里用lldb直接调试，但是用Xcode的<code>Attach to Process</code>也可以连接到真机上的进程进行调试。但是只能调试用自己的证书签名的app。</p>
+<p>在Xcode上调试的优点：</p>
+<ul>
+<li>有UI界面，查看堆栈更直接，可以用Xcode打断点。</li>
+<li>可以使用<code>debug gauges</code>里的Disk和Network等工具。</li>
+<li>输入lldb命令时有自动补全。</li>
+<li>可以使用Xcode的<code>Debug UI Hierarchy</code>功能，直接查看app的界面布局。</li>
+<li>可以使用Xcode的<code>Debug Memory Graph</code>功能，查看当前内存中存在的所有对象，以及对象之间的引用关系。</li>
 </ul>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div></pre></td><td class="code"><pre><div class="line">- (UIView *)statusBarView &#123; </div><div class="line">    UIView *statusBar = nil; </div><div class="line">    NSData *data = [NSData dataWithBytes:(unsigned char [])&#123;0x73, 0x74, 0x61, 0x74, 0x75, 0x73, 0x42, 0x61, 0x72&#125; length:9]; </div><div class="line">    NSString *key = [[NSString alloc] initWithData:data encoding:NSASCIIStringEncoding]; </div><div class="line">    id object = [UIApplication sharedApplication]; </div><div class="line">    if ([object respondsToSelector:NSSelectorFromString(key)]) &#123;</div><div class="line">        statusBar = [object valueForKey:key]; </div><div class="line">    &#125;</div><div class="line">    return statusBar; </div><div class="line">&#125;</div></pre></td></tr></table></figure>
-<p>不过，还是不建议使用私有API，因为它是不可靠的。也许某天苹果就把它移除了。</p>
-<h4 id="update"><a href="#update" class="headerlink" title="update:"></a><em>update:</em></h4><ul>
-<li>还有一步遗漏了，app需要添加一个<code>Prefs</code>的URL Schemes，即添加到<code>info.plist</code>的<code>LSApplicationQueriesSchemes</code>项中。</li>
-</ul>
-<h4 id="参考："><a href="#参考：" class="headerlink" title="参考："></a>参考：</h4><p><a href="http://stackoverflow.com/a/39102075/6380485" target="_blank" rel="external">http://stackoverflow.com/a/39102075/6380485</a><br><a href="https://www.zhihu.com/question/50635906/answer/125195317" target="_blank" rel="external">https://www.zhihu.com/question/50635906/answer/125195317</a><br><a href="https://github.com/cyanzhong/app-tutorials/blob/master/schemes.md" target="_blank" rel="external">iOS10系统URLScheme</a></p>
+<p>步骤如下。</p>
+<h2 id="1-重签名需要逆向的app"><a href="#1-重签名需要逆向的app" class="headerlink" title="1.重签名需要逆向的app"></a>1.重签名需要逆向的app</h2><p>重签名后才能用Xcode attch。而重签名前需要对app进行砸壳。这些步骤就不再重复了。</p>
+<p>额外说一句，在砸壳后建议进行一下恢复符号表的操作。恢复符号表后，在调试时就能直接在堆栈中看到方法名，免去了计算偏移量然后在hopper里查找的麻烦。参考：<a href="http://blog.imjun.net/posts/restore-symbol-of-iOS-app/" target="_blank" rel="external">iOS符号表恢复&amp;逆向支付宝</a>, <a href="https://github.com/tobefuturer/restore-symbol" target="_blank" rel="external">restore-symbol</a>。</p>
+<h2 id="2-Attach-to-Process"><a href="#2-Attach-to-Process" class="headerlink" title="2.Attach to Process"></a>2.Attach to Process</h2><p>重签名后安装到越狱设备上，启动app，在Xcode中随便打开一个工程，选择越狱设备，就可以在<code>Debug-&gt;Attach to Process</code>中找到正在运行的进程名和进程id，点击后就会开始连接。大概过1分钟就会连接上。</p>
+<h2 id="3-查看UI"><a href="#3-查看UI" class="headerlink" title="3.查看UI"></a>3.查看UI</h2><p>连接上后，就可以点击使用Xcode的<code>Debug UI Hierarchy</code>来查看界面布局：</p>
+<p><img src="http://upload-images.jianshu.io/upload_images/1865432-b3652b738ff07228.jpg" alt="UI Hierarchy"></p>
+<p>注意，<code>Debug UI Hierarchy</code>对Xcode版本似乎有要求，在调试重签名app时，Xcode8.3.2可以，而Xcode8.2就没有这个功能按钮。</p>
+<h2 id="4-查看内存信息"><a href="#4-查看内存信息" class="headerlink" title="4.查看内存信息"></a>4.查看内存信息</h2><p>点击<code>Debug Memory Graph</code>按钮，可以查看当前内存中存在的数据。打印地址，查看引用关系，可以配合<code>malloc stack</code>进行追踪。</p>
+<p><img src="http://upload-images.jianshu.io/upload_images/1865432-26b34a3342df43a6.jpg" alt="Memory Graph"></p>
+<h2 id="5-查看正在使用的文件"><a href="#5-查看正在使用的文件" class="headerlink" title="5.查看正在使用的文件"></a>5.查看正在使用的文件</h2><p><code>debug gauges</code>中的Disk工具可以查看app当前打开的文件。</p>
+<p><img src="http://upload-images.jianshu.io/upload_images/1865432-80d24111380e2e44.jpg" alt="Open Files"></p>
+<h2 id="5-instrument调试"><a href="#5-instrument调试" class="headerlink" title="5.instrument调试"></a>5.instrument调试</h2><p>类似的，也可以用instrument调试重签名后的app，不过并不是所有工具都可以使用，对逆向的帮助不大。</p>
 
       
     </div>
@@ -362,12 +389,16 @@
         <div class="post-nav">
           <div class="post-nav-next post-nav-item">
             
+              <a href="/2017/02/05/私有API-修复iOS 10不弹出是否允许xxx访问数据导致app无法联网的bug/" rel="next" title="私有API-修复iOS10不弹出"是否允许xxx访问数据"导致app无法联网的bug">
+                <i class="fa fa-chevron-left"></i> 私有API-修复iOS10不弹出"是否允许xxx访问数据"导致app无法联网的bug
+              </a>
+            
           </div>
 
           <div class="post-nav-prev post-nav-item">
             
-              <a href="/2016/12/07/interface的规范写法/" rel="prev" title="@inerface的11条规范写法">
-                @inerface的11条规范写法 <i class="fa fa-chevron-right"></i>
+              <a href="/2017/05/04/iOS逆向：在任意app上开启malloc stack追踪内存来源/" rel="prev" title="iOS逆向：在任意app上开启malloc stack追踪内存来源">
+                iOS逆向：在任意app上开启malloc stack追踪内存来源 <i class="fa fa-chevron-right"></i>
               </a>
             
           </div>
@@ -400,8 +431,8 @@
           
   <div class="comments" id="comments">
     
-      <div class="ds-thread" data-thread-key="2016/10/10/私有API-iOS10 openURL方法跳转到设置界面失效的解决方法/"
-           data-title="私有API-iOS10 openURL方法跳转到设置界面失效的解决方法" data-url="http://yoursite.com/2016/10/10/私有API-iOS10 openURL方法跳转到设置界面失效的解决方法/">
+      <div class="ds-thread" data-thread-key="2017/05/04/iOS逆向：在Xcode里调试重签名的app/"
+           data-title="iOS逆向：用Xcode直接调试第三方app" data-url="http://yoursite.com/2017/05/04/iOS逆向：在Xcode里调试重签名的app/">
       </div>
     
   </div>
@@ -499,7 +530,7 @@
               
             
             
-              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#问题"><span class="nav-number">1.</span> <span class="nav-text">问题</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#解决方法"><span class="nav-number">2.</span> <span class="nav-text">解决方法</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#注意"><span class="nav-number">3.</span> <span class="nav-text">注意</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#update"><span class="nav-number">3.0.1.</span> <span class="nav-text">update:</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#参考："><span class="nav-number">3.0.2.</span> <span class="nav-text">参考：</span></a></li></ol></li></ol></li></ol></div>
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#1-重签名需要逆向的app"><span class="nav-number">1.</span> <span class="nav-text">1.重签名需要逆向的app</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#2-Attach-to-Process"><span class="nav-number">2.</span> <span class="nav-text">2.Attach to Process</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#3-查看UI"><span class="nav-number">3.</span> <span class="nav-text">3.查看UI</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#4-查看内存信息"><span class="nav-number">4.</span> <span class="nav-text">4.查看内存信息</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#5-查看正在使用的文件"><span class="nav-number">5.</span> <span class="nav-text">5.查看正在使用的文件</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#5-instrument调试"><span class="nav-number">6.</span> <span class="nav-text">5.instrument调试</span></a></li></ol></div>
             
           </div>
         </section>

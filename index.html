@@ -86,15 +86,15 @@
 
 
 
-<meta name="description" content="记录踩过的坑">
+<meta name="description" content="🐼">
 <meta property="og:type" content="website">
 <meta property="og:title" content="zuik's blog">
 <meta property="og:url" content="http://yoursite.com/index.html">
 <meta property="og:site_name" content="zuik's blog">
-<meta property="og:description" content="记录踩过的坑">
+<meta property="og:description" content="🐼">
 <meta name="twitter:card" content="summary">
 <meta name="twitter:title" content="zuik's blog">
-<meta name="twitter:description" content="记录踩过的坑">
+<meta name="twitter:description" content="🐼">
 
 
 
@@ -154,7 +154,7 @@
       <span class="logo-line-after"><i></i></span>
     </a>
   </div>
-  <p class="site-subtitle">写点iOS的经验</p>
+  <p class="site-subtitle">写点别人没写过的</p>
 </div>
 
 <div class="site-nav-toggle">
@@ -228,6 +228,322 @@
           <div id="content" class="content">
             
   <section id="posts" class="posts-expand">
+    
+      
+
+  
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal " itemscope itemtype="http://schema.org/Article">
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">
+            
+            
+              
+                
+                <a class="post-title-link" href="/2017/05/04/iOS逆向：在任意app上开启malloc stack追踪内存来源/" itemprop="url">
+                  iOS逆向：在任意app上开启malloc stack追踪内存来源
+                </a>
+              
+            
+          </h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            <span class="post-meta-item-icon">
+              <i class="fa fa-calendar-o"></i>
+            </span>
+            <span class="post-meta-item-text">发表于</span>
+            <time itemprop="dateCreated" datetime="2017-05-04T20:49:00+08:00" content="2017-05-04">
+              2017-05-04
+            </time>
+          </span>
+
+          
+            <span class="post-category" >
+              &nbsp; | &nbsp;
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+              
+                <span itemprop="about" itemscope itemtype="https://schema.org/Thing">
+                  <a href="/categories/逆向工程/" itemprop="url" rel="index">
+                    <span itemprop="name">逆向工程</span>
+                  </a>
+                </span>
+
+                
+                
+
+              
+            </span>
+          
+
+          
+            
+              <span class="post-comments-count">
+                &nbsp; | &nbsp;
+                <a href="/2017/05/04/iOS逆向：在任意app上开启malloc stack追踪内存来源/#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count ds-thread-count" data-thread-key="2017/05/04/iOS逆向：在任意app上开启malloc stack追踪内存来源/" itemprop="commentsCount"></span>
+                </a>
+              </span>
+            
+          
+
+          
+
+          
+          
+
+          
+
+        </div>
+      </header>
+    
+
+
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        
+          
+            <p>lldb有一个内存调试工具malloc stack，开启以后就可以查看某个内存地址的malloc和free记录，追踪对象是在哪里创建的。</p>
+<p>这个工具可以打印出对象创建的堆栈，而在逆向时，也经常需要追踪某些方法的调用栈，如果可以随时打印出某个对象的创建记录，也就能直接找到其所在的类和方法，不用再花费大量的时间去打log和动态调试追踪了。</p>
+<h2 id="malloc-stack"><a href="#malloc-stack" class="headerlink" title="malloc stack"></a>malloc stack</h2><p>在自己的项目中，要开启malloc stack，需要在<code>Product-&gt;Scheme-&gt;Edit Scheme-&gt;Diagnistic</code>里勾选<code>Malloc Stack</code>选项。</p>
+<p>效果如下：</p>
+<p>测试代码：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div></pre></td><td class="code"><pre><div class="line">- (IBAction)create:(id)sender &#123;</div><div class="line">    NSString *testString = [NSString stringWithFormat:@&quot;string created by %@&quot;,self];</div><div class="line">    </div><div class="line">&#125;</div></pre></td></tr></table></figure>
+<p>断点后在lldb中使用<code>lldb.macosx.heap</code>里的<code>malloc_info</code>命令，虽然官网上说是Mac app才能用的命令，但是经测试现在在iOS上也能用了：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div><div class="line">27</div><div class="line">28</div><div class="line">29</div><div class="line">30</div><div class="line">31</div><div class="line">32</div><div class="line">33</div></pre></td><td class="code"><pre><div class="line">(lldb) p/x testString</div><div class="line">(__NSCFString *) $3 = 0x16eac000 @&quot;string created by &lt;ViewController: 0x16e9d7c0&gt;&quot;</div><div class="line">(lldb) command script import lldb.macosx.heap</div><div class="line">&quot;malloc_info&quot;, &quot;ptr_refs&quot;, &quot;cstr_refs&quot;, &quot;find_variable&quot;, and &quot;objc_refs&quot; commands have been installed, use the &quot;--help&quot; options on these commands for detailed help.</div><div class="line">(lldb) malloc_info -s 0x16eac000</div><div class="line">0x0000000016eac000: malloc(    64) -&gt; 0x16eac000 __NSCFString.NSMutableString.NSString.NSObject.isa</div><div class="line">stack[0]: addr = 0x16eac000, type=malloc, frames:</div><div class="line">     [0] 0x00000000242948ab libsystem_malloc.dylib`malloc_zone_malloc + 123</div><div class="line">     [1] 0x00000000244e3bc1 CoreFoundation`_CFRuntimeCreateInstance + 237</div><div class="line">     [2] 0x00000000245a6ffd CoreFoundation`__CFStringCreateImmutableFunnel3 + 1657</div><div class="line">     [3] 0x00000000244ee0f7 CoreFoundation`CFStringCreateCopy + 359</div><div class="line">     [4] 0x00000000245a725d CoreFoundation`_CFStringCreateWithFormatAndArgumentsAux2 + 89</div><div class="line">     [5] 0x0000000024d17dd3 Foundation`-[NSPlaceholderString initWithFormat:locale:arguments:] + 139</div><div class="line">     [6] 0x0000000024d17cd1 Foundation`+[NSString stringWithFormat:] + 61</div><div class="line">     [7] 0x00000000000d7343 testMallocStack`-[ViewController create:] + 97 at ViewController.m:23:28</div><div class="line">     [8] 0x00000000287a5771 UIKit`-[UIApplication sendAction:to:from:forEvent:] + 81</div><div class="line">     [9] 0x00000000287a5701 UIKit`-[UIControl sendAction:to:forEvent:] + 65</div><div class="line">     [10] 0x000000002878d61f UIKit`-[UIControl _sendActionsForEvents:withEvent:] + 447</div><div class="line">     [11] 0x00000000287a5051 UIKit`-[UIControl touchesEnded:withEvent:] + 617</div><div class="line">     [12] 0x00000000287a4cbf UIKit`-[UIWindow _sendTouchesForEvent:] + 647</div><div class="line">     [13] 0x000000002879d5d7 UIKit`-[UIWindow sendEvent:] + 643</div><div class="line">     [14] 0x000000002876e119 UIKit`-[UIApplication sendEvent:] + 205</div><div class="line">     [15] 0x000000002876c757 UIKit`_UIApplicationHandleEventQueue + 5135</div><div class="line">     [16] 0x0000000024599257 CoreFoundation`__CFRUNLOOP_IS_CALLING_OUT_TO_A_SOURCE0_PERFORM_FUNCTION__ + 15</div><div class="line">     [17] 0x0000000024598e47 CoreFoundation`__CFRunLoopDoSources0 + 455</div><div class="line">     [18] 0x00000000245971af CoreFoundation`__CFRunLoopRun + 807</div><div class="line">     [19] 0x00000000244e9bb9 CoreFoundation`CFRunLoopRunSpecific + 517</div><div class="line">     [20] 0x00000000244e99ad CoreFoundation`CFRunLoopRunInMode + 109</div><div class="line">     [21] 0x0000000025763af9 GraphicsServices`GSEventRunModal + 161</div><div class="line">     [22] 0x00000000287d5fb5 UIKit`UIApplicationMain + 145</div><div class="line">     [23] 0x00000000000d7587 testMallocStack`main + 107 at main.m:14:9</div><div class="line">     [24] 0x000000002419c873 libdyld.dylib`start + 3</div><div class="line">     [25] 0x000000003a9c0001 libsystem_pthread.dylib`_thread + 1</div></pre></td></tr></table></figure>
+<p>这个工具是继承自gdb的<code>malloc_history</code>，不过<code>malloc_history</code>只能用在模拟器上，而<code>malloc_info</code>在模拟器和真机上都可以使用。另外，新版Xcode又增加了一个新的lldb工具<code>memory history</code>，在<code>Product-&gt;Scheme-&gt;Edit Scheme-&gt;Diagnistic</code>里勾选<code>Address Sanitizer</code>即可，效果类似。</p>
+<p>注意，在Xcode8.3以后使用<code>malloc_info</code>会crash，似乎是出bug了，一直没修复。在Xcode8.2上可以正常使用。</p>
+<h2 id="在任意app上开启malloc-stack"><a href="#在任意app上开启malloc-stack" class="headerlink" title="在任意app上开启malloc stack"></a>在任意app上开启malloc stack</h2><p><code>Address Sanitizer</code>的<code>memory history</code>需要重新编译app，但是<code>malloc stack</code>只需要在app启动前设置环境变量<code>MallocStackLogging</code>和<code>MallocStackLoggingNoCompact</code>即可。开启后会在系统的<code>/tmp</code>目录下生成一个<code>.index</code>文件，这个文件里的内容是依赖于app的运行时环境的，进程退出以后这个文件也就没用处了。</p>
+<p>那么，现在的问题就变成了如何给app设置启动环境变量。</p>
+<h3 id="方法一：execve"><a href="#方法一：execve" class="headerlink" title="方法一：execve"></a>方法一：execve</h3><p>这是我一开始使用的方法。使用<code>execve</code>函数来运行app的二进制文件。</p>
+<p>由于沙盒的限制，需要让app拥有root权限才能使用<code>execve</code>。步骤如下。</p>
+<h4 id="1-重签名ipa"><a href="#1-重签名ipa" class="headerlink" title="1.重签名ipa"></a>1.重签名ipa</h4><p>重签名需要逆向的app。因为需要对app内容作出修改。重签名后安装到越狱设备上。</p>
+<h4 id="2-移动app到系统app目录下，修改权限"><a href="#2-移动app到系统app目录下，修改权限" class="headerlink" title="2.移动app到系统app目录下，修改权限"></a>2.移动app到系统app目录下，修改权限</h4><p>只有系统目录下的app才有root权限。</p>
+<p>假设需要逆向的app是<code>YOUR_APP.app</code>。把app移动到系统app目录下：<code>mv -f /var/containers/Bundle/Application/xxxxxxxxxxxxx/YOUR_APP.app /Applications/YOUR_APP.app</code>。</p>
+<p>然后修改文件权限：</p>
+<p><code>cd /Applications</code></p>
+<p><code>chown -R root:wheel YOUR_APP.app</code></p>
+<p><code>chmod 4755 YOUR_APP.app/YOUR_APP</code></p>
+<p>移动后，用<code>uicache</code>刷新app图标，用<code>killall SpringBoard</code>重启<code>SpringBoard</code>。</p>
+<h4 id="3-使用引导程序启动app"><a href="#3-使用引导程序启动app" class="headerlink" title="3.使用引导程序启动app"></a>3.使用引导程序启动app</h4><p>最终的目的就是使用引导程序用<code>execve</code>启动app，在启动前设置环境变量。</p>
+<p>首先重命名原来的二进制文件：<code>mv YOUR_APP.app/YOUR_APP   YOUR_APP.app/YOUR_APP_Orig</code>。</p>
+<p>然后制作引导程序，随便创建一个iOS工程，替换main.m里的内容为：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div></pre></td><td class="code"><pre><div class="line">int main(int argc, char * argv[]) &#123;</div><div class="line">    @autoreleasepool &#123;</div><div class="line">        NSString* string = [[NSBundle mainBundle] pathForResource:@&quot;YOUR_APP_Orig&quot; ofType:nil];//YOUR_APP_Orig是所要启动的二进制文件名</div><div class="line">        argv[0] = (char*)[string UTF8String];</div><div class="line">        char *envp[] =</div><div class="line">        &#123;</div><div class="line">            &quot;HOME=/var/root&quot;,</div><div class="line">            &quot;LOGNAME=root&quot;,</div><div class="line">            &quot;PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/bin/X11:/usr/games&quot;,</div><div class="line">            &quot;USER=root&quot;,</div><div class="line">            &quot;MallocStackLogging=1&quot;,</div><div class="line">            &quot;MallocStackLoggingNoCompact=1&quot;</div><div class="line">            0</div><div class="line">        &#125;;</div><div class="line">        execve([string UTF8String], argv, envp);</div><div class="line">        return 0;</div><div class="line">    &#125;</div><div class="line">&#125;</div></pre></td></tr></table></figure>
+<p>编译后，取出二进制文件，重命名为<code>YOUR_APP</code>，复制到越狱设备的<code>/Application/YOUR_APP.app/</code>目录下。</p>
+<p>给引导程序设置执行权限：<code>chmod +x /Application/YOUR_APP.app/YOUR_APP</code>。</p>
+<p>最后重启SpringBoard：<code>killall SpringBoard</code>。</p>
+<p>这样，每次启动app就都会使用引导程序间接启动app。</p>
+<h4 id="缺点"><a href="#缺点" class="headerlink" title="缺点"></a>缺点</h4><ul>
+<li>步骤繁琐。</li>
+<li>有些app重签名很麻烦。</li>
+<li>越狱后的系统分区容量很小，很容易就被占满了，想要测试大一点的app就麻烦了。</li>
+<li>无法使用<code>debugserver</code>唤醒app，调试启动过程。因为<code>YOUR_APP</code>和<code>YOUR_APP_Orig</code>是两个进程，第一个在<code>execve</code>执行完就退出了。</li>
+<li>把app放到系统目录下有时候会引起crash。</li>
+</ul>
+<h3 id="方法2：debugserver参数"><a href="#方法2：debugserver参数" class="headerlink" title="方法2：debugserver参数"></a>方法2：debugserver参数</h3><p>方法1实在是太麻烦了，有时候遇上重签名失败的app就更麻烦了。但其实还有另一个更直接的方法。就是使用debugserver的命令。</p>
+<p>debugserver是动态调试工具，参考：<a href="http://gslab.qq.com/article-159-1.html" target="_blank" rel="external">IOS平台lldb动态调试介绍</a>。</p>
+<p>安装好后，在越狱设备上输入<code>debugserver *:1234 /var/containers/Bundle/Application/589822B6-BFDA-4A3D-A71C-AD0D30BA6077/WeChat.app/WeChat</code>就能唤醒app进行调试。</p>
+<p>但是网上的教程都没有提到，其实debugserver还有一个隐藏的参数<code>--env</code>(<code>-env</code>,<code>-e</code>都可以)，就是用来设置进程的环境变量的：</p>
+<p><code>debugserver *:1234 /var/containers/Bundle/Application/589822B6-BFDA-4A3D-A71C-AD0D30BA6077/WeChat.app/WeChat -env MallocStackLogging=1 -env MallocStackLoggingNoCompact=1</code></p>
+<p>当时我想debugserver会不会有设置环境变量的功能，没想到随便试了个<code>-env</code>就成功了。后来在debugserver的源码里也发现了它的存在：<a href="https://llvm.org/svn/llvm-project/lldb/trunk/tools/debugserver/source/debugserver.cpp" target="_blank" rel="external">debugserver.cpp</a>（搜索<code>g_long_options</code>可以找到<code>env</code>）。</p>
+<p>这样，即使app没有重签名，也可以直接调试了。</p>
+<h2 id="测试"><a href="#测试" class="headerlink" title="测试"></a>测试</h2><p>这里使用一个重签名，并且恢复了符号表的微信进行测试。</p>
+<p>比如找到微信查看表情的界面，打印出内存地址为<code>0x108795c20</code>：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line">&lt;MMEmoticonView: 0x108795c20; frame = (276.25 404.25; 215.5 215.5); autoresize = LM+RM+TM+BM; layer = &lt;CALayer: 0x170828700&gt;&gt;</div></pre></td></tr></table></figure>
+<p>第一次使用<code>malloc_info</code>需要在lldb里导入<code>lldb.macosx.heap</code>：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div></pre></td><td class="code"><pre><div class="line">(lldb) command script import lldb.macosx.heap</div><div class="line">&quot;malloc_info&quot;, &quot;ptr_refs&quot;, &quot;cstr_refs&quot;, &quot;find_variable&quot;, and &quot;objc_refs&quot; commands have been installed, use the &quot;--help&quot; options on these commands for detailed help.</div></pre></td></tr></table></figure>
+<p>使用<code>malloc_info</code>打印创建堆栈：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div><div class="line">27</div><div class="line">28</div><div class="line">29</div><div class="line">30</div><div class="line">31</div><div class="line">32</div><div class="line">33</div><div class="line">34</div></pre></td><td class="code"><pre><div class="line">(lldb) malloc_info -s 0x108795c20</div><div class="line">0x0000000108795c20: malloc(   480) -&gt; 0x108795c20 MMEmoticonView.UIView.UIResponder.NSObject.isa</div><div class="line">stack[0]: addr = 0x108795c20, type=malloc, frames:</div><div class="line">     [0] 0x000000018374e0ac libsystem_malloc.dylib`calloc + 40</div><div class="line">     [1] 0x000000018318b624 libobjc.A.dylib`class_createInstance + 76</div><div class="line">     [2] 0x0000000183199ae4 libobjc.A.dylib`_objc_rootAlloc + 52</div><div class="line">     [3] 0x00000001026d8fd4 WeChat`-[MMImageBrowseView InitEmoticonView:] + 432</div><div class="line">     [4] 0x000000010245e950 WeChat`-[MMEmotionMsgBrowseViewController initImageViewWithFrame:] + 404</div><div class="line">     [5] 0x000000010245ea74 WeChat`-[MMEmotionMsgBrowseViewController setupImageView] + 156</div><div class="line">     [6] 0x000000010245e024 WeChat`-[MMEmotionMsgBrowseViewController initView] + 224</div><div class="line">     [7] 0x000000010245d76c WeChat`-[MMEmotionMsgBrowseViewController viewDidLoad] + 112</div><div class="line">     [8] 0x000000018a5f7924 UIKit`-[UIViewController loadViewIfRequired] + 1056</div><div class="line">     [9] 0x000000018a60f4b4 UIKit`-[UIViewController __viewWillAppear:] + 132</div><div class="line">     [10] 0x00000001026e05f8 WeChat`-[MMUIViewController beginAppearanceTransition:animated:] + 92</div><div class="line">     [11] 0x000000018a7975b4 UIKit`-[UINavigationController _startCustomTransition:] + 1136</div><div class="line">     [12] 0x000000018a6afe74 UIKit`-[UINavigationController _startDeferredTransitionIfNeeded:] + 676</div><div class="line">     [13] 0x000000018a6afadc UIKit`-[UINavigationController __viewWillLayoutSubviews] + 64</div><div class="line">     [14] 0x000000018a6afa40 UIKit`-[UILayoutContainerView layoutSubviews] + 188</div><div class="line">     [15] 0x000000018a5f4a80 UIKit`-[UIView(CALayerDelegate) layoutSublayersOfLayer:] + 1196</div><div class="line">     [16] 0x0000000187aa29d8 QuartzCore`-[CALayer layoutSublayers] + 148</div><div class="line">     [17] 0x0000000187a974cc QuartzCore`CA::Layer::layout_if_needed(CA::Transaction*) + 292</div><div class="line">     [18] 0x0000000187a9738c QuartzCore`CA::Layer::layout_and_display_if_needed(CA::Transaction*) + 32</div><div class="line">     [19] 0x0000000187a143e0 QuartzCore`CA::Context::commit_transaction(CA::Transaction*) + 252</div><div class="line">     [20] 0x0000000187a3ba68 QuartzCore`CA::Transaction::commit() + 512</div><div class="line">     [21] 0x0000000187a3c488 QuartzCore`CA::Transaction::observer_callback(__CFRunLoopObserver*, unsigned long, void*) + 120</div><div class="line">     [22] 0x00000001846f60c0 CoreFoundation`__CFRUNLOOP_IS_CALLING_OUT_TO_AN_OBSERVER_CALLBACK_FUNCTION__ + 32</div><div class="line">     [23] 0x00000001846f3cf0 CoreFoundation`__CFRunLoopDoObservers + 372</div><div class="line">     [24] 0x00000001846f4180 CoreFoundation`__CFRunLoopRun + 1024</div><div class="line">     [25] 0x00000001846222b8 CoreFoundation`CFRunLoopRunSpecific + 444</div><div class="line">     [26] 0x00000001860d6198 GraphicsServices`GSEventRunModal + 180</div><div class="line">     [27] 0x000000018a6627fc UIKit`-[UIApplication _run] + 684</div><div class="line">     [28] 0x000000018a65d534 UIKit`UIApplicationMain + 208</div><div class="line">     [29] 0x00000001000ebea4 WeChat`-[WATemplateMsgMngSwitchCell .cxx_destruct] + 372</div><div class="line">     [30] 0x00000001836055b8 libdyld.dylib`start + 4</div></pre></td></tr></table></figure>
+<p>这样就直接找到表情界面所在的类，以及在哪里初始化了。</p>
+<p>这样的话，只要能找到一个对象，就能快速定位到其所在模块。比原来打log，打断点一步步回溯高效多了。</p>
+<h2 id="恢复符号表"><a href="#恢复符号表" class="headerlink" title="恢复符号表"></a>恢复符号表</h2><p>建议在对app重签名时恢复符号表。恢复符号表后，就能直接在堆栈中看到方法名，免去了计算偏移量然后在hopper里查找的麻烦。</p>
+<p>参考：<a href="http://blog.imjun.net/posts/restore-symbol-of-iOS-app/" target="_blank" rel="external">iOS符号表恢复&amp;逆向支付宝</a>, <a href="https://github.com/tobefuturer/restore-symbol" target="_blank" rel="external">restore-symbol</a>。</p>
+
+          
+        
+      
+    </div>
+
+    <div>
+      
+    </div>
+
+    <div>
+      
+    </div>
+
+    <footer class="post-footer">
+      
+
+      
+
+      
+      
+        <div class="post-eof"></div>
+      
+    </footer>
+  </article>
+
+
+    
+      
+
+  
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal " itemscope itemtype="http://schema.org/Article">
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">
+            
+            
+              
+                
+                <a class="post-title-link" href="/2017/05/04/iOS逆向：在Xcode里调试重签名的app/" itemprop="url">
+                  iOS逆向：用Xcode直接调试第三方app
+                </a>
+              
+            
+          </h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            <span class="post-meta-item-icon">
+              <i class="fa fa-calendar-o"></i>
+            </span>
+            <span class="post-meta-item-text">发表于</span>
+            <time itemprop="dateCreated" datetime="2017-05-04T20:48:00+08:00" content="2017-05-04">
+              2017-05-04
+            </time>
+          </span>
+
+          
+            <span class="post-category" >
+              &nbsp; | &nbsp;
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+              
+                <span itemprop="about" itemscope itemtype="https://schema.org/Thing">
+                  <a href="/categories/逆向工程/" itemprop="url" rel="index">
+                    <span itemprop="name">逆向工程</span>
+                  </a>
+                </span>
+
+                
+                
+
+              
+            </span>
+          
+
+          
+            
+              <span class="post-comments-count">
+                &nbsp; | &nbsp;
+                <a href="/2017/05/04/iOS逆向：在Xcode里调试重签名的app/#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count ds-thread-count" data-thread-key="2017/05/04/iOS逆向：在Xcode里调试重签名的app/" itemprop="commentsCount"></span>
+                </a>
+              </span>
+            
+          
+
+          
+
+          
+          
+
+          
+
+        </div>
+      </header>
+    
+
+
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        
+          
+            <p>一般动态调试app时，都是在终端里用lldb直接调试，但是用Xcode的<code>Attach to Process</code>也可以连接到真机上的进程进行调试。但是只能调试用自己的证书签名的app。</p>
+<p>在Xcode上调试的优点：</p>
+<ul>
+<li>有UI界面，查看堆栈更直接，可以用Xcode打断点。</li>
+<li>可以使用<code>debug gauges</code>里的Disk和Network等工具。</li>
+<li>输入lldb命令时有自动补全。</li>
+<li>可以使用Xcode的<code>Debug UI Hierarchy</code>功能，直接查看app的界面布局。</li>
+<li>可以使用Xcode的<code>Debug Memory Graph</code>功能，查看当前内存中存在的所有对象，以及对象之间的引用关系。</li>
+</ul>
+<p>步骤如下。</p>
+<h2 id="1-重签名需要逆向的app"><a href="#1-重签名需要逆向的app" class="headerlink" title="1.重签名需要逆向的app"></a>1.重签名需要逆向的app</h2><p>重签名后才能用Xcode attch。而重签名前需要对app进行砸壳。这些步骤就不再重复了。</p>
+<p>额外说一句，在砸壳后建议进行一下恢复符号表的操作。恢复符号表后，在调试时就能直接在堆栈中看到方法名，免去了计算偏移量然后在hopper里查找的麻烦。参考：<a href="http://blog.imjun.net/posts/restore-symbol-of-iOS-app/" target="_blank" rel="external">iOS符号表恢复&amp;逆向支付宝</a>, <a href="https://github.com/tobefuturer/restore-symbol" target="_blank" rel="external">restore-symbol</a>。</p>
+<h2 id="2-Attach-to-Process"><a href="#2-Attach-to-Process" class="headerlink" title="2.Attach to Process"></a>2.Attach to Process</h2><p>重签名后安装到越狱设备上，启动app，在Xcode中随便打开一个工程，选择越狱设备，就可以在<code>Debug-&gt;Attach to Process</code>中找到正在运行的进程名和进程id，点击后就会开始连接。大概过1分钟就会连接上。</p>
+<h2 id="3-查看UI"><a href="#3-查看UI" class="headerlink" title="3.查看UI"></a>3.查看UI</h2><p>连接上后，就可以点击使用Xcode的<code>Debug UI Hierarchy</code>来查看界面布局：</p>
+<p><img src="http://upload-images.jianshu.io/upload_images/1865432-b3652b738ff07228.jpg" alt="UI Hierarchy"></p>
+<p>注意，<code>Debug UI Hierarchy</code>对Xcode版本似乎有要求，在调试重签名app时，Xcode8.3.2可以，而Xcode8.2就没有这个功能按钮。</p>
+<h2 id="4-查看内存信息"><a href="#4-查看内存信息" class="headerlink" title="4.查看内存信息"></a>4.查看内存信息</h2><p>点击<code>Debug Memory Graph</code>按钮，可以查看当前内存中存在的数据。打印地址，查看引用关系，可以配合<code>malloc stack</code>进行追踪。</p>
+<p><img src="http://upload-images.jianshu.io/upload_images/1865432-26b34a3342df43a6.jpg" alt="Memory Graph"></p>
+<h2 id="5-查看正在使用的文件"><a href="#5-查看正在使用的文件" class="headerlink" title="5.查看正在使用的文件"></a>5.查看正在使用的文件</h2><p><code>debug gauges</code>中的Disk工具可以查看app当前打开的文件。</p>
+<p><img src="http://upload-images.jianshu.io/upload_images/1865432-80d24111380e2e44.jpg" alt="Open Files"></p>
+<h2 id="5-instrument调试"><a href="#5-instrument调试" class="headerlink" title="5.instrument调试"></a>5.instrument调试</h2><p>类似的，也可以用instrument调试重签名后的app，不过并不是所有工具都可以使用，对逆向的帮助不大。</p>
+
+          
+        
+      
+    </div>
+
+    <div>
+      
+    </div>
+
+    <div>
+      
+    </div>
+
+    <footer class="post-footer">
+      
+
+      
+
+      
+      
+        <div class="post-eof"></div>
+      
+    </footer>
+  </article>
+
+
     
       
 
@@ -1648,12 +1964,12 @@
                src="/images/avatar.png"
                alt="zuik" />
           <p class="site-author-name" itemprop="name">zuik</p>
-          <p class="site-description motion-element" itemprop="description">记录踩过的坑</p>
+          <p class="site-description motion-element" itemprop="description">🐼</p>
         </div>
         <nav class="site-state motion-element">
           <div class="site-state-item site-state-posts">
             <a href="/archives">
-              <span class="site-state-item-count">5</span>
+              <span class="site-state-item-count">7</span>
               <span class="site-state-item-name">日志</span>
             </a>
           </div>
@@ -1661,7 +1977,7 @@
           
             <div class="site-state-item site-state-categories">
               <a href="/categories">
-                <span class="site-state-item-count">5</span>
+                <span class="site-state-item-count">6</span>
                 <span class="site-state-item-name">分类</span>
               </a>
             </div>
