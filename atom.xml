@@ -5,7 +5,7 @@
   <link href="/atom.xml" rel="self"/>
   
   <link href="http://yoursite.com/"/>
-  <updated>2017-05-04T12:49:50.680Z</updated>
+  <updated>2017-05-05T02:16:42.540Z</updated>
   <id>http://yoursite.com/</id>
   
   <author>
@@ -20,7 +20,7 @@
     <link href="http://yoursite.com/2017/05/04/iOS%E9%80%86%E5%90%91%EF%BC%9A%E5%9C%A8%E4%BB%BB%E6%84%8Fapp%E4%B8%8A%E5%BC%80%E5%90%AFmalloc%20stack%E8%BF%BD%E8%B8%AA%E5%86%85%E5%AD%98%E6%9D%A5%E6%BA%90/"/>
     <id>http://yoursite.com/2017/05/04/iOS逆向：在任意app上开启malloc stack追踪内存来源/</id>
     <published>2017-05-04T12:49:00.000Z</published>
-    <updated>2017-05-04T12:49:50.680Z</updated>
+    <updated>2017-05-05T02:16:42.540Z</updated>
     
     <content type="html"><![CDATA[<p>lldb有一个内存调试工具malloc stack，开启以后就可以查看某个内存地址的malloc和free记录，追踪对象是在哪里创建的。</p>
 <p>这个工具可以打印出对象创建的堆栈，而在逆向时，也经常需要追踪某些方法的调用栈，如果可以随时打印出某个对象的创建记录，也就能直接找到其所在的类和方法，不用再花费大量的时间去打log和动态调试追踪了。</p>
@@ -77,6 +77,11 @@
 <p>这样的话，只要能找到一个对象，就能快速定位到其所在模块。比原来打log，打断点一步步回溯高效多了。</p>
 <h2 id="恢复符号表"><a href="#恢复符号表" class="headerlink" title="恢复符号表"></a>恢复符号表</h2><p>建议在对app重签名时恢复符号表。恢复符号表后，就能直接在堆栈中看到方法名，免去了计算偏移量然后在hopper里查找的麻烦。</p>
 <p>参考：<a href="http://blog.imjun.net/posts/restore-symbol-of-iOS-app/" target="_blank" rel="external">iOS符号表恢复&amp;逆向支付宝</a>, <a href="https://github.com/tobefuturer/restore-symbol" target="_blank" rel="external">restore-symbol</a>。</p>
+<h2 id="其他几个调试命令"><a href="#其他几个调试命令" class="headerlink" title="其他几个调试命令"></a>其他几个调试命令</h2><h3 id="ptr-refs"><a href="#ptr-refs" class="headerlink" title="ptr_refs"></a>ptr_refs</h3><p>可以在内存中找出哪些地址引用了某个指针，也就相当于查看某个变量在哪里被引用。</p>
+<h3 id="cstr-refs"><a href="#cstr-refs" class="headerlink" title="cstr_refs"></a>cstr_refs</h3><p>在内存中寻找某个C String在哪里被引用。</p>
+<h3 id="find-variable"><a href="#find-variable" class="headerlink" title="find_variable"></a>find_variable</h3><p>在当前栈帧上寻找某个局部变量在哪里被引用。</p>
+<h3 id="objc-refs"><a href="#objc-refs" class="headerlink" title="objc_refs"></a>objc_refs</h3><p>在内存中寻找某个类的实例。</p>
+<h2 id="转到Xcode中调试"><a href="#转到Xcode中调试" class="headerlink" title="转到Xcode中调试"></a>转到Xcode中调试</h2><p>如果想要在Xcode中调试并开启<code>malloc stack</code>，则需要先用<code>debugserver</code>启动app，在终端的lldb里连接上以后，再用<code>process detach</code>断开连接。接下来用Xcode的<code>Attach to Process</code>就可以了，参考：<a href="https://zuikyo.github.io/2017/05/04/iOS逆向：用Xcode直接调试第三方app/" target="_blank" rel="external">iOS逆向：用Xcode直接调试第三方app</a>。</p>
 ]]></content>
     
     <summary type="html">
@@ -95,10 +100,10 @@
   
   <entry>
     <title>iOS逆向：用Xcode直接调试第三方app</title>
-    <link href="http://yoursite.com/2017/05/04/iOS%E9%80%86%E5%90%91%EF%BC%9A%E5%9C%A8Xcode%E9%87%8C%E8%B0%83%E8%AF%95%E9%87%8D%E7%AD%BE%E5%90%8D%E7%9A%84app/"/>
-    <id>http://yoursite.com/2017/05/04/iOS逆向：在Xcode里调试重签名的app/</id>
+    <link href="http://yoursite.com/2017/05/04/iOS%E9%80%86%E5%90%91%EF%BC%9A%E7%94%A8Xcode%E7%9B%B4%E6%8E%A5%E8%B0%83%E8%AF%95%E7%AC%AC%E4%B8%89%E6%96%B9app/"/>
+    <id>http://yoursite.com/2017/05/04/iOS逆向：用Xcode直接调试第三方app/</id>
     <published>2017-05-04T12:48:00.000Z</published>
-    <updated>2017-05-04T12:49:18.090Z</updated>
+    <updated>2017-05-05T02:19:48.950Z</updated>
     
     <content type="html"><![CDATA[<p>一般动态调试app时，都是在终端里用lldb直接调试，但是用Xcode的<code>Attach to Process</code>也可以连接到真机上的进程进行调试。但是只能调试用自己的证书签名的app。</p>
 <p>在Xcode上调试的优点：</p>
@@ -110,14 +115,14 @@
 <li>可以使用Xcode的<code>Debug Memory Graph</code>功能，查看当前内存中存在的所有对象，以及对象之间的引用关系。</li>
 </ul>
 <p>步骤如下。</p>
-<h2 id="1-重签名需要逆向的app"><a href="#1-重签名需要逆向的app" class="headerlink" title="1.重签名需要逆向的app"></a>1.重签名需要逆向的app</h2><p>重签名后才能用Xcode attch。而重签名前需要对app进行砸壳。这些步骤就不再重复了。</p>
+<h2 id="1-重签名需要逆向的app"><a href="#1-重签名需要逆向的app" class="headerlink" title="1.重签名需要逆向的app"></a>1.重签名需要逆向的app</h2><p>重签名后才能用Xcode attach。而重签名前需要对app进行砸壳。这些步骤就不再重复了。</p>
 <p>额外说一句，在砸壳后建议进行一下恢复符号表的操作。恢复符号表后，在调试时就能直接在堆栈中看到方法名，免去了计算偏移量然后在hopper里查找的麻烦。参考：<a href="http://blog.imjun.net/posts/restore-symbol-of-iOS-app/" target="_blank" rel="external">iOS符号表恢复&amp;逆向支付宝</a>, <a href="https://github.com/tobefuturer/restore-symbol" target="_blank" rel="external">restore-symbol</a>。</p>
 <h2 id="2-Attach-to-Process"><a href="#2-Attach-to-Process" class="headerlink" title="2.Attach to Process"></a>2.Attach to Process</h2><p>重签名后安装到越狱设备上，启动app，在Xcode中随便打开一个工程，选择越狱设备，就可以在<code>Debug-&gt;Attach to Process</code>中找到正在运行的进程名和进程id，点击后就会开始连接。大概过1分钟就会连接上。</p>
 <h2 id="3-查看UI"><a href="#3-查看UI" class="headerlink" title="3.查看UI"></a>3.查看UI</h2><p>连接上后，就可以点击使用Xcode的<code>Debug UI Hierarchy</code>来查看界面布局：</p>
 <p><img src="http://upload-images.jianshu.io/upload_images/1865432-b3652b738ff07228.jpg" alt="UI Hierarchy"></p>
 <p>注意，<code>Debug UI Hierarchy</code>对Xcode版本似乎有要求，在调试重签名app时，Xcode8.3.2可以，而Xcode8.2就没有这个功能按钮。</p>
-<h2 id="4-查看内存信息"><a href="#4-查看内存信息" class="headerlink" title="4.查看内存信息"></a>4.查看内存信息</h2><p>点击<code>Debug Memory Graph</code>按钮，可以查看当前内存中存在的数据。打印地址，查看引用关系，可以配合<code>malloc stack</code>进行追踪。</p>
-<p><img src="http://upload-images.jianshu.io/upload_images/1865432-26b34a3342df43a6.jpg" alt="Memory Graph"></p>
+<h2 id="4-查看内存信息"><a href="#4-查看内存信息" class="headerlink" title="4.查看内存信息"></a>4.查看内存信息</h2><p>点击<code>Debug Memory Graph</code>按钮，可以查看当前内存中存在的数据。打印地址，查看引用关系，可以配合<code>malloc stack</code>进行追踪。如果打开了<code>malloc stack</code>，就可以直接在右边显示这个对象的创建堆栈。参考：<a href="https://zuikyo.github.io/2017/05/04/iOS逆向：在任意app上开启malloc%20stack追踪内存来源/" target="_blank" rel="external">iOS逆向：在任意app上开启malloc%20stack追踪内存来源</a>。</p>
+<p><img src="http://upload-images.jianshu.io/upload_images/1865432-d599a5233b28e245.jpg" alt="Memory Graph"></p>
 <h2 id="5-查看正在使用的文件"><a href="#5-查看正在使用的文件" class="headerlink" title="5.查看正在使用的文件"></a>5.查看正在使用的文件</h2><p><code>debug gauges</code>中的Disk工具可以查看app当前打开的文件。</p>
 <p><img src="http://upload-images.jianshu.io/upload_images/1865432-80d24111380e2e44.jpg" alt="Open Files"></p>
 <h2 id="5-instrument调试"><a href="#5-instrument调试" class="headerlink" title="5.instrument调试"></a>5.instrument调试</h2><p>类似的，也可以用instrument调试重签名后的app，不过并不是所有工具都可以使用，对逆向的帮助不大。</p>

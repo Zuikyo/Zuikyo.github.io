@@ -95,7 +95,7 @@
 可以使用Xcode的Debug U">
 <meta property="og:type" content="article">
 <meta property="og:title" content="iOS逆向：用Xcode直接调试第三方app">
-<meta property="og:url" content="http://yoursite.com/2017/05/04/iOS逆向：在Xcode里调试重签名的app/index.html">
+<meta property="og:url" content="http://yoursite.com/2017/05/04/iOS逆向：用Xcode直接调试第三方app/index.html">
 <meta property="og:site_name" content="zuik's blog">
 <meta property="og:description" content="一般动态调试app时，都是在终端里用lldb直接调试，但是用Xcode的Attach to Process也可以连接到真机上的进程进行调试。但是只能调试用自己的证书签名的app。
 在Xcode上调试的优点：
@@ -105,9 +105,9 @@
 输入lldb命令时有自动补全。
 可以使用Xcode的Debug U">
 <meta property="og:image" content="http://upload-images.jianshu.io/upload_images/1865432-b3652b738ff07228.jpg">
-<meta property="og:image" content="http://upload-images.jianshu.io/upload_images/1865432-26b34a3342df43a6.jpg">
+<meta property="og:image" content="http://upload-images.jianshu.io/upload_images/1865432-d599a5233b28e245.jpg">
 <meta property="og:image" content="http://upload-images.jianshu.io/upload_images/1865432-80d24111380e2e44.jpg">
-<meta property="og:updated_time" content="2017-05-04T12:49:18.090Z">
+<meta property="og:updated_time" content="2017-05-05T02:19:48.950Z">
 <meta name="twitter:card" content="summary">
 <meta name="twitter:title" content="iOS逆向：用Xcode直接调试第三方app">
 <meta name="twitter:description" content="一般动态调试app时，都是在终端里用lldb直接调试，但是用Xcode的Attach to Process也可以连接到真机上的进程进行调试。但是只能调试用自己的证书签名的app。
@@ -138,7 +138,7 @@
 
 
 
-  <link rel="canonical" href="http://yoursite.com/2017/05/04/iOS逆向：在Xcode里调试重签名的app/"/>
+  <link rel="canonical" href="http://yoursite.com/2017/05/04/iOS逆向：用Xcode直接调试第三方app/"/>
 
   <title> iOS逆向：用Xcode直接调试第三方app | zuik's blog </title>
 </head>
@@ -312,8 +312,8 @@
             
               <span class="post-comments-count">
                 &nbsp; | &nbsp;
-                <a href="/2017/05/04/iOS逆向：在Xcode里调试重签名的app/#comments" itemprop="discussionUrl">
-                  <span class="post-comments-count ds-thread-count" data-thread-key="2017/05/04/iOS逆向：在Xcode里调试重签名的app/" itemprop="commentsCount"></span>
+                <a href="/2017/05/04/iOS逆向：用Xcode直接调试第三方app/#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count ds-thread-count" data-thread-key="2017/05/04/iOS逆向：用Xcode直接调试第三方app/" itemprop="commentsCount"></span>
                 </a>
               </span>
             
@@ -347,14 +347,14 @@
 <li>可以使用Xcode的<code>Debug Memory Graph</code>功能，查看当前内存中存在的所有对象，以及对象之间的引用关系。</li>
 </ul>
 <p>步骤如下。</p>
-<h2 id="1-重签名需要逆向的app"><a href="#1-重签名需要逆向的app" class="headerlink" title="1.重签名需要逆向的app"></a>1.重签名需要逆向的app</h2><p>重签名后才能用Xcode attch。而重签名前需要对app进行砸壳。这些步骤就不再重复了。</p>
+<h2 id="1-重签名需要逆向的app"><a href="#1-重签名需要逆向的app" class="headerlink" title="1.重签名需要逆向的app"></a>1.重签名需要逆向的app</h2><p>重签名后才能用Xcode attach。而重签名前需要对app进行砸壳。这些步骤就不再重复了。</p>
 <p>额外说一句，在砸壳后建议进行一下恢复符号表的操作。恢复符号表后，在调试时就能直接在堆栈中看到方法名，免去了计算偏移量然后在hopper里查找的麻烦。参考：<a href="http://blog.imjun.net/posts/restore-symbol-of-iOS-app/" target="_blank" rel="external">iOS符号表恢复&amp;逆向支付宝</a>, <a href="https://github.com/tobefuturer/restore-symbol" target="_blank" rel="external">restore-symbol</a>。</p>
 <h2 id="2-Attach-to-Process"><a href="#2-Attach-to-Process" class="headerlink" title="2.Attach to Process"></a>2.Attach to Process</h2><p>重签名后安装到越狱设备上，启动app，在Xcode中随便打开一个工程，选择越狱设备，就可以在<code>Debug-&gt;Attach to Process</code>中找到正在运行的进程名和进程id，点击后就会开始连接。大概过1分钟就会连接上。</p>
 <h2 id="3-查看UI"><a href="#3-查看UI" class="headerlink" title="3.查看UI"></a>3.查看UI</h2><p>连接上后，就可以点击使用Xcode的<code>Debug UI Hierarchy</code>来查看界面布局：</p>
 <p><img src="http://upload-images.jianshu.io/upload_images/1865432-b3652b738ff07228.jpg" alt="UI Hierarchy"></p>
 <p>注意，<code>Debug UI Hierarchy</code>对Xcode版本似乎有要求，在调试重签名app时，Xcode8.3.2可以，而Xcode8.2就没有这个功能按钮。</p>
-<h2 id="4-查看内存信息"><a href="#4-查看内存信息" class="headerlink" title="4.查看内存信息"></a>4.查看内存信息</h2><p>点击<code>Debug Memory Graph</code>按钮，可以查看当前内存中存在的数据。打印地址，查看引用关系，可以配合<code>malloc stack</code>进行追踪。</p>
-<p><img src="http://upload-images.jianshu.io/upload_images/1865432-26b34a3342df43a6.jpg" alt="Memory Graph"></p>
+<h2 id="4-查看内存信息"><a href="#4-查看内存信息" class="headerlink" title="4.查看内存信息"></a>4.查看内存信息</h2><p>点击<code>Debug Memory Graph</code>按钮，可以查看当前内存中存在的数据。打印地址，查看引用关系，可以配合<code>malloc stack</code>进行追踪。如果打开了<code>malloc stack</code>，就可以直接在右边显示这个对象的创建堆栈。参考：<a href="https://zuikyo.github.io/2017/05/04/iOS逆向：在任意app上开启malloc%20stack追踪内存来源/" target="_blank" rel="external">iOS逆向：在任意app上开启malloc%20stack追踪内存来源</a>。</p>
+<p><img src="http://upload-images.jianshu.io/upload_images/1865432-d599a5233b28e245.jpg" alt="Memory Graph"></p>
 <h2 id="5-查看正在使用的文件"><a href="#5-查看正在使用的文件" class="headerlink" title="5.查看正在使用的文件"></a>5.查看正在使用的文件</h2><p><code>debug gauges</code>中的Disk工具可以查看app当前打开的文件。</p>
 <p><img src="http://upload-images.jianshu.io/upload_images/1865432-80d24111380e2e44.jpg" alt="Open Files"></p>
 <h2 id="5-instrument调试"><a href="#5-instrument调试" class="headerlink" title="5.instrument调试"></a>5.instrument调试</h2><p>类似的，也可以用instrument调试重签名后的app，不过并不是所有工具都可以使用，对逆向的帮助不大。</p>
@@ -431,8 +431,8 @@
           
   <div class="comments" id="comments">
     
-      <div class="ds-thread" data-thread-key="2017/05/04/iOS逆向：在Xcode里调试重签名的app/"
-           data-title="iOS逆向：用Xcode直接调试第三方app" data-url="http://yoursite.com/2017/05/04/iOS逆向：在Xcode里调试重签名的app/">
+      <div class="ds-thread" data-thread-key="2017/05/04/iOS逆向：用Xcode直接调试第三方app/"
+           data-title="iOS逆向：用Xcode直接调试第三方app" data-url="http://yoursite.com/2017/05/04/iOS逆向：用Xcode直接调试第三方app/">
       </div>
     
   </div>

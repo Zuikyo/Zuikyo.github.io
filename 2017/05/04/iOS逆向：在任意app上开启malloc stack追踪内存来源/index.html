@@ -96,7 +96,7 @@ malloc stack在自己的项目中，要开启malloc st">
 <meta property="og:description" content="lldb有一个内存调试工具malloc stack，开启以后就可以查看某个内存地址的malloc和free记录，追踪对象是在哪里创建的。
 这个工具可以打印出对象创建的堆栈，而在逆向时，也经常需要追踪某些方法的调用栈，如果可以随时打印出某个对象的创建记录，也就能直接找到其所在的类和方法，不用再花费大量的时间去打log和动态调试追踪了。
 malloc stack在自己的项目中，要开启malloc st">
-<meta property="og:updated_time" content="2017-05-04T12:49:50.680Z">
+<meta property="og:updated_time" content="2017-05-05T02:16:42.540Z">
 <meta name="twitter:card" content="summary">
 <meta name="twitter:title" content="iOS逆向：在任意app上开启malloc stack追踪内存来源">
 <meta name="twitter:description" content="lldb有一个内存调试工具malloc stack，开启以后就可以查看某个内存地址的malloc和free记录，追踪对象是在哪里创建的。
@@ -376,6 +376,11 @@ malloc stack在自己的项目中，要开启malloc st">
 <p>这样的话，只要能找到一个对象，就能快速定位到其所在模块。比原来打log，打断点一步步回溯高效多了。</p>
 <h2 id="恢复符号表"><a href="#恢复符号表" class="headerlink" title="恢复符号表"></a>恢复符号表</h2><p>建议在对app重签名时恢复符号表。恢复符号表后，就能直接在堆栈中看到方法名，免去了计算偏移量然后在hopper里查找的麻烦。</p>
 <p>参考：<a href="http://blog.imjun.net/posts/restore-symbol-of-iOS-app/" target="_blank" rel="external">iOS符号表恢复&amp;逆向支付宝</a>, <a href="https://github.com/tobefuturer/restore-symbol" target="_blank" rel="external">restore-symbol</a>。</p>
+<h2 id="其他几个调试命令"><a href="#其他几个调试命令" class="headerlink" title="其他几个调试命令"></a>其他几个调试命令</h2><h3 id="ptr-refs"><a href="#ptr-refs" class="headerlink" title="ptr_refs"></a>ptr_refs</h3><p>可以在内存中找出哪些地址引用了某个指针，也就相当于查看某个变量在哪里被引用。</p>
+<h3 id="cstr-refs"><a href="#cstr-refs" class="headerlink" title="cstr_refs"></a>cstr_refs</h3><p>在内存中寻找某个C String在哪里被引用。</p>
+<h3 id="find-variable"><a href="#find-variable" class="headerlink" title="find_variable"></a>find_variable</h3><p>在当前栈帧上寻找某个局部变量在哪里被引用。</p>
+<h3 id="objc-refs"><a href="#objc-refs" class="headerlink" title="objc_refs"></a>objc_refs</h3><p>在内存中寻找某个类的实例。</p>
+<h2 id="转到Xcode中调试"><a href="#转到Xcode中调试" class="headerlink" title="转到Xcode中调试"></a>转到Xcode中调试</h2><p>如果想要在Xcode中调试并开启<code>malloc stack</code>，则需要先用<code>debugserver</code>启动app，在终端的lldb里连接上以后，再用<code>process detach</code>断开连接。接下来用Xcode的<code>Attach to Process</code>就可以了，参考：<a href="https://zuikyo.github.io/2017/05/04/iOS逆向：用Xcode直接调试第三方app/" target="_blank" rel="external">iOS逆向：用Xcode直接调试第三方app</a>。</p>
 
       
     </div>
@@ -407,7 +412,7 @@ malloc stack在自己的项目中，要开启malloc st">
         <div class="post-nav">
           <div class="post-nav-next post-nav-item">
             
-              <a href="/2017/05/04/iOS逆向：在Xcode里调试重签名的app/" rel="next" title="iOS逆向：用Xcode直接调试第三方app">
+              <a href="/2017/05/04/iOS逆向：用Xcode直接调试第三方app/" rel="next" title="iOS逆向：用Xcode直接调试第三方app">
                 <i class="fa fa-chevron-left"></i> iOS逆向：用Xcode直接调试第三方app
               </a>
             
@@ -544,7 +549,7 @@ malloc stack在自己的项目中，要开启malloc st">
               
             
             
-              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#malloc-stack"><span class="nav-number">1.</span> <span class="nav-text">malloc stack</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#在任意app上开启malloc-stack"><span class="nav-number">2.</span> <span class="nav-text">在任意app上开启malloc stack</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#方法一：execve"><span class="nav-number">2.1.</span> <span class="nav-text">方法一：execve</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#1-重签名ipa"><span class="nav-number">2.1.1.</span> <span class="nav-text">1.重签名ipa</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#2-移动app到系统app目录下，修改权限"><span class="nav-number">2.1.2.</span> <span class="nav-text">2.移动app到系统app目录下，修改权限</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#3-使用引导程序启动app"><span class="nav-number">2.1.3.</span> <span class="nav-text">3.使用引导程序启动app</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#缺点"><span class="nav-number">2.1.4.</span> <span class="nav-text">缺点</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#方法2：debugserver参数"><span class="nav-number">2.2.</span> <span class="nav-text">方法2：debugserver参数</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#测试"><span class="nav-number">3.</span> <span class="nav-text">测试</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#恢复符号表"><span class="nav-number">4.</span> <span class="nav-text">恢复符号表</span></a></li></ol></div>
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#malloc-stack"><span class="nav-number">1.</span> <span class="nav-text">malloc stack</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#在任意app上开启malloc-stack"><span class="nav-number">2.</span> <span class="nav-text">在任意app上开启malloc stack</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#方法一：execve"><span class="nav-number">2.1.</span> <span class="nav-text">方法一：execve</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#1-重签名ipa"><span class="nav-number">2.1.1.</span> <span class="nav-text">1.重签名ipa</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#2-移动app到系统app目录下，修改权限"><span class="nav-number">2.1.2.</span> <span class="nav-text">2.移动app到系统app目录下，修改权限</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#3-使用引导程序启动app"><span class="nav-number">2.1.3.</span> <span class="nav-text">3.使用引导程序启动app</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#缺点"><span class="nav-number">2.1.4.</span> <span class="nav-text">缺点</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#方法2：debugserver参数"><span class="nav-number">2.2.</span> <span class="nav-text">方法2：debugserver参数</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#测试"><span class="nav-number">3.</span> <span class="nav-text">测试</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#恢复符号表"><span class="nav-number">4.</span> <span class="nav-text">恢复符号表</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#其他几个调试命令"><span class="nav-number">5.</span> <span class="nav-text">其他几个调试命令</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#ptr-refs"><span class="nav-number">5.1.</span> <span class="nav-text">ptr_refs</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#cstr-refs"><span class="nav-number">5.2.</span> <span class="nav-text">cstr_refs</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#find-variable"><span class="nav-number">5.3.</span> <span class="nav-text">find_variable</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#objc-refs"><span class="nav-number">5.4.</span> <span class="nav-text">objc_refs</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#转到Xcode中调试"><span class="nav-number">6.</span> <span class="nav-text">转到Xcode中调试</span></a></li></ol></div>
             
           </div>
         </section>
