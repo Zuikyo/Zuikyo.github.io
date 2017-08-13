@@ -1,0 +1,759 @@
+<!doctype html>
+
+
+
+  
+
+
+<html class="theme-next muse use-motion">
+<head>
+  <meta charset="UTF-8"/>
+<meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1"/>
+
+
+
+<meta http-equiv="Cache-Control" content="no-transform" />
+<meta http-equiv="Cache-Control" content="no-siteapp" />
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+  <link href="/vendors/fancybox/source/jquery.fancybox.css?v=2.1.5" rel="stylesheet" type="text/css" />
+
+
+
+
+  
+  
+  
+  
+
+  
+    
+    
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+    
+    
+    <link href="//fonts.googleapis.com/css?family=Lato:300,300italic,400,400italic,700,700italic&subset=latin,latin-ext" rel="stylesheet" type="text/css">
+  
+
+
+
+
+
+
+<link href="/vendors/font-awesome/css/font-awesome.min.css?v=4.4.0" rel="stylesheet" type="text/css" />
+
+<link href="/css/main.css?v=5.0.1" rel="stylesheet" type="text/css" />
+
+
+  <meta name="keywords" content="iOS," />
+
+
+
+
+
+  <link rel="alternate" href="/atom.xml" title="zuik's blog" type="application/atom+xml" />
+
+
+
+
+  <link rel="shortcut icon" type="image/x-icon" href="/favicon.ico?v=5.0.1" />
+
+
+
+
+
+
+<meta name="description" content="简介最近半年在写app的时候，研究了一下各种iOS代码架构，最后选择了VIPER进行实践，在此对实践中遇到的各种设计问题做一番总结，并分享造出的轮子。
+对代码风格和架构有兴趣的同学，肯定都已经在很多地方见过各种架构的介绍。MVC、MVP、MVVM、VIPER，细分程度逐渐上升。这些架构设计都是来自MVC，只是各自用不同的方式对MVC进行了细分，在此只对MVC、MVP和MVVM作精简介绍，想要详细了">
+<meta property="og:type" content="article">
+<meta property="og:title" content="iOS VIPER架构实践(一)：从MVC到MVVM到VIPER">
+<meta property="og:url" content="http://yoursite.com/2017/07/21/iOS VIPER架构实践(一)：从MVC到MVVM到VIPER/index.html">
+<meta property="og:site_name" content="zuik's blog">
+<meta property="og:description" content="简介最近半年在写app的时候，研究了一下各种iOS代码架构，最后选择了VIPER进行实践，在此对实践中遇到的各种设计问题做一番总结，并分享造出的轮子。
+对代码风格和架构有兴趣的同学，肯定都已经在很多地方见过各种架构的介绍。MVC、MVP、MVVM、VIPER，细分程度逐渐上升。这些架构设计都是来自MVC，只是各自用不同的方式对MVC进行了细分，在此只对MVC、MVP和MVVM作精简介绍，想要详细了">
+<meta property="og:image" content="http://upload-images.jianshu.io/upload_images/1865432-580872920986b640.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240">
+<meta property="og:updated_time" content="2017-08-13T07:30:28.960Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="iOS VIPER架构实践(一)：从MVC到MVVM到VIPER">
+<meta name="twitter:description" content="简介最近半年在写app的时候，研究了一下各种iOS代码架构，最后选择了VIPER进行实践，在此对实践中遇到的各种设计问题做一番总结，并分享造出的轮子。
+对代码风格和架构有兴趣的同学，肯定都已经在很多地方见过各种架构的介绍。MVC、MVP、MVVM、VIPER，细分程度逐渐上升。这些架构设计都是来自MVC，只是各自用不同的方式对MVC进行了细分，在此只对MVC、MVP和MVVM作精简介绍，想要详细了">
+<meta name="twitter:image" content="http://upload-images.jianshu.io/upload_images/1865432-580872920986b640.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240">
+
+
+
+<script type="text/javascript" id="hexo.configuration">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    scheme: 'Muse',
+    sidebar: {"position":"left","display":"post"},
+    fancybox: true,
+    motion: true,
+    duoshuo: {
+      userId: 0,
+      author: '博主'
+    }
+  };
+</script>
+
+
+
+
+  <link rel="canonical" href="http://yoursite.com/2017/07/21/iOS VIPER架构实践(一)：从MVC到MVVM到VIPER/"/>
+
+  <title> iOS VIPER架构实践(一)：从MVC到MVVM到VIPER | zuik's blog </title>
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" lang="zh-Hans">
+
+  
+
+
+
+
+
+
+
+
+
+
+  
+  
+    
+  
+
+  <div class="container one-collumn sidebar-position-left page-post-detail ">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-meta ">
+  
+
+  <div class="custom-logo-site-title">
+    <a href="/"  class="brand" rel="start">
+      <span class="logo-line-before"><i></i></span>
+      <span class="site-title">zuik's blog</span>
+      <span class="logo-line-after"><i></i></span>
+    </a>
+  </div>
+  <p class="site-subtitle">写点别人没写过的</p>
+</div>
+
+<div class="site-nav-toggle">
+  <button>
+    <span class="btn-bar"></span>
+    <span class="btn-bar"></span>
+    <span class="btn-bar"></span>
+  </button>
+</div>
+
+<nav class="site-nav">
+  
+
+  
+    <ul id="menu" class="menu">
+      
+        
+        <li class="menu-item menu-item-home">
+          <a href="/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-home"></i> <br />
+            
+            首页
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-categories">
+          <a href="/categories" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-th"></i> <br />
+            
+            分类
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-archives">
+          <a href="/archives" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-archive"></i> <br />
+            
+            归档
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-tags">
+          <a href="/tags" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-tags"></i> <br />
+            
+            标签
+          </a>
+        </li>
+      
+
+      
+    </ul>
+  
+
+  
+</nav>
+
+ </div>
+    </header>
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          <div id="content" class="content">
+            
+
+  <div id="posts" class="posts-expand">
+    
+
+  
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal " itemscope itemtype="http://schema.org/Article">
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">
+            
+            
+              
+                iOS VIPER架构实践(一)：从MVC到MVVM到VIPER
+              
+            
+          </h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            <span class="post-meta-item-icon">
+              <i class="fa fa-calendar-o"></i>
+            </span>
+            <span class="post-meta-item-text">发表于</span>
+            <time itemprop="dateCreated" datetime="2017-07-21T20:58:29+08:00" content="2017-07-21">
+              2017-07-21
+            </time>
+          </span>
+
+          
+            <span class="post-category" >
+              &nbsp; | &nbsp;
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+              
+                <span itemprop="about" itemscope itemtype="https://schema.org/Thing">
+                  <a href="/categories/代码架构/" itemprop="url" rel="index">
+                    <span itemprop="name">代码架构</span>
+                  </a>
+                </span>
+
+                
+                
+
+              
+            </span>
+          
+
+          
+            
+              <span class="post-comments-count">
+                &nbsp; | &nbsp;
+                <a href="/2017/07/21/iOS VIPER架构实践(一)：从MVC到MVVM到VIPER/#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count ds-thread-count" data-thread-key="2017/07/21/iOS VIPER架构实践(一)：从MVC到MVVM到VIPER/" itemprop="commentsCount"></span>
+                </a>
+              </span>
+            
+          
+
+          
+
+          
+          
+
+          
+
+        </div>
+      </header>
+    
+
+
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        <h2 id="简介"><a href="#简介" class="headerlink" title="简介"></a>简介</h2><p>最近半年在写app的时候，研究了一下各种iOS代码架构，最后选择了VIPER进行实践，在此对实践中遇到的各种设计问题做一番总结，并分享造出的轮子。</p>
+<p>对代码风格和架构有兴趣的同学，肯定都已经在很多地方见过各种架构的介绍。MVC、MVP、MVVM、VIPER，细分程度逐渐上升。这些架构设计都是来自MVC，只是各自用不同的方式对MVC进行了细分，在此只对MVC、MVP和MVVM作精简介绍，想要详细了解可以参考这些文章：</p>
+<p><a href="http://ios.jobbole.com/83727/" target="_blank" rel="external">iOS 架构模式–解密 MVC，MVP，MVVM以及VIPER架构</a>,</p>
+<p><a href="http://draveness.me/mvx.html" target="_blank" rel="external">浅谈 MVC、MVP 和 MVVM 架构模式</a>。</p>
+<h2 id="MVC"><a href="#MVC" class="headerlink" title="MVC"></a>MVC</h2><p><code>Model-View-Controller</code>。MVC简单地将一个模块分为3部分：</p>
+<ul>
+<li>View是展示给外部的界面</li>
+<li>Model是Controller内部管理的数据模型</li>
+<li>Controller负责将Model的变化更新到View</li>
+<li>Controller负责处理来自View的事件</li>
+</ul>
+<p>MVC的划分粒度很粗，因此有很多种具体实现，各个实现有差异，因此并没有一个十分明确的标准定义。</p>
+<h2 id="苹果的MVC"><a href="#苹果的MVC" class="headerlink" title="苹果的MVC"></a>苹果的MVC</h2><p>苹果的Cocoa Touch就遵照了MVC的设计，一个界面分为UIView和UIViewController，UIView负责渲染和接收触摸事件，UIViewController负责子view之间的布局、组合、更新以及事件处理。</p>
+<p>尽管苹果已经给我们提供了简单的MVC支持，但是在实践中我们却常常没有遵守MVC。原因在于Cocoa Touch中的Model部分是由我们自己负责管理的，并没有提供原生的设计支持。所以有时候会出现这样的情况：一个UIView为了方便，提供了一个从某个model进行配置的方法。乍一看十分合理，但是仔细想想就会发现，这么做已经将View和Model耦合，很容易就破坏了MVC。</p>
+<p>另外，UIViewController存在的一些问题，导致了它很容易变得臃肿和耦合。</p>
+<p>首先，UIViewController和UIView耦合得十分紧密，导致UIViewController经常和某些具体的UIView耦合，几乎无法重用。而且在测试的时候，很难做到单独测试没有View的那部分代码，因为在写的时候就很容易将View的逻辑入侵到各处，Controller会受到View的状态的影响，无法稳定测试。因此，应该尽量把和View无关的代码放到UIViewController之外。</p>
+<p>第二，UIViewController负责了界面跳转的操作，界面跳转的相关配置是直接在对应的UIViewController实例上设置的，这样就很容易把源界面和目的界面耦合起来，简单地把界面跳转的部分单独抽离为一个封装好的跳转方法可以一定程度上减少这部分耦合，但也不可避免地会多写许多代码。</p>
+<p>因此，苹果的MVC，实际上是<code>Model-View-ViewController</code>。它是一个视图驱动的设计，Controller只是为了管理View而存在的。苹果把UIViewController和Model的关系设计交给了我们自己。所以，如何把一个UIViewController进行更明确的分工，就是这些架构要做的事。</p>
+<h2 id="MVP"><a href="#MVP" class="headerlink" title="MVP"></a>MVP</h2><p><code>Model-View-Presenter</code>用一个Presenter，把Controller中View的部分剔除，实现了View和Model的隔绝。各部分分工如下：</p>
+<ul>
+<li>View负责界面展示和布局管理，向Presenter暴露视图更新和数据获取的接口</li>
+<li>Presenter负责接收来自View的事件，通过View提供的接口更新视图，并管理Model</li>
+<li>Model和MVC中的一样，提供数据模型</li>
+</ul>
+<p>在iOS里，UIView和UIViewController共同组合成了MVP中的View。UIView负责元素的展示，UIViewController负责界面布局和组合，并把事件转发给Presenter。<br>因此在MVP里，业务逻辑被放到了Presenter中，由它负责协调View和Model。而由于View的抽离，Presenter的状态是可控的，在测试时更不容易受外部影响。</p>
+<p>在iOS中使用MVP很简单，在View和Presenter之间用protocol做好事件传递就可以。缺点就是多了一层用于隔离的接口，会导致代码数量增大。</p>
+<p>但是随着界面越来越复杂，Presenter中的业务代码也会越来越庞大，总有一天会遇到一个新的问题：如何再细分Presenter。</p>
+<h2 id="MVVM"><a href="#MVVM" class="headerlink" title="MVVM"></a>MVVM</h2><p><code>Model-View-ViewModel-Controller</code>模式，它也和MVP一样，目的是解决View和Model的耦合。各部分分工如下：</p>
+<ul>
+<li>Model提供数据模型</li>
+<li>View负责视图展示</li>
+<li>ViewModel用于描述View的状态，例如View的颜色、显示的文字等属性类的信息，将View抽象成了一个特殊的模型</li>
+<li>Controller通过修改ViewModel来更新View，并且负责事件处理，维护Model</li>
+</ul>
+<p>在MVP中，View通过接口的方式来描述自己，在MVVM中，则通过ViewModel来描述自己的特征。那么ViewModel如何将自己的变化更新到View上呢？MVVM经常和数据绑定一起出现，在Controller中，将View和ViewModel的属性用类似KVO的方式进行绑定，这样ViewModel的变化就能立即传输到View上。但是数据绑定的缺点也很明显：调试困难，数据来源难以回溯，在线上出bug的时候就很难追踪了。</p>
+<p>其实数据绑定只是一种为了减少胶水代码的技术实现方式，MVVM的设计并没有要求必须要使用数据绑定，你也完全可以使用protocol的方式来将ViewModel的变化传递给View，让数据流向更清晰。MVVM的关键是将View进行了抽象，并且这个抽象很容易在其他Controller中复用。</p>
+<p>Controller在绑定完View和ViewModel之后，就不应该在其他地方使用View了。你也可以单独用一个ViewModelManager来负责设置ViewModel和View之间的数据传递。而其他的业务代码，还是放在Controller中，ViewModel应该只负责管理View相关的状态、传递View的事件，不应该存在本属于Controller中的其他业务。当然如果你不打算重用这个ViewModel的话，也可以在ViewModel里加入一些和Model相关的业务逻辑，只不过基于单一职责原则，这么做是不好的。</p>
+<p>和MVP相比，MVVM用了一种更优雅的方式来抽象View。但它和MVP其实是类似的，仍然没有对Controller进行进一步的细分。</p>
+<p>那么如何对Controller进行进一步的职责细分呢？答案就是VIPER。</p>
+<h2 id="VIPER"><a href="#VIPER" class="headerlink" title="VIPER"></a>VIPER</h2><p>VIPER的全称是<code>View-Interactor-Presenter-Entity-Router</code>。示意图如下：</p>
+<p><img src="http://upload-images.jianshu.io/upload_images/1865432-580872920986b640.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240" alt="VIPER"></p>
+<p>相比之前的MVX架构，VIPER多出了两个东西：Interactor（交互器）和Router（路由）。</p>
+<p>各部分职责如下：</p>
+<h3 id="View"><a href="#View" class="headerlink" title="View"></a>View</h3><ul>
+<li>提供完整的视图，负责视图的组合、布局、更新</li>
+<li>向Presenter提供更新视图的接口</li>
+<li>将View相关的事件发送给Presenter</li>
+</ul>
+<h3 id="Presenter"><a href="#Presenter" class="headerlink" title="Presenter"></a>Presenter</h3><ul>
+<li>接收并处理来自View的事件</li>
+<li>向Interactor请求调用业务逻辑</li>
+<li>向Interactor提供View中的数据</li>
+<li>接收并处理来自Interactor的数据回调事件</li>
+<li>通知View进行更新操作</li>
+<li>通过Router跳转到其他View</li>
+</ul>
+<h3 id="Router"><a href="#Router" class="headerlink" title="Router"></a>Router</h3><ul>
+<li>提供View之间的跳转功能，减少了模块间的耦合</li>
+<li>初始化VIPER的各个模块</li>
+</ul>
+<h3 id="Interactor"><a href="#Interactor" class="headerlink" title="Interactor"></a>Interactor</h3><ul>
+<li>维护主要的业务逻辑功能，向Presenter提供现有的业务用例</li>
+<li>维护、获取、更新Entity</li>
+<li>当有业务相关的事件发生时，处理事件，并通知Presenter</li>
+</ul>
+<h3 id="Entity"><a href="#Entity" class="headerlink" title="Entity"></a>Entity</h3><ul>
+<li>和Model一样的数据模型</li>
+</ul>
+<h3 id="和MVX的区别"><a href="#和MVX的区别" class="headerlink" title="和MVX的区别"></a>和MVX的区别</h3><p>VIPER把MVC中的Controller进一步拆分成了Presenter、Router和Interactor。和MVP中负责业务逻辑的Presenter不同，VIPER的Presenter的主要工作是在View和Interactor之间传递事件，并管理一些View的展示逻辑，主要的业务逻辑实现代码都放在了Interactor里。Interactor的设计里提出了”用例”的概念，也就是把每一个会出现的业务流程封装好，这样可测试性会大大提高。而Router则进一步解决了不同模块之间的耦合。所以，VIPER和上面几个MVX相比，多总结出了几个需要维护的东西：</p>
+<ul>
+<li>View事件管理</li>
+<li>数据事件管理</li>
+<li>事件和业务的转化</li>
+<li>总结每个业务用例</li>
+<li>模块内分层隔离</li>
+<li>模块间通信</li>
+</ul>
+<p>而这里面，还可以进一步细分一些职责。VIPER实际上已经把Controller的概念淡化了，这拆分出来的几个部分，都有很明确的单一职责，有些部分之间是完全隔绝的，在开发时就应该清晰地区分它们各自的职责，而不是将它们视为一个Controller。</p>
+<h3 id="优点"><a href="#优点" class="headerlink" title="优点"></a>优点</h3><p>VIPER的特色就是职责明确，粒度细，隔离关系明确，这样能带来很多优点：</p>
+<ul>
+<li>可测试性好。UI测试和业务逻辑测试可以各自单独进行。</li>
+<li>易于迭代。各部分遵循单一职责，可以很明确地知道新的代码应该放在哪里。</li>
+<li>隔离程度高，耦合程度低。一个模块的代码不容易影响到另一个模块。</li>
+<li>易于团队合作。各部分分工明确，团队合作时易于统一代码风格，可以快速接手别人的代码。</li>
+</ul>
+<h3 id="缺点"><a href="#缺点" class="headerlink" title="缺点"></a>缺点</h3><ul>
+<li>一个模块内的类数量增大，代码量增大，在层与层之间需要花更多时间设计接口。</li>
+</ul>
+<p>使用代码模板来自动生成文件和模板代码可以减少很多重复劳动，而花费时间设计和编写接口是减少耦合的路上不可避免的，你也可以使用数据绑定这样的技术来减少一些传递的层次。</p>
+<ul>
+<li>模块的初始化较为复杂，打开一个新的界面需要生成View、Presenter、Interactor，并且设置互相之间的依赖关系。而iOS中缺少这种设置复杂初始化的原生方式。</li>
+</ul>
+<p>简单来说，就是Cocoa框架缺少一个强大的自定义依赖注入工具。这个问题影响不是特别大，可以选用一些第三方工具来实现，也可以在Router的界面跳转方法里，对模块进行初始化，只不过总是不够完美。针对这个问题，我实现了一个基于protocol声明依赖的界面跳转Router，将会在之后的文章中进行详解。</p>
+<h3 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h3><p>有人可能会觉得，一个界面模块真的有必要使用这么复杂的架构吗？这样是不是过度设计？</p>
+<p>我反对这种观点。不要被VIPER的组织图吓到，VIPER并不复杂，它是将原来MVC中的Controller中的各种任务进行了清晰的分解，在写代码时，你会很清楚你正在做什么。事实上，它比使用了数据绑定技术的MVVM更加简单，就是因为它职责明确。从MVC转到VIPER的过程同样是很清晰的，它甚至把重构的思路都体现出来了。而MVVM则留下了许多尚未明确的责任，导致不同的人会在某些地方有不同的实现。即便你还在使用MVC，你也应该在Controller中分离出VIPER总结出的那些专项职责，既然如此，为何不彻底地明确这些职责，把它们分散到不同的文件中呢？一旦开始这样的工作，你就已经向VIPER靠拢了。</p>
+<p>有人可能会觉得，VIPER适合大型app，中小型app没必要过早使用。</p>
+<p>我反对这种观点。VIPER是单个界面模块内的架构设计，并不是整个app架构层面的设计，和app的整体架构没有多大的关系，也不存在过早使用VIPER的情况。你是愿意1天开发，3天修bug，还是更愿意1.5天开发，1天修bug呢？</p>
+<p>至此，我的结论就是，快点拥抱VIPER的怀抱吧。</p>
+<h3 id="开始实践"><a href="#开始实践" class="headerlink" title="开始实践"></a>开始实践</h3><p>VIPER是2013年首次在iOS平台上提出的设计，十分年轻，因此缺少大量参与者，以总结出更多最佳实践。下一篇文章将会从VIPER的源头开始，比较现有的各种VIPER实现，总结出一个我认为较好的实施方案。</p>
+<h3 id="参考"><a href="#参考" class="headerlink" title="参考"></a>参考</h3><ul>
+<li><a href="http://ios.jobbole.com/83727/" target="_blank" rel="external">iOS 架构模式–解密 MVC，MVP，MVVM以及VIPER架构</a></li>
+<li><a href="http://draveness.me/mvx.html" target="_blank" rel="external">浅谈 MVC、MVP 和 MVVM 架构模式</a></li>
+</ul>
+
+      
+    </div>
+
+    <div>
+      
+        
+
+      
+    </div>
+
+    <div>
+      
+        
+
+      
+    </div>
+
+    <footer class="post-footer">
+      
+        <div class="post-tags">
+          
+            <a href="/tags/iOS/" rel="tag">#iOS</a>
+          
+        </div>
+      
+
+      
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
+            
+              <a href="/2017/05/22/CFRunloop的多线程隐患/" rel="next" title="CFRunloop的多线程隐患">
+                <i class="fa fa-chevron-left"></i> CFRunloop的多线程隐患
+              </a>
+            
+          </div>
+
+          <div class="post-nav-prev post-nav-item">
+            
+              <a href="/2017/08/11/iOS VIPER架构实践(二)：VIPER详解与实现/" rel="prev" title="iOS VIPER架构实践(二)：VIPER详解与实现">
+                iOS VIPER架构实践(二)：VIPER详解与实现 <i class="fa fa-chevron-right"></i>
+              </a>
+            
+          </div>
+        </div>
+      
+
+      
+      
+    </footer>
+  </article>
+
+
+
+    <div class="post-spread">
+      
+    </div>
+  </div>
+
+<script async src="https://dn-lbstatics.qbox.me/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+
+<span id="busuanzi_container_page_pv">
+</br>本文总阅读量<span id="busuanzi_value_page_pv"></span>次
+</span>
+
+
+          </div>
+          
+
+
+          
+  <div class="comments" id="comments">
+    
+      <div class="ds-thread" data-thread-key="2017/07/21/iOS VIPER架构实践(一)：从MVC到MVVM到VIPER/"
+           data-title="iOS VIPER架构实践(一)：从MVC到MVVM到VIPER" data-url="http://yoursite.com/2017/07/21/iOS VIPER架构实践(一)：从MVC到MVVM到VIPER/">
+      </div>
+    
+  </div>
+
+
+        </div>
+        
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    <div class="sidebar-inner">
+
+      
+
+      
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap" >
+            文章目录
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview">
+            站点概览
+          </li>
+        </ul>
+      
+
+      <section class="site-overview sidebar-panel ">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+          <img class="site-author-image" itemprop="image"
+               src="/images/avatar.png"
+               alt="zuik" />
+          <p class="site-author-name" itemprop="name">zuik</p>
+          <p class="site-description motion-element" itemprop="description">🐼</p>
+        </div>
+        <nav class="site-state motion-element">
+          <div class="site-state-item site-state-posts">
+            <a href="/archives">
+              <span class="site-state-item-count">10</span>
+              <span class="site-state-item-name">日志</span>
+            </a>
+          </div>
+
+          
+            <div class="site-state-item site-state-categories">
+              <a href="/categories">
+                <span class="site-state-item-count">7</span>
+                <span class="site-state-item-name">分类</span>
+              </a>
+            </div>
+          
+
+          
+            <div class="site-state-item site-state-tags">
+              <a href="/tags">
+                <span class="site-state-item-count">1</span>
+                <span class="site-state-item-name">标签</span>
+              </a>
+            </div>
+          
+
+        </nav>
+
+        
+          <div class="feed-link motion-element">
+            <a href="/atom.xml" rel="alternate">
+              <i class="fa fa-rss"></i>
+              RSS
+            </a>
+          </div>
+        
+
+        <div class="links-of-author motion-element">
+          
+        </div>
+
+        
+        
+
+        
+        
+
+      </section>
+
+      
+        <section class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc">
+            
+              
+            
+            
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#简介"><span class="nav-number">1.</span> <span class="nav-text">简介</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#MVC"><span class="nav-number">2.</span> <span class="nav-text">MVC</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#苹果的MVC"><span class="nav-number">3.</span> <span class="nav-text">苹果的MVC</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#MVP"><span class="nav-number">4.</span> <span class="nav-text">MVP</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#MVVM"><span class="nav-number">5.</span> <span class="nav-text">MVVM</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#VIPER"><span class="nav-number">6.</span> <span class="nav-text">VIPER</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#View"><span class="nav-number">6.1.</span> <span class="nav-text">View</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#Presenter"><span class="nav-number">6.2.</span> <span class="nav-text">Presenter</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#Router"><span class="nav-number">6.3.</span> <span class="nav-text">Router</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#Interactor"><span class="nav-number">6.4.</span> <span class="nav-text">Interactor</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#Entity"><span class="nav-number">6.5.</span> <span class="nav-text">Entity</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#和MVX的区别"><span class="nav-number">6.6.</span> <span class="nav-text">和MVX的区别</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#优点"><span class="nav-number">6.7.</span> <span class="nav-text">优点</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#缺点"><span class="nav-number">6.8.</span> <span class="nav-text">缺点</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#总结"><span class="nav-number">6.9.</span> <span class="nav-text">总结</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#开始实践"><span class="nav-number">6.10.</span> <span class="nav-text">开始实践</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#参考"><span class="nav-number">6.11.</span> <span class="nav-text">参考</span></a></li></ol></li></ol></div>
+            
+          </div>
+        </section>
+      
+
+    </div>
+  </aside>
+
+
+        
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright" >
+  
+  &copy; 
+  <span itemprop="copyrightYear">2017</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">zuik</span>
+</div>
+
+<div class="powered-by">
+  由 <a class="theme-link" href="https://hexo.io">Hexo</a> 强力驱动
+</div>
+
+<div class="theme-info">
+  主题 -
+  <a class="theme-link" href="https://github.com/iissnan/hexo-theme-next">
+    NexT.Muse
+  </a>
+</div>
+
+<script>
+(function(){
+var bp = document.createElement('script');
+bp.src = '//push.zhanzhang.baidu.com/push.js';
+var s = document.getElementsByTagName("script")[0];
+s.parentNode.insertBefore(bp, s);
+})();
+</script>
+
+        
+
+        
+      </div>
+    </footer>
+
+    <div class="back-to-top">
+      <i class="fa fa-arrow-up"></i>
+    </div>
+  </div>
+
+  
+
+<script type="text/javascript">
+  if (Object.prototype.toString.call(window.Promise) !== '[object Function]') {
+    window.Promise = null;
+  }
+</script>
+
+
+
+
+
+
+
+
+
+  
+
+
+
+  
+  <script type="text/javascript" src="/vendors/jquery/index.js?v=2.1.3"></script>
+
+  
+  <script type="text/javascript" src="/vendors/fastclick/lib/fastclick.min.js?v=1.0.6"></script>
+
+  
+  <script type="text/javascript" src="/vendors/jquery_lazyload/jquery.lazyload.js?v=1.9.7"></script>
+
+  
+  <script type="text/javascript" src="/vendors/velocity/velocity.min.js?v=1.2.1"></script>
+
+  
+  <script type="text/javascript" src="/vendors/velocity/velocity.ui.min.js?v=1.2.1"></script>
+
+  
+  <script type="text/javascript" src="/vendors/fancybox/source/jquery.fancybox.pack.js?v=2.1.5"></script>
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/utils.js?v=5.0.1"></script>
+
+  <script type="text/javascript" src="/js/src/motion.js?v=5.0.1"></script>
+
+
+
+  
+  
+
+  
+  <script type="text/javascript" src="/js/src/scrollspy.js?v=5.0.1"></script>
+<script type="text/javascript" src="/js/src/post-details.js?v=5.0.1"></script>
+
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/bootstrap.js?v=5.0.1"></script>
+
+
+
+  
+
+  
+    
+  
+
+  <script type="text/javascript">
+    var duoshuoQuery = {short_name:"zuik"};
+    (function() {
+      var ds = document.createElement('script');
+      ds.type = 'text/javascript';ds.async = true;
+      ds.id = 'duoshuo-script';
+      ds.src = (document.location.protocol == 'https:' ? 'https:' : 'http:') + '//static.duoshuo.com/embed.js';
+      ds.charset = 'UTF-8';
+      (document.getElementsByTagName('head')[0]
+      || document.getElementsByTagName('body')[0]).appendChild(ds);
+    })();
+  </script>
+
+  
+    
+    <script src="/vendors/ua-parser-js/dist/ua-parser.min.js?v=0.7.9"></script>
+    <script src="/js/src/hook-duoshuo.js"></script>
+  
+
+
+
+
+
+
+  
+  
+
+  
+
+  
+
+  
+
+</body>
+</html>

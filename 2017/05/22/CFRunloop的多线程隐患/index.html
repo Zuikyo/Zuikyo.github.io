@@ -1,0 +1,691 @@
+<!doctype html>
+
+
+
+  
+
+
+<html class="theme-next muse use-motion">
+<head>
+  <meta charset="UTF-8"/>
+<meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1"/>
+
+
+
+<meta http-equiv="Cache-Control" content="no-transform" />
+<meta http-equiv="Cache-Control" content="no-siteapp" />
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+  <link href="/vendors/fancybox/source/jquery.fancybox.css?v=2.1.5" rel="stylesheet" type="text/css" />
+
+
+
+
+  
+  
+  
+  
+
+  
+    
+    
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+    
+    
+    <link href="//fonts.googleapis.com/css?family=Lato:300,300italic,400,400italic,700,700italic&subset=latin,latin-ext" rel="stylesheet" type="text/css">
+  
+
+
+
+
+
+
+<link href="/vendors/font-awesome/css/font-awesome.min.css?v=4.4.0" rel="stylesheet" type="text/css" />
+
+<link href="/css/main.css?v=5.0.1" rel="stylesheet" type="text/css" />
+
+
+  <meta name="keywords" content="iOS," />
+
+
+
+
+
+  <link rel="alternate" href="/atom.xml" title="zuik's blog" type="application/atom+xml" />
+
+
+
+
+  <link rel="shortcut icon" type="image/x-icon" href="/favicon.ico?v=5.0.1" />
+
+
+
+
+
+
+<meta name="description" content="如果你还不了解什么是runloop，可以看这里的详解深入理解RunLoop。
+苹果官方文档中，声明了CFRunloop是线程安全的：
+
+Thread safety varies depending on which API you are using to manipulate your run loop. The functions in Core Foundation are generall">
+<meta property="og:type" content="article">
+<meta property="og:title" content="CFRunloop的多线程隐患">
+<meta property="og:url" content="http://yoursite.com/2017/05/22/CFRunloop的多线程隐患/index.html">
+<meta property="og:site_name" content="zuik's blog">
+<meta property="og:description" content="如果你还不了解什么是runloop，可以看这里的详解深入理解RunLoop。
+苹果官方文档中，声明了CFRunloop是线程安全的：
+
+Thread safety varies depending on which API you are using to manipulate your run loop. The functions in Core Foundation are generall">
+<meta property="og:updated_time" content="2017-08-13T07:25:24.120Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="CFRunloop的多线程隐患">
+<meta name="twitter:description" content="如果你还不了解什么是runloop，可以看这里的详解深入理解RunLoop。
+苹果官方文档中，声明了CFRunloop是线程安全的：
+
+Thread safety varies depending on which API you are using to manipulate your run loop. The functions in Core Foundation are generall">
+
+
+
+<script type="text/javascript" id="hexo.configuration">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    scheme: 'Muse',
+    sidebar: {"position":"left","display":"post"},
+    fancybox: true,
+    motion: true,
+    duoshuo: {
+      userId: 0,
+      author: '博主'
+    }
+  };
+</script>
+
+
+
+
+  <link rel="canonical" href="http://yoursite.com/2017/05/22/CFRunloop的多线程隐患/"/>
+
+  <title> CFRunloop的多线程隐患 | zuik's blog </title>
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" lang="zh-Hans">
+
+  
+
+
+
+
+
+
+
+
+
+
+  
+  
+    
+  
+
+  <div class="container one-collumn sidebar-position-left page-post-detail ">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-meta ">
+  
+
+  <div class="custom-logo-site-title">
+    <a href="/"  class="brand" rel="start">
+      <span class="logo-line-before"><i></i></span>
+      <span class="site-title">zuik's blog</span>
+      <span class="logo-line-after"><i></i></span>
+    </a>
+  </div>
+  <p class="site-subtitle">写点别人没写过的</p>
+</div>
+
+<div class="site-nav-toggle">
+  <button>
+    <span class="btn-bar"></span>
+    <span class="btn-bar"></span>
+    <span class="btn-bar"></span>
+  </button>
+</div>
+
+<nav class="site-nav">
+  
+
+  
+    <ul id="menu" class="menu">
+      
+        
+        <li class="menu-item menu-item-home">
+          <a href="/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-home"></i> <br />
+            
+            首页
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-categories">
+          <a href="/categories" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-th"></i> <br />
+            
+            分类
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-archives">
+          <a href="/archives" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-archive"></i> <br />
+            
+            归档
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-tags">
+          <a href="/tags" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-tags"></i> <br />
+            
+            标签
+          </a>
+        </li>
+      
+
+      
+    </ul>
+  
+
+  
+</nav>
+
+ </div>
+    </header>
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          <div id="content" class="content">
+            
+
+  <div id="posts" class="posts-expand">
+    
+
+  
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal " itemscope itemtype="http://schema.org/Article">
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">
+            
+            
+              
+                CFRunloop的多线程隐患
+              
+            
+          </h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            <span class="post-meta-item-icon">
+              <i class="fa fa-calendar-o"></i>
+            </span>
+            <span class="post-meta-item-text">发表于</span>
+            <time itemprop="dateCreated" datetime="2017-05-22T16:29:29+08:00" content="2017-05-22">
+              2017-05-22
+            </time>
+          </span>
+
+          
+
+          
+            
+              <span class="post-comments-count">
+                &nbsp; | &nbsp;
+                <a href="/2017/05/22/CFRunloop的多线程隐患/#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count ds-thread-count" data-thread-key="2017/05/22/CFRunloop的多线程隐患/" itemprop="commentsCount"></span>
+                </a>
+              </span>
+            
+          
+
+          
+
+          
+          
+
+          
+
+        </div>
+      </header>
+    
+
+
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        <p>如果你还不了解什么是runloop，可以看这里的详解<a href="http://blog.ibireme.com/2015/05/18/runloop/" target="_blank" rel="external">深入理解RunLoop</a>。</p>
+<p>苹果<a href="https://developer.apple.com/library/content/documentation/Cocoa/Conceptual/Multithreading/RunLoopManagement/RunLoopManagement.html#//apple_ref/doc/uid/10000057i-CH16-SW26" target="_blank" rel="external">官方文档</a>中，声明了CFRunloop是线程安全的：</p>
+<blockquote>
+<p>Thread safety varies depending on which API you are using to manipulate your run loop. The functions in Core Foundation are <strong><em>generally</em></strong> thread-safe and can be called from any thread. If you are performing operations that alter the configuration of the run loop, however, it is still good practice to do so from the thread that owns the run loop whenever possible.</p>
+</blockquote>
+<p>但是需要注意的是，狡猾的苹果使用了<code>generally</code>这个模糊的词。</p>
+<p>从实践中来看，CFRunloop在停止runloop的阶段的某些操作是存在多线程隐患的。</p>
+<h2 id="不安全的CFRunloopSource"><a href="#不安全的CFRunloopSource" class="headerlink" title="不安全的CFRunloopSource"></a>不安全的CFRunloopSource</h2><p>CFRunloop是线程安全的，但是加上CFRunloopSource就不一定了。比如CFSocket。</p>
+<h3 id="示例代码"><a href="#示例代码" class="headerlink" title="示例代码"></a>示例代码</h3><p>看这样一段自定义线程的代码：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div><div class="line">27</div><div class="line">28</div><div class="line">29</div><div class="line">30</div><div class="line">31</div><div class="line">32</div><div class="line">33</div><div class="line">34</div><div class="line">35</div><div class="line">36</div><div class="line">37</div><div class="line">38</div><div class="line">39</div><div class="line">40</div><div class="line">41</div><div class="line">42</div><div class="line">43</div><div class="line">44</div><div class="line">45</div><div class="line">46</div><div class="line">47</div><div class="line">48</div><div class="line">49</div><div class="line">50</div><div class="line">51</div><div class="line">52</div><div class="line">53</div><div class="line">54</div><div class="line">55</div><div class="line">56</div><div class="line">57</div><div class="line">58</div><div class="line">59</div><div class="line">60</div><div class="line">61</div><div class="line">62</div><div class="line">63</div><div class="line">64</div><div class="line">65</div><div class="line">66</div></pre></td><td class="code"><pre><div class="line">@interface MyThread()</div><div class="line">@property (nonatomic, strong) NSThread *currentThread;</div><div class="line">@property (nonatomic, assign) CFRunLoopSourceRef socketSource;</div><div class="line">@property (nonatomic, assign) CFSocketRef socket;</div><div class="line">@property (nonatomic, assign) CFRunLoopRef currentRunloop;</div><div class="line"></div><div class="line">@end</div><div class="line"></div><div class="line">@implementation MyThread</div><div class="line"></div><div class="line">//初始化线程</div><div class="line">- (instancetype)init &#123;</div><div class="line">    if (self = [super init]) &#123;</div><div class="line">        _currentThread = [[NSThread alloc] initWithTarget:self selector:@selector(runThread) object:nil];</div><div class="line">    &#125;</div><div class="line">    return self;</div><div class="line">&#125;</div><div class="line"></div><div class="line">//开启线程；此方法在使用时没有多线程调用</div><div class="line">- (void)startThread &#123;</div><div class="line">    [self.currentThread start];</div><div class="line">&#125;</div><div class="line"></div><div class="line">//线程入口</div><div class="line">- (void)runThread &#123;</div><div class="line">    @autoreleasepool &#123;</div><div class="line">    //返回runloop，可以让其他线程停止此线程</div><div class="line">        self.currentRunloop = CFRunLoopGetCurrent();</div><div class="line">        [self addSocketSource];</div><div class="line">        </div><div class="line">        CFRunLoopRun();</div><div class="line">    &#125;</div><div class="line">    NSLog(@&quot;线程退出&quot;);</div><div class="line">&#125;</div><div class="line"></div><div class="line">//此方法在使用时没有多线程调用</div><div class="line">- (void)stopThread &#123;</div><div class="line">	 [self removeSocketSource];</div><div class="line">	 @synchronized (_currentRunloop) &#123;</div><div class="line">        if (_currentRunloop) &#123;</div><div class="line">	        CFRunLoopStop(_currentRunloop);</div><div class="line">	        self.currentRunloop = NULL;</div><div class="line">	    &#125;</div><div class="line">    &#125;</div><div class="line">&#125;</div><div class="line"></div><div class="line">//此方法在使用时没有多线程调用</div><div class="line">- (void)addSocketSource &#123;</div><div class="line">    int sock;</div><div class="line">    sock = socket(AF_INET6, SOCK_STREAM, 0);</div><div class="line">    CFSocketContext context = &#123;0, (__bridge void *)(self), NULL, NULL, NULL&#125;;</div><div class="line">    self.socket = CFSocketCreateWithNative(NULL, sock, kCFSocketReadCallBack, socketCallBack, &amp;context);</div><div class="line">    self.socketSource = CFSocketCreateRunLoopSource(NULL, self.socket, 0);</div><div class="line">    CFRunLoopAddSource(_currentRunloop, _socketSource, kCFRunLoopDefaultMode);</div><div class="line">&#125;</div><div class="line"></div><div class="line">- (void)removeSocketSource &#123;</div><div class="line">	@synchronized (_socket) &#123;</div><div class="line">		if (_socket) &#123;</div><div class="line">			//CFSocketInvalidate可能被抛到另一个线程去执行，因此 CFSocketInvalidate 和 CFRunLoopStop可能有多线程同时调用的情况       </div><div class="line">	        CFSocketInvalidate(_socket);</div><div class="line">	        CFRelease(_socket);</div><div class="line">	        self.socket = NULL;</div><div class="line">	    &#125;</div><div class="line">	&#125;</div><div class="line">&#125;</div></pre></td></tr></table></figure>
+<p>在实践中，CFSocket是被另一个socket类管理的，所以<code>addSocketSource</code>和<code>removeSocketSource</code>都是在另一个类中的，也就有可能出现<code>CFSocketInvalidate</code>和 <code>CFRunLoopStop</code>多线程同时调用的情况。</p>
+<h3 id="crash实例分析"><a href="#crash实例分析" class="headerlink" title="crash实例分析"></a>crash实例分析</h3><p>看上去并没有什么问题，该加锁的地方都加锁了，而且CF开头的那几个方法都是线程安全的。但是这时候，如果出现<code>CFSocketInvalidate</code>和 <code>CFRunLoopStop</code>多线程同时调用的情况，就有crash的可能。例如我们项目里收到的某个crash：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div><div class="line">27</div><div class="line">28</div><div class="line">29</div></pre></td><td class="code"><pre><div class="line">Thread 0 name:  Dispatch queue: com.apple.main-thread</div><div class="line">Thread 0 Crashed:</div><div class="line">0   CoreFoundation                  0x000000018e6a9144 CFRunLoopWakeUp + 92</div><div class="line">1   CoreFoundation                  0x000000018e6a9140 CFRunLoopWakeUp + 88</div><div class="line">2   CoreFoundation                  0x000000018e6d71e8 CFSocketInvalidate + 712</div><div class="line">3   MyApp                           0x00000001000fe424 (-[MySocket stop] + 136)</div><div class="line">4   MyApp                           0x00000001000fcd50 (-[MySocket dealloc] + 56)</div><div class="line">5   libsystem_blocks.dylib          0x000000018d6afa28 _Block_release + 144</div><div class="line">6   libdispatch.dylib               0x000000018d65a1bc _dispatch_client_callout + 16</div><div class="line">7   libdispatch.dylib               0x000000018d65ed68 _dispatch_main_queue_callback_4CF + 1000</div><div class="line">8   CoreFoundation                  0x000000018e77e810 __CFRUNLOOP_IS_SERVICING_THE_MAIN_DISPATCH_QUEUE__ + 12</div><div class="line">9   CoreFoundation                  0x000000018e77c3fc __CFRunLoopRun + 1660</div><div class="line">10  CoreFoundation                  0x000000018e6aa2b8 CFRunLoopRunSpecific + 444</div><div class="line">11  GraphicsServices                0x000000019015e198 GSEventRunModal + 180</div><div class="line">12  UIKit                           0x00000001946f17fc -[UIApplication _run] + 684</div><div class="line">13  UIKit                           0x00000001946ec534 UIApplicationMain + 208</div><div class="line">14  DuoYiIM                         0x000000010003ca58 0x100024000 + 100952 (main + 132)</div><div class="line">15  libdyld.dylib                   0x000000018d68d5b8 start + 4</div><div class="line"></div><div class="line">Thread 0 crashed with ARM-64 Thread State:</div><div class="line">  cpsr: 0x0000000020000000     fp: 0x000000016fddab30     lr: 0x000000018e6a9140     pc: 0x000000018e6a9144 </div><div class="line">    sp: 0x000000016fddaa00     x0: 0x0000000000000000     x1: 0x0000000000000000    x10: 0x0000000000000000 </div><div class="line">   x11: 0x0000000000000000    x12: 0x0000000000000000    x13: 0x0000000000000000    x14: 0x0000000000000000 </div><div class="line">   x15: 0x0000000000001203    x16: 0x000000000000012d    x17: 0x000000018f1eef74    x18: 0x0000000000000000 </div><div class="line">   x19: 0x000000017056cb50     x2: 0x0000000000001000    x20: 0x000000017056cb40    x21: 0x96e73914144e0055 </div><div class="line">   x22: 0x0000000174452990    x23: 0x000000017048bae0    x24: 0x0000000000000000    x25: 0x00000000ffffffff </div><div class="line">   x26: 0xffffffffffffffff    x27: 0x000000017426f1c0    x28: 0x0000000002ffffff    x29: 0x000000016fddab30 </div><div class="line">    x3: 0x000000000017e4a6     x4: 0x0000000000012068     x5: 0x0000000000000000     x6: 0x0000000000000036 </div><div class="line">    x7: 0xffffffffffffffec     x8: 0x8c8c8c8c8c8c8c8c     x9: 0x000000000000000c</div></pre></td></tr></table></figure>
+<p><code>CFSocketInvalidate</code>在主线程被调用了。看堆栈，在<code>CFSocketInvalidate</code>内部调用<code>CFRunLoopWakeUp</code>时，出现了crash。</p>
+<p>看不出具体是什么原因crash，所以需要看看是在<code>CFRunLoopWakeUp</code>的哪里挂的。查看对应版本的<code>CoreFoundation</code>的汇编代码：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div><div class="line">27</div><div class="line">28</div><div class="line">29</div></pre></td><td class="code"><pre><div class="line">_CFRunLoopWakeUp:</div><div class="line">0x0000000181521b9c FF0305D1               sub        sp, sp, #0x140             ; CODE XREF=_CFRunLoopAddTimer+696, _CFRunLoopTimerSetNextFireDate+592, _CFSocketInvalidate+708, __wakeUpRunLoop+276, __CFXRegistrationPost+344, -[CFPrefsSearchListSource asynchronouslyNotifyOfChangesFromDictionary:toDictionary:]+172, ___CFSocketPerformV0+1408, ___CFSocketManager+2004, ___CFSocketManager+4248, _boundPairRead+604, _boundPairReadClose+124, …</div><div class="line">0x0000000181521ba0 FC6F11A9               stp        x28, x27, [sp, #0x110]</div><div class="line">0x0000000181521ba4 F44F12A9               stp        x20, x19, [sp, #0x120]</div><div class="line">0x0000000181521ba8 FD7B13A9               stp        x29, x30, [sp, #0x130]</div><div class="line">0x0000000181521bac FDC30491               add        x29, sp, #0x130</div><div class="line">0x0000000181521bb0 F40300AA               mov        x20, x0</div><div class="line">0x0000000181521bb4 C80C10F0               adrp       x8, #0x1a16bc000</div><div class="line">0x0000000181521bb8 084140F9               ldr        x8, [x8, #0x80]            ; -[_CFXPreferences init]_1a16bc080</div><div class="line">0x0000000181521bbc 080140F9               ldr        x8, [x8]</div><div class="line">0x0000000181521bc0 292013F0               adrp       x9, #0x1a7928000</div><div class="line">0x0000000181521bc4 29E90791               add        x9, x9, #0x1fa             ; ___CF120290</div><div class="line">0x0000000181521bc8 A8831DF8               stur       x8, [x29, #-0x28]</div><div class="line">0x0000000181521bcc E8030032               orr        w8, wzr, #0x1</div><div class="line">0x0000000181521bd0 28010039               strb       w8, [x9]                   ; ___CF120290</div><div class="line">0x0000000181521bd4 E8731290               adrp       x8, #0x1a639d000</div><div class="line">0x0000000181521bd8 08F13F91               add        x8, x8, #0xffc             ; ___CF120293</div><div class="line">0x0000000181521bdc 08014039               ldrb       w8, [x8]                   ; ___CF120293</div><div class="line">0x0000000181521be0 48000034               cbz        w8, loc_181521be8</div><div class="line"></div><div class="line">0x0000000181521be4 E3560394               bl         ___THE_PROCESS_HAS_FORKED_AND_YOU_CANNOT_USE_THIS_COREFOUNDATION_FUNCTIONALITY___YOU_MUST_EXEC__</div><div class="line"></div><div class="line">                                      loc_181521be8:</div><div class="line">0x0000000181521be8 93420091               add        x19, x20, #0x10            ; CODE XREF=_CFRunLoopWakeUp+68</div><div class="line">0x0000000181521bec E00313AA               mov        x0, x19</div><div class="line">0x0000000181521bf0 70300694               bl         imp___stubs_-[NSOrderedSet sortedArrayFromRange:options:usingComparator:]//真机的系统库做了混淆，这里其实是__CFRunLoopLock</div><div class="line">0x0000000181521bf4 882E40F9               ldr        x8, [x20, #0x58]</div><div class="line">0x0000000181521bf8 080D40B9               ldr        w8, [x8, #0xc]</div><div class="line">0x0000000181521bfc A8010034               cbz        w8, loc_181521c30</div></pre></td></tr></table></figure>
+<p>crash日志中，崩溃在<code>CFRunLoopWakeUp + 92</code>，对应汇编地址为<code>0x0000000181521b9c + 92</code>=<code>0x0000000181521bf8</code>，在<code>ldr        w8, [x8, #0xc]</code>的时候挂了。查看crash时寄存器的值，<code>x8: 0x8c8c8c8c8c8c8c8c</code>，很明显<code>x8</code>指向的内存已经被释放了。<code>x8</code>是从<code>ldr        x8, [x20, #0x58]</code>得来的（也就是<code>x20</code>的地址偏移<code>0x58</code>后的值），而<code>x20</code>则是从<code>mov        x20, x0</code>得来的，<code>x0</code>就是<code>CFRunloopWakeUp</code>的第一个参数，<code>CFRunLoopRef</code>结构体，所以<code>x8</code>就是<code>CFRunLoopRef</code>偏移<code>0x58</code>后的值。</p>
+<p><code>CoreFoundation</code>的代码是开源的，可以在这里下载：<a href="https://opensource.apple.com/tarballs/CF/CF-1153.18.tar.gz" target="_blank" rel="external">CF-1153.18</a>。</p>
+<p>对应<code>CFRunloopWakeUp</code>源码：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div></pre></td><td class="code"><pre><div class="line">void CFRunLoopWakeUp(CFRunLoopRef rl) &#123;</div><div class="line">    CHECK_FOR_FORK();</div><div class="line">    __CFRunLoopLock(rl);</div><div class="line">    if (__CFRunLoopIsIgnoringWakeUps(rl)) &#123;</div><div class="line">        __CFRunLoopUnlock(rl);</div><div class="line">        return;</div><div class="line">    &#125;</div><div class="line">    kern_return_t ret;</div><div class="line">    ret = __CFSendTrivialMachMessage(rl-&gt;_wakeUpPort, 0, MACH_SEND_TIMEOUT, 0);</div><div class="line">    if (ret != MACH_MSG_SUCCESS &amp;&amp; ret != MACH_SEND_TIMED_OUT) CRASH(&quot;*** Unable to send message to wake up port. (%d) ***&quot;, ret);</div><div class="line">    __CFRunLoopUnlock(rl);</div><div class="line">&#125;</div><div class="line"></div><div class="line">CF_INLINE Boolean __CFRunLoopIsIgnoringWakeUps(CFRunLoopRef rl) &#123;</div><div class="line">    return (rl-&gt;_perRunData-&gt;ignoreWakeUps) ? true : false;    </div><div class="line">&#125;</div></pre></td></tr></table></figure>
+<p>CFRunloop结构体：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div><div class="line">27</div><div class="line">28</div><div class="line">29</div><div class="line">30</div><div class="line">31</div></pre></td><td class="code"><pre><div class="line">struct __CFRunLoop &#123;</div><div class="line">    CFRuntimeBase _base;	//16 byte</div><div class="line">    pthread_mutex_t _lock;	//64 byte</div><div class="line">    __CFPort _wakeUpPort; //mach_port_t (unsign int), 4 byte</div><div class="line">    Boolean _unused;	//bool变量占用1 byte，但是需要和4字节对齐，所以也是4 byte</div><div class="line">    volatile _per_run_data *_perRunData;</div><div class="line">    pthread_t _pthread;</div><div class="line">    uint32_t _winthread;</div><div class="line">    CFMutableSetRef _commonModes;</div><div class="line">    CFMutableSetRef _commonModeItems;</div><div class="line">    CFRunLoopModeRef _currentMode;</div><div class="line">    CFMutableSetRef _modes;</div><div class="line">    struct _block_item *_blocks_head;</div><div class="line">    struct _block_item *_blocks_tail;</div><div class="line">    CFAbsoluteTime _runTime;</div><div class="line">    CFAbsoluteTime _sleepTime;</div><div class="line">    CFTypeRef _counterpart;</div><div class="line">&#125;;</div><div class="line"></div><div class="line">typedef struct __CFRuntimeBase &#123;</div><div class="line">    uintptr_t _cfisa;	//unsigned long 8 byte</div><div class="line">    uint8_t _cfinfo[4];	//unsigned char 4 byte</div><div class="line">#if __LP64__</div><div class="line">    uint32_t _rc;	//unsigned int 4 byte</div><div class="line">#endif</div><div class="line">&#125; CFRuntimeBase;</div><div class="line"></div><div class="line">struct pthread_mutex_t &#123;</div><div class="line">	long __sig;	//8 byte</div><div class="line">	char __opaque[56]; //56 byte</div><div class="line">&#125;;</div></pre></td></tr></table></figure>
+<p>计算结构体size后，得出<code>ldr        x8, [x20, #0x58]</code>就是<code>runloop-&gt; _perRunData</code>。也就是在调用<code>__CFRunLoopIsIgnoringWakeUps</code>的时候，<code>CFRunLoopRef</code>已经被释放了。</p>
+<h3 id="分析CFSocket源码"><a href="#分析CFSocket源码" class="headerlink" title="分析CFSocket源码"></a>分析<code>CFSocket</code>源码</h3><p>查看<code>CFSocketInvalidate</code>源码：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div><div class="line">27</div><div class="line">28</div><div class="line">29</div><div class="line">30</div><div class="line">31</div><div class="line">32</div><div class="line">33</div><div class="line">34</div></pre></td><td class="code"><pre><div class="line">void CFSocketInvalidate(CFSocketRef s) &#123;</div><div class="line">    CHECK_FOR_FORK();</div><div class="line">    CFRetain(s);</div><div class="line">    __CFLock(&amp;__CFAllSocketsLock);</div><div class="line">    __CFSocketLock(s);</div><div class="line">    if (__CFSocketIsValid(s)) &#123;</div><div class="line">    </div><div class="line">        //省略部分代码...</div><div class="line"></div><div class="line">		 //取出socket中的runloop数组</div><div class="line">        CFArrayRef runLoops = (CFArrayRef)CFRetain(s-&gt;_runLoops);</div><div class="line">       //CFRunloop释放操作1       </div><div class="line">        CFRelease(s-&gt;_runLoops);</div><div class="line">        </div><div class="line">        s-&gt;_runLoops = NULL;</div><div class="line">        </div><div class="line">        //省略部分代码...</div><div class="line">        </div><div class="line">        __CFSocketUnlock(s);</div><div class="line">        </div><div class="line">        // Do this after the socket unlock to avoid deadlock (10462525)</div><div class="line">        for (idx = CFArrayGetCount(runLoops); idx--;) &#123;</div><div class="line">            CFRunLoopWakeUp((CFRunLoopRef)CFArrayGetValueAtIndex(runLoops, idx));</div><div class="line">        &#125;</div><div class="line">        //CFRunloop释放操作3</div><div class="line">        CFRelease(runLoops);</div><div class="line"></div><div class="line">        //省略部分代码...</div><div class="line">    &#125; else &#123;</div><div class="line">        __CFSocketUnlock(s);</div><div class="line">    &#125;</div><div class="line">    __CFUnlock(&amp;__CFAllSocketsLock);</div><div class="line">    CFRelease(s);</div><div class="line">&#125;</div></pre></td></tr></table></figure>
+<p><code>CFSocketInvalidate</code>中唯一使用到<code>CFRunLoopWakeUp</code>的地方，就是最后遍历runloops的操作。<br>但是此时<code>CFRunLoopRef</code>还在数组里，正在被数组强引用，到了<code>CFRunLoopWakeUp</code>里怎么就被释放了呢？</p>
+<p>注意，<code>CFSocketInvalidate</code>里遍历runloops的操作是在锁外面进行的，说明CFSocket很有可能没有管理好它的runloops数组，导致数组在遍历时被释放了。从<code>Do this after the socket unlock to avoid deadlock (10462525)</code>这一行注释猜测，这部分遍历操作之前应该也是在锁内的，但是会出现死锁，所以放到了锁外。苹果的bug report是不对外公开的，只在这里找到了可能相关的讨论：<a href="https://bugreports.qt.io/browse/QTBUG-22789" target="_blank" rel="external">bug #10462525</a>。</p>
+<p>最大的可能是出现在<code>__CFSocketCancel</code>里。在runloop停止的时候，也会执行remove source操作，在<code>CFRunLoopRemoveSource</code>里，会执行source0的cancel函数，也就是<code>__CFSocketCancel</code>：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div><div class="line">27</div><div class="line">28</div><div class="line">29</div><div class="line">30</div><div class="line">31</div></pre></td><td class="code"><pre><div class="line">void CFRunLoopRemoveSource(CFRunLoopRef rl, CFRunLoopSourceRef rls, CFStringRef modeName) \</div><div class="line">    CHECK_FOR_FORK();</div><div class="line">    Boolean doVer0Callout = false, doRLSRelease = false;</div><div class="line">    __CFRunLoopLock(rl);</div><div class="line">    if (modeName == kCFRunLoopCommonModes) &#123;</div><div class="line">	//省略代码...</div><div class="line">    &#125; else &#123;</div><div class="line">	CFRunLoopModeRef rlm = __CFRunLoopFindMode(rl, modeName, false);</div><div class="line">	if (NULL != rlm &amp;&amp; ((NULL != rlm-&gt;_sources0 &amp;&amp; CFSetContainsValue(rlm-&gt;_sources0, rls)) || (NULL != rlm-&gt;_sources1 &amp;&amp; CFSetContainsValue(rlm-&gt;_sources1, rls)))) &#123;</div><div class="line">	    CFRetain(rls);</div><div class="line">	    //省略代码...</div><div class="line">	    if (0 == rls-&gt;_context.version0.version) &#123;</div><div class="line">	        if (NULL != rls-&gt;_context.version0.cancel) &#123;</div><div class="line">	            doVer0Callout = true;</div><div class="line">	        &#125;</div><div class="line">	    &#125;</div><div class="line">	    doRLSRelease = true;</div><div class="line">	&#125;</div><div class="line">        //省略代码...</div><div class="line">	&#125;</div><div class="line">    &#125;</div><div class="line">    __CFRunLoopUnlock(rl);</div><div class="line">    if (doVer0Callout) &#123;</div><div class="line">        // although it looses some protection for the source, we have no choice but</div><div class="line">        // to do this after unlocking the run loop and mode locks, to avoid deadlocks</div><div class="line">        // where the source wants to take a lock which is already held in another</div><div class="line">        // thread which is itself waiting for a run loop/mode lock</div><div class="line">        rls-&gt;_context.version0.cancel(rls-&gt;_context.version0.info, rl, modeName);	/* CALLOUT */</div><div class="line">    &#125;</div><div class="line">    if (doRLSRelease) CFRelease(rls);</div><div class="line">&#125;</div></pre></td></tr></table></figure>
+<p><code>__CFSocketCancel</code>源码：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div></pre></td><td class="code"><pre><div class="line">static void __CFSocketCancel(void *info, CFRunLoopRef rl, CFStringRef mode) &#123;</div><div class="line">    CFSocketRef s = (CFSocketRef)info;</div><div class="line">    __CFSocketLock(s);</div><div class="line">    if (0 == s-&gt;_socketSetCount) &#123;</div><div class="line">        //省略代码...</div><div class="line">    if (NULL != s-&gt;_runLoops) &#123;</div><div class="line">    //从runloops数组中移除此runloop；对原数组执行拷贝后，释放原数组</div><div class="line">        CFMutableArrayRef runLoopsOrig = s-&gt;_runLoops;</div><div class="line">        CFMutableArrayRef runLoopsCopy = CFArrayCreateMutableCopy(kCFAllocatorSystemDefault, 0, s-&gt;_runLoops);</div><div class="line">        idx = CFArrayGetFirstIndexOfValue(runLoopsCopy, CFRangeMake(0, CFArrayGetCount(runLoopsCopy)), rl);</div><div class="line">        if (0 &lt;= idx) CFArrayRemoveValueAtIndex(runLoopsCopy, idx);</div><div class="line">        s-&gt;_runLoops = runLoopsCopy;</div><div class="line">        //CFRunloop释放操作2</div><div class="line">        CFRelease(runLoopsOrig);</div><div class="line">    &#125;</div><div class="line">    __CFSocketUnlock(s);</div><div class="line">&#125;</div></pre></td></tr></table></figure>
+<p><code>__CFSocketCancel</code>也有一次对<code>CFRunloopRef</code>的释放操作，加上<code>CFSocketInvalidate</code>里的2个，总共有3个释放操作。</p>
+<p>所以，如果<code>__CFSocketCancel</code>和<code>CFSocketInvalidate</code>在多线程同时执行，就有可能出现对CFSocket中的runloops数组过度释放，因此在遍历runloops的时候就会出现<code>CFRunLoopRef</code>被释放的情况。虽然这个crash出现的概率比较低，但是在项目里隔一段时间就会稳定出现。</p>
+<p>所以，不是加了锁就万事大吉了，<code>CFSocketInvalidate</code>里在遍历数组前应该再加一个retain才能保证安全。</p>
+<h3 id="解决方法"><a href="#解决方法" class="headerlink" title="解决方法"></a>解决方法</h3><ul>
+<li>既然是CFSocket里的bug，那就只能避免不要出现<code>CFSocketInvalidate</code>和<code>CFRunloopStop</code>多线程执行的代码。</li>
+<li>如果你的socket只在这个线程里运行，那直接调用<code>CFRunloopStop</code>即可，runloop会自动清理所有source。</li>
+<li>如果这个线程需要重用，那就不需要stop，而是停止socket后，在同一个线程里新建socket。</li>
+</ul>
+<h2 id="自动停止的Runloop"><a href="#自动停止的Runloop" class="headerlink" title="自动停止的Runloop"></a>自动停止的Runloop</h2><p>那么，如果把stop代码改成这样，应该就没问题了吧？</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div></pre></td><td class="code"><pre><div class="line">- (void)runThread &#123;</div><div class="line">    @autoreleasepool &#123;</div><div class="line">        self.currentRunloop = CFRunLoopGetCurrent();</div><div class="line">        [self addRunloopSource];</div><div class="line">        [self addSocketSource];</div><div class="line">        </div><div class="line">        CFRunLoopRun();</div><div class="line">    &#125;</div><div class="line">    NSLog(@&quot;线程退出&quot;);</div><div class="line">&#125;</div><div class="line"></div><div class="line">- (void)stopThread &#123;</div><div class="line">    if (_currentRunloop) &#123;</div><div class="line">	    //保证removeSocketSource的操作只会在这里执行，没有多线程的情况</div><div class="line">        [self removeSocketSource];</div><div class="line">        CFRunLoopStop(_currentRunloop);</div><div class="line">        self.currentRunloop = NULL;</div><div class="line">    &#125;</div><div class="line">&#125;</div></pre></td></tr></table></figure>
+<p>很遗憾，这样写还是不安全的。</p>
+<p>原因在于<code>removeSocketSource</code>之后，runloop里source就全部为空了，runloop如果检测到了source为空，就会自动停止runloop循环，销毁线程。</p>
+<p>因此如果你在另一个线程调用<code>stopThread</code>，在<code>removeSocketSource</code>之后线程就会随时停止，runloop在调用<code>CFRunLoopStop</code>时可能已经被释放了。</p>
+<p>上面的写法出现crash的概率太低，但是稍微改一下就能必现：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div></pre></td><td class="code"><pre><div class="line">- (void)stopThread &#123;</div><div class="line">    if (_currentRunloop) &#123;</div><div class="line">        [self removeSocketSource];</div><div class="line">        </div><div class="line">        //插入一个耗时操作</div><div class="line">        sleep(2);</div><div class="line">        //必定crash</div><div class="line">        CFRunLoopStop(_currentRunloop);</div><div class="line">        self.currentRunloop = NULL;</div><div class="line">    &#125;</div><div class="line">&#125;</div></pre></td></tr></table></figure>
+<p>这种情况下crash的原因其实是没做好内存管理，只要对runloop增加一次retain操作就没问题了：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div></pre></td><td class="code"><pre><div class="line">- (void)runThread &#123;</div><div class="line">    @autoreleasepool &#123;</div><div class="line">	    //做一次retain操作</div><div class="line">        self.currentRunloop = CFRetain(CFRunLoopGetCurrent());</div><div class="line">        [self addRunloopSource];</div><div class="line">        [self addSocketSource];</div><div class="line">        </div><div class="line">        CFRunLoopRun();</div><div class="line">    &#125;</div><div class="line">    NSLog(@&quot;线程退出&quot;);</div><div class="line">&#125;</div><div class="line"></div><div class="line">- (void)stopThread &#123;</div><div class="line">    if (_currentRunloop) &#123;</div><div class="line">        [self removeSocketSource];</div><div class="line">        CFRunLoopStop(_currentRunloop);</div><div class="line">        CFRelease(_currentRunloop);</div><div class="line">        self.currentRunloop = NULL;</div><div class="line">    &#125;</div><div class="line">&#125;</div></pre></td></tr></table></figure>
+<h2 id="结论"><a href="#结论" class="headerlink" title="结论"></a>结论</h2><p>在使用runloop source的时候要谨慎，尤其在处理stop的阶段。其他source可能也存在类似的问题。</p>
+<p>一个变量有多线程操作的时候，在锁外的操作即使是只读也是不安全的，在读取之前最好再做一次retain操作，防止在读取的过程中被释放。</p>
+
+      
+    </div>
+
+    <div>
+      
+        
+
+      
+    </div>
+
+    <div>
+      
+        
+
+      
+    </div>
+
+    <footer class="post-footer">
+      
+        <div class="post-tags">
+          
+            <a href="/tags/iOS/" rel="tag">#iOS</a>
+          
+        </div>
+      
+
+      
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
+            
+              <a href="/2017/05/04/iOS逆向：在任意app上开启malloc stack追踪内存来源/" rel="next" title="iOS逆向：在任意app上开启malloc stack追踪内存来源">
+                <i class="fa fa-chevron-left"></i> iOS逆向：在任意app上开启malloc stack追踪内存来源
+              </a>
+            
+          </div>
+
+          <div class="post-nav-prev post-nav-item">
+            
+              <a href="/2017/07/21/iOS VIPER架构实践(一)：从MVC到MVVM到VIPER/" rel="prev" title="iOS VIPER架构实践(一)：从MVC到MVVM到VIPER">
+                iOS VIPER架构实践(一)：从MVC到MVVM到VIPER <i class="fa fa-chevron-right"></i>
+              </a>
+            
+          </div>
+        </div>
+      
+
+      
+      
+    </footer>
+  </article>
+
+
+
+    <div class="post-spread">
+      
+    </div>
+  </div>
+
+<script async src="https://dn-lbstatics.qbox.me/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+
+<span id="busuanzi_container_page_pv">
+</br>本文总阅读量<span id="busuanzi_value_page_pv"></span>次
+</span>
+
+
+          </div>
+          
+
+
+          
+  <div class="comments" id="comments">
+    
+      <div class="ds-thread" data-thread-key="2017/05/22/CFRunloop的多线程隐患/"
+           data-title="CFRunloop的多线程隐患" data-url="http://yoursite.com/2017/05/22/CFRunloop的多线程隐患/">
+      </div>
+    
+  </div>
+
+
+        </div>
+        
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    <div class="sidebar-inner">
+
+      
+
+      
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap" >
+            文章目录
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview">
+            站点概览
+          </li>
+        </ul>
+      
+
+      <section class="site-overview sidebar-panel ">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+          <img class="site-author-image" itemprop="image"
+               src="/images/avatar.png"
+               alt="zuik" />
+          <p class="site-author-name" itemprop="name">zuik</p>
+          <p class="site-description motion-element" itemprop="description">🐼</p>
+        </div>
+        <nav class="site-state motion-element">
+          <div class="site-state-item site-state-posts">
+            <a href="/archives">
+              <span class="site-state-item-count">10</span>
+              <span class="site-state-item-name">日志</span>
+            </a>
+          </div>
+
+          
+            <div class="site-state-item site-state-categories">
+              <a href="/categories">
+                <span class="site-state-item-count">7</span>
+                <span class="site-state-item-name">分类</span>
+              </a>
+            </div>
+          
+
+          
+            <div class="site-state-item site-state-tags">
+              <a href="/tags">
+                <span class="site-state-item-count">1</span>
+                <span class="site-state-item-name">标签</span>
+              </a>
+            </div>
+          
+
+        </nav>
+
+        
+          <div class="feed-link motion-element">
+            <a href="/atom.xml" rel="alternate">
+              <i class="fa fa-rss"></i>
+              RSS
+            </a>
+          </div>
+        
+
+        <div class="links-of-author motion-element">
+          
+        </div>
+
+        
+        
+
+        
+        
+
+      </section>
+
+      
+        <section class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc">
+            
+              
+            
+            
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#不安全的CFRunloopSource"><span class="nav-number">1.</span> <span class="nav-text">不安全的CFRunloopSource</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#示例代码"><span class="nav-number">1.1.</span> <span class="nav-text">示例代码</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#crash实例分析"><span class="nav-number">1.2.</span> <span class="nav-text">crash实例分析</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#分析CFSocket源码"><span class="nav-number">1.3.</span> <span class="nav-text">分析CFSocket源码</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#解决方法"><span class="nav-number">1.4.</span> <span class="nav-text">解决方法</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#自动停止的Runloop"><span class="nav-number">2.</span> <span class="nav-text">自动停止的Runloop</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#结论"><span class="nav-number">3.</span> <span class="nav-text">结论</span></a></li></ol></div>
+            
+          </div>
+        </section>
+      
+
+    </div>
+  </aside>
+
+
+        
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright" >
+  
+  &copy; 
+  <span itemprop="copyrightYear">2017</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">zuik</span>
+</div>
+
+<div class="powered-by">
+  由 <a class="theme-link" href="https://hexo.io">Hexo</a> 强力驱动
+</div>
+
+<div class="theme-info">
+  主题 -
+  <a class="theme-link" href="https://github.com/iissnan/hexo-theme-next">
+    NexT.Muse
+  </a>
+</div>
+
+<script>
+(function(){
+var bp = document.createElement('script');
+bp.src = '//push.zhanzhang.baidu.com/push.js';
+var s = document.getElementsByTagName("script")[0];
+s.parentNode.insertBefore(bp, s);
+})();
+</script>
+
+        
+
+        
+      </div>
+    </footer>
+
+    <div class="back-to-top">
+      <i class="fa fa-arrow-up"></i>
+    </div>
+  </div>
+
+  
+
+<script type="text/javascript">
+  if (Object.prototype.toString.call(window.Promise) !== '[object Function]') {
+    window.Promise = null;
+  }
+</script>
+
+
+
+
+
+
+
+
+
+  
+
+
+
+  
+  <script type="text/javascript" src="/vendors/jquery/index.js?v=2.1.3"></script>
+
+  
+  <script type="text/javascript" src="/vendors/fastclick/lib/fastclick.min.js?v=1.0.6"></script>
+
+  
+  <script type="text/javascript" src="/vendors/jquery_lazyload/jquery.lazyload.js?v=1.9.7"></script>
+
+  
+  <script type="text/javascript" src="/vendors/velocity/velocity.min.js?v=1.2.1"></script>
+
+  
+  <script type="text/javascript" src="/vendors/velocity/velocity.ui.min.js?v=1.2.1"></script>
+
+  
+  <script type="text/javascript" src="/vendors/fancybox/source/jquery.fancybox.pack.js?v=2.1.5"></script>
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/utils.js?v=5.0.1"></script>
+
+  <script type="text/javascript" src="/js/src/motion.js?v=5.0.1"></script>
+
+
+
+  
+  
+
+  
+  <script type="text/javascript" src="/js/src/scrollspy.js?v=5.0.1"></script>
+<script type="text/javascript" src="/js/src/post-details.js?v=5.0.1"></script>
+
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/bootstrap.js?v=5.0.1"></script>
+
+
+
+  
+
+  
+    
+  
+
+  <script type="text/javascript">
+    var duoshuoQuery = {short_name:"zuik"};
+    (function() {
+      var ds = document.createElement('script');
+      ds.type = 'text/javascript';ds.async = true;
+      ds.id = 'duoshuo-script';
+      ds.src = (document.location.protocol == 'https:' ? 'https:' : 'http:') + '//static.duoshuo.com/embed.js';
+      ds.charset = 'UTF-8';
+      (document.getElementsByTagName('head')[0]
+      || document.getElementsByTagName('body')[0]).appendChild(ds);
+    })();
+  </script>
+
+  
+    
+    <script src="/vendors/ua-parser-js/dist/ua-parser.min.js?v=0.7.9"></script>
+    <script src="/js/src/hook-duoshuo.js"></script>
+  
+
+
+
+
+
+
+  
+  
+
+  
+
+  
+
+  
+
+</body>
+</html>

@@ -5,7 +5,7 @@
   <link href="/atom.xml" rel="self"/>
   
   <link href="http://yoursite.com/"/>
-  <updated>2017-05-05T02:16:42.540Z</updated>
+  <updated>2017-08-13T07:33:27.220Z</updated>
   <id>http://yoursite.com/</id>
   
   <author>
@@ -14,6 +14,448 @@
   </author>
   
   <generator uri="http://hexo.io/">Hexo</generator>
+  
+  <entry>
+    <title>iOS VIPER架构实践(二)：VIPER详解与实现</title>
+    <link href="http://yoursite.com/2017/08/11/iOS%20VIPER%E6%9E%B6%E6%9E%84%E5%AE%9E%E8%B7%B5(%E4%BA%8C)%EF%BC%9AVIPER%E8%AF%A6%E8%A7%A3%E4%B8%8E%E5%AE%9E%E7%8E%B0/"/>
+    <id>http://yoursite.com/2017/08/11/iOS VIPER架构实践(二)：VIPER详解与实现/</id>
+    <published>2017-08-11T08:55:29.000Z</published>
+    <updated>2017-08-13T07:33:27.220Z</updated>
+    
+    <content type="html"><![CDATA[<p>第一篇文章对VIPER进行了简单的介绍，这篇文章将从VIPER的源头开始，比较现有的几种VIPER实现，对VIPER进行进一步的职责剖析，并对各种细节实现问题进行挖掘和探讨。最后给出两个完整的VIPER实现，并且提供快速生成VIPER代码的模板。</p>
+<p>两个实现展示了以下问题的解决方案：</p>
+<ul>
+<li>如何彻底地解决不同模块之间的耦合</li>
+<li>如何在一个模块里引入子模块</li>
+<li>子模块和父模块之间如何通信</li>
+<li>如何对模块进行依赖注入</li>
+<li>面向接口的路由工具</li>
+</ul>
+<h2 id="起源"><a href="#起源" class="headerlink" title="起源"></a>起源</h2><p>VIPER架构，最初是2013年在MutualMobile的技术博客上，由Jeff Gilbert 和 Conrad Stoll 提出的。他们的博客网站有过一次迁移，原文地址已经失效，这是迁移后的博文：<a href="https://mutualmobile.com/posts/meet-viper-fast-agile-non-lethal-ios-architecture-framework" target="_blank" rel="external">MEET VIPER: MUTUAL MOBILE’S APPLICATION OF CLEAN ARCHITECTURE FOR IOS APPS</a>。</p>
+<p>这是文章中提出的架构示意图：</p>
+<p><img src="http://upload-images.jianshu.io/upload_images/1865432-13daad61ed8db39c.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240" alt="viper_mutualmobile"></p>
+<p>Wireframe可以看作是Router的另一种表达。可以看到，VIPER之间的关系已经很明确了。之后，作者在2014年在objc.io上发表了另一篇更详细的介绍文章：<a href="https://www.objc.io/issues/13-architecture/viper/" target="_blank" rel="external">Architecting iOS Apps with VIPER</a>。</p>
+<p>在作者的第一篇文章里，阐述了VIPER是在接触到了Uncle Bob的<a href="https://8thlight.com/blog/uncle-bob/2012/08/13/the-clean-architecture.html" target="_blank" rel="external">Clean Architecture</a>后，对Clean Architecture的一次实践。因此，VIPER真正的源头应该是Clean Architecture。</p>
+<h2 id="Clean-Architecture"><a href="#Clean-Architecture" class="headerlink" title="Clean Architecture"></a>Clean Architecture</h2><p>由Uncle Bob在2011年提出的<code>Clean Architecture</code>，是一个平台无关的抽象架构。想要详细学习的，可以阅读作者的原文：<a href="https://8thlight.com/blog/uncle-bob/2012/08/13/the-clean-architecture.html" target="_blank" rel="external">Clean Architecture</a>，翻译：<a href="http://www.jdon.com/artichect/the-clean-architecture.html" target="_blank" rel="external">干净的架构The Clean Architecture</a>。</p>
+<p>它通过梳理软件中不同层之间的依赖关系，提出了一个自外向内，单向依赖的架构，如下图所示：</p>
+<p><img src="http://upload-images.jianshu.io/upload_images/1865432-dda97ce26c973609.jpg?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240" alt="Clean Architecture"></p>
+<p>越靠近内层，越变得抽象，越接近设计的核心。越靠近外层，越和具体的平台和实现技术相关。内层的部分完全不知道外层的存在和实现方式，代码只能从外层向内层引用，目的是为了实现层与层之间的隔离。将不同抽象程度的层进行隔离，做到了把业务规则和具体实现分离开。你可以把外层看作是内层的delegate，外层只能通过内层提供的delegate接口来使用内层。</p>
+<h3 id="Enterprise-Business-Rules"><a href="#Enterprise-Business-Rules" class="headerlink" title="Enterprise Business Rules"></a>Enterprise Business Rules</h3><p>代表了这个软件项目的业务规则。由数据实体体现，是一些可以在不同的程序应用之间共享的数据结构。</p>
+<h3 id="Application-Business-Rules"><a href="#Application-Business-Rules" class="headerlink" title="Application Business Rules"></a>Application Business Rules</h3><p>代表了本应用所使用的一些业务规则。封装和实现了用到的业务功能，会将各种实体的数据结构转为在用例中传递的实体类，但是和具体的数据库技术或者UI无关。</p>
+<h3 id="Interface-Adapters"><a href="#Interface-Adapters" class="headerlink" title="Interface Adapters"></a>Interface Adapters</h3><p>接口适配层。将用例的规则和具体的实现技术进行抽象地对接，将用例中用到的实体类转为供数据库存储的格式或者供View展示的格式。类似于MVVM中把Model转为ViewModel供View显示。</p>
+<p>右下角表示了接口适配层中不同模块间的通信方式。不同的模块在业务用例中产生关联和数据传递。Input、Output就是Use Case提供给外层的数据流动接口。</p>
+<h3 id="Frameworks-amp-Drivers"><a href="#Frameworks-amp-Drivers" class="headerlink" title="Frameworks &amp; Drivers"></a>Frameworks &amp; Drivers</h3><p>库和驱动层，代表了选用的各种具体的实现技术，例如持久层使用SQLite还是Core Data，网络层使用NSURLSession、NSURLConnection还是AFNetworking等。</p>
+<h3 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h3><p>可以看到，Clean Architecture里已经出现了Use Case、Interactor、Presenter等概念，它为VIPER的工程实现提供了设计思想，VIPER将它的设计转化成了具体的实现。VIPER里的各部分正是存在着由外向内的依赖，从外向内表现为：<code>View -&gt; Presenter -&gt; Interactor -&gt; Entity</code>，<code>Wireframe</code>严格来说也是一类特殊的Use Case，用于不同模块之间通信，连接了不同的<code>Presenter</code>。</p>
+<p>必须要记住的是，<strong>VIPER架构是根据由外向内的依赖关系来设计的</strong>。这句话是指导我们进行进一步设计和优化的关键。</p>
+<h2 id="现有的各种VIPER实现"><a href="#现有的各种VIPER实现" class="headerlink" title="现有的各种VIPER实现"></a>现有的各种VIPER实现</h2><p>MutualMobile的那两篇文章虽然已经明确了VIPER各部分之间的职责，并且给出了简单的Demo，但是对Wireframe部分的实现有些争议，解耦做得不够彻底，并且对各层之间如何交互还处在最简单的实现上。之后出现了挺多文章来将VIPER进一步细化，不过某些细节的实现上有些差别，在给出我自己的VIPER之前，我将先对这些实现进行一次综合的比较分析，看看他们都使用了哪些技术，遇到了哪些争议点。不同实现之间已经公认的地方我就不再单独列出了。</p>
+<h3 id="Brigade团队的实现"><a href="#Brigade团队的实现" class="headerlink" title="Brigade团队的实现"></a>Brigade团队的实现</h3><p>原文地址：<a href="https://brigade.engineering/brigades-experience-using-an-mvc-alternative-36ef1601a41f" target="_blank" rel="external">Brigade’s Experience Using an MVC Alternative: VIPER architecture for iOS applications</a>。</p>
+<p>文章把VIPER的优点总结了一下，提出了这样的架构图：</p>
+<p><img src="http://upload-images.jianshu.io/upload_images/1865432-76a4f532c58da061.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240" alt="Brigade’s VIPER"></p>
+<p>他们对VIPER的各部分都没有异议，只是对Interactor的实现进行了进一步细化。用一个Data Manager提供给各个Use Case管理Entity，比如获取、存储功能。在Service中调用网络层去获取服务端的数据。</p>
+<p>文章中还认为应该由Wireframe负责初始化整个VIPER，生成各部分的类，并设置依赖关系，并且引用另一个模块的Wireframe，负责跳转到另一个界面。</p>
+<p>和这个实现类似的还有：</p>
+<ul>
+<li><a href="https://swifting.io/blog/2016/03/07/8-viper-to-be-or-not-to-be/" target="_blank" rel="external">VIPER to be or not to be?</a>。这篇文章里给出了一个Unit Test的例子，还探讨了应该在什么情况下开始应用VIPER。</li>
+<li><a href="https://cheesecakelabs.com/blog/best-practices-viper-architecture/" target="_blank" rel="external">VIPER architecture: Our best practices to build an app like a boss</a>。Demo地址：<a href="https://github.com/CheesecakeLabs/Boilerplate_iOS_VIPER" target="_blank" rel="external">Boilerplate_iOS_VIPER</a>。</li>
+</ul>
+<p>针对VIPER需要编写太多初始化代码的麻烦，可以使用Xcode自带的Template解决。而很多作者都提到了一个代码生成工具：<a href="https://github.com/rambler-digital-solutions/Generamba" target="_blank" rel="external">Generamba</a>。</p>
+<h4 id="争议"><a href="#争议" class="headerlink" title="争议"></a>争议</h4><p>文章并没有对VIPER进行修改，只是进一步细化了。这应该是一个最简单的实现。如果你要实施VIPER，参照这篇文章来没有什么大问题。但是它没有探讨的问题是：</p>
+<ul>
+<li>如何解决不同Wrieframe之间的耦合？</li>
+<li>Wrieframe如何知道其他模块需要的初始化参数？</li>
+<li>在模块间通信时，Interactor的数据如何传递给另一个模块？</li>
+<li>父模块和子模块之间是怎样的关系？</li>
+</ul>
+<h3 id="Rambler-amp-Co团队的实现"><a href="#Rambler-amp-Co团队的实现" class="headerlink" title="Rambler&amp;Co团队的实现"></a>Rambler&amp;Co团队的实现</h3><p>一个对VIPER十分感兴趣的俄国团队，编写了一本关于VIPER的书：<a href="https://github.com/strongself/The-Book-of-VIPER" target="_blank" rel="external">The-Book-of-VIPER</a>。并且给出了一个目前网络上实现完成度最高的开源Demo：<a href="https://github.com/rambler-digital-solutions/rambler-it-ios" target="_blank" rel="external">rambler-it-ios</a>，以及他们用于实施VIPER的库：<a href="https://github.com/rambler-digital-solutions/ViperMcFlurry" target="_blank" rel="external">ViperMcFlurry</a>。</p>
+<p>他们整理的VIPER架构图如下：</p>
+<p><img src="http://upload-images.jianshu.io/upload_images/1865432-9f35c09e9c9b0f12.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240" alt="Rambler&amp;Co&#39;s VIPER"></p>
+<p>和其他实现不同的是，他们把VIPER的初始化和装配工作单独放到了一个Assembly里，Router只做界面跳转的工作。并且把VIPER内不同部分之间的通信统一用Input和Output来表示。Input表示外部主动调用模块提供的接口，Output表示模块通过外部实现所要求的接口，将事件传递到外部。</p>
+<p>之所以将模块初始化单独放到Assembly里，是因为Router如果负责初始化本模块，会违背单一职责原则。</p>
+<h4 id="争议-1"><a href="#争议-1" class="headerlink" title="争议"></a>争议</h4><p>这个实现的愿景很好，只是在转变为具体实现的时候不够完美，有很多问题尚待解决。具体可以参见Demo。</p>
+<ul>
+<li>Assembly使用了<a href="https://github.com/appsquickly/Typhoon" target="_blank" rel="external">Typhoon</a>这个依赖注入工具，通过Method Swizzling自动初始化VIPER的各个部分</li>
+</ul>
+<p>我对Typhoon这个依赖注入工具不是特别感冒，它使用了十分复杂的run time技术，想要追踪一个对象的注入过程时，会看得晕头转向。而且它无法实现运行时由调用方动态注入，只能实现预定义好的静态注入。也就是不能动态传参。</p>
+<ul>
+<li>使用storyboard进行路由</li>
+</ul>
+<p>在Demo中实现了在执行segue时用block来使用<code>-prepareForSegue:sender:</code>，实现向目的界面传参，实现了动态注入。但是这样就把路由限定在了storyboard的segue技术上，那么对于那些没有使用storyboard的项目应该怎么办呢？Demo并没有给出答案。而且<code>-prepareForSegue:sender:</code>只能向View传参，但是有一些参数是View不应该接触到的，而是应该直接传给Presenter或者Interactor的。</p>
+<ul>
+<li>有时候模块需要从Output中获取数据，例如Presenter主动获取View中的文字，传递给Interactor，此时<code>Output</code>并不能完整描述它的职责，还可以再进一步划分</li>
+</ul>
+<p>也就是说，他们的方案在设计上是不错的，但在技术上还有很多改进空间。</p>
+<h3 id="Uber团队的实现"><a href="#Uber团队的实现" class="headerlink" title="Uber团队的实现"></a>Uber团队的实现</h3><p>Uber由于业务越来越复杂，旧项目的架构已经无法满足当前的需求，因此在2016年完全重构了他们的 rider app。他们借鉴VIPER，并且设计出了一个VIPER的变种架构：Riblets。文章地址：<a href="https://eng.uber.com/new-rider-app/" target="_blank" rel="external">ENGINEERING THE ARCHITECTURE BEHIND UBER’S NEW RIDER APP</a>。</p>
+<p>架构图如下：</p>
+<p><img src="http://upload-images.jianshu.io/upload_images/1865432-ad4602f11ed62094.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240" alt="riblets"></p>
+<p>数据流向图：</p>
+<p><img src="http://upload-images.jianshu.io/upload_images/1865432-bdb29d6717472b5b.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240" alt="riblets_数据流向"></p>
+<p>父模块和子模块之间通信：</p>
+<p><img src="http://upload-images.jianshu.io/upload_images/1865432-e71eed65c555ddc5.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240" alt="riblet_父子模块间通信"></p>
+<h4 id="各部分职责"><a href="#各部分职责" class="headerlink" title="各部分职责"></a>各部分职责</h4><p>这里只列出一些和VIPER有差异的地方：</p>
+<ul>
+<li>Builder负责初始化Riblets模块内的各个部分，定义了模块的依赖参数</li>
+<li>Component负责获取和初始化那些不是Riblets模块内的部分，例如services，并注入到Interactor中</li>
+<li>Router负责管理子模块，持有子模块的Router，并把子模块的View添加到视图树上</li>
+<li>Interactor通过调用Service管理Model，而不是在Interactor中直接管理</li>
+<li>Interactor和子模块的Interactor通过监听者模式和delegate互相通信</li>
+</ul>
+<h4 id="数据驱动"><a href="#数据驱动" class="headerlink" title="数据驱动"></a>数据驱动</h4><p>最大的改变是将Router从Presenter移到了Interactor，改变了模块的主从关系，整个模块的生命周期现在由Interactor来管理。而之前的VIPER模块是依赖于View的生命周期的。这样一来，整个架构就从View驱动变成了业务驱动，或者数据驱动。</p>
+<p>关于这个改变，Uber给出了两个原因：</p>
+<ul>
+<li>想要统一iOS和Andorid的软件架构，以及更好地互相借鉴开发经验和教训，因而需要改变iOS中视图驱动的设计</li>
+<li>想要创建一个没有View，只有业务逻辑的模块，因此生命周期需要由Interactor管理</li>
+</ul>
+<h4 id="争议-2"><a href="#争议-2" class="headerlink" title="争议"></a>争议</h4><p>Uber团队的确很有想法。在对他们的这个方案进行深入实践之前，我无法评论这个方案是好是坏，我只在这里提出一些实践中可能会遇到的问题。</p>
+<p>关于Uber给出的第一个原因，这是Uber团队基于协调两个开发团队的情况而做出的选择，如果我们没有他们这样统一开发的需求，并没有必要借鉴。iOS的UIKit是一个视图驱动的框架，很难做到100%数据驱动，在实践中将会遇到许多需要解决的问题，除非有足够的开发时间，否则不要草率地投入其中。是否要使用数据驱动的设计，还是应该由项目的业务设计来决定。当数据变化大部分是由后端的Service和网络数据引起时，再去考虑数据驱动吧。例如Uber的地图路线由定位模块不断计算，自动更新，就比较适合使用数据驱动。</p>
+<p>关于第二个原因，一个没有View和Presenter的VIPER，就只剩下Router、Interactor、Model，这时这个模块可以看做是一个可以通过Router调用的Service或者Manager，这个Service有自己的状态和生命周期，Service也可以在View销毁后继续完成剩余的业务工作，只要业务需要，可以进行自持有，自释放。而且这个Service最终还是会表现在某个View上。这么看来，Router的层级已经升高了，成为了整个app内的模块间通信工具，可以连接任意模块，不仅仅是VIPER，因此Router由谁持有，就完全由模块内部自由管理了。</p>
+<p>只是，在iOS中的VIPER里，实际的路由API都是存在于UIViewController上的，Router会直接和View产生引用，把Router放到和View隔离的Interactor里会破坏隔离。而且从Clean架构的分层来看，层级升高后的Router应该是处在Interface Adapter层和Framework &amp; Driver层之间，而Interactor则是在Application Business Rules层，由Interactor来管理其他角色，会破坏了Clean Architecture里的依赖关系。</p>
+<p>比如一个没有View的、用于管理语音通话数据的Interactor，收到了通话异常中断的事件，在处理事件时，它不应该通过Router将自己移除，或者结束整个语音通话业务，或者自动调用重新拨号的业务，这样很容易会让不同的Use Case之间产生耦合，这些都应该由更上层的Service去选择执行，如果有页面跳转的设计，则应该把事件转发给一个存在Presenter层的Parent VIPER模块，由parent来决定是退出通话界面还是弹窗提示。当一个Interactor没有Presenter和View时，它一定是另一个VIPER的子模块。这么看来，在没有View时，或许让Service来持有Router才是正确的。</p>
+<p>因此，如果真的有把VIPER变成数据驱动的需求，主要还是源于Uber给出的第一个基于团队统一的理由。</p>
+<h4 id="其他设计"><a href="#其他设计" class="headerlink" title="其他设计"></a>其他设计</h4><p>文章里还给出了一些很有参考价值的内容，比如：</p>
+<ul>
+<li>对Interactor进行注入的Component</li>
+<li>视图树变成了Router树</li>
+<li>Interactor不直接维护Model，而是通过对应的Service来维护Model</li>
+<li>父模块和子模块之间通过Interactor来通信</li>
+</ul>
+<p>Uber的这个方案讲了很多其他方案没有提到的方面，比如依赖注入、如何引入子模块等问题。不过这个方案并没有开源。</p>
+<h2 id="方案一：最完整的VIPER"><a href="#方案一：最完整的VIPER" class="headerlink" title="方案一：最完整的VIPER"></a>方案一：最完整的VIPER</h2><p>各种实现方案都分析了一遍，接下来就开始进行一个总结。首先总结出一个绝对标准的VIPER，各部分遵循隔离关系，同时考虑到依赖注入、子模块通信、模块间解耦等问题，将VIPER的各部分的职责变得更加明确，也新增了几个角色。示例图如下，各角色的颜色和Clean Architecture图中各层的颜色对应：</p>
+<p><img src="http://upload-images.jianshu.io/upload_images/1865432-a204e884cdb08f63.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240" alt="thorough_viper"></p>
+<p>示例代码将用一个笔记应用作为演示。</p>
+<h3 id="View"><a href="#View" class="headerlink" title="View"></a>View</h3><p>View可以是一个UIView + UIViewController，也可以只是一个custom UIView，也可以是一个自定义的用于管理UIView的Manager，只要它实现了View的接口就可以。</p>
+<p>View层的职责：</p>
+<ul>
+<li>展示界面，组合各种UIView，并在UIViewController内管理各种控件的布局、更新</li>
+<li>View对外暴露各种用于更新UI的接口，而自己不主动更新UI</li>
+<li>View持有一个由外部注入的eventHandler对象，将View层的事件发送给eventHandler</li>
+<li>View持有一个由外部注入的viewDataSource对象，在View的渲染过程中，会从viewDataSource获取一些用于展示的数据，viewDataSource的接口命名应该尽量和具体业务无关</li>
+<li>View向Presenter提供routeSource，也就是用于界面跳转的源界面</li>
+</ul>
+<p>View层会引入各种自定义控件，这些控件有许多delegate，都在View层实现，统一包装后，再交给Presenter层实现。因为Presenter层并不知道View的实现细节，因此也就不知道这些控件的接口，Presenter层只知道View层统一暴露出来的接口。而且这些控件的接口在定义时可能会将数据获取、事件回调、控件渲染接口混杂起来，最具代表性的就是<code>UITableViewDataSource</code>里的<code>-tableView:cellForRowAtIndexPath:</code>。这个接口同时涉及到了<code>UITableViewCell</code>和渲染cell所需要的Model，是非常容易产生耦合的地方，因此需要做一次分解。应该在View的dataSource里定义一个从外部获取所需要的简单类型数据的方法，在<code>-tableView:cellForRowAtIndexPath:</code>里用获取到的数据渲染cell。示例代码：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div></pre></td><td class="code"><pre><div class="line">@protocol ZIKNoteListViewEventHandler &lt;NSObject&gt;</div><div class="line">- (void)handleDidSelectRowAtIndexPath:(NSIndexPath *)indexPath;</div><div class="line">@end</div></pre></td></tr></table></figure>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div></pre></td><td class="code"><pre><div class="line">@protocol ZIKNoteListViewDataSource &lt;NSObject&gt;</div><div class="line">- (NSInteger)numberOfRowsInSection:(NSInteger)section;</div><div class="line">- (NSString *)textOfCellForRowAtIndexPath:(NSIndexPath *)indexPath;</div><div class="line">- (NSString *)detailTextOfCellForRowAtIndexPath:(NSIndexPath *)indexPath;</div><div class="line">@end</div></pre></td></tr></table></figure>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div><div class="line">27</div><div class="line">28</div><div class="line">29</div><div class="line">30</div><div class="line">31</div><div class="line">32</div><div class="line">33</div><div class="line">34</div><div class="line">35</div><div class="line">36</div><div class="line">37</div><div class="line">38</div><div class="line">39</div><div class="line">40</div><div class="line">41</div></pre></td><td class="code"><pre><div class="line">@interface ZIKNoteListViewController () &lt;UITableViewDelegate,UITableViewDataSource&gt;</div><div class="line">@property (nonatomic, strong) id&lt;ZIKNoteListViewEventHandler&gt; eventHandler;</div><div class="line">@property (nonatomic, strong) id&lt;ZIKNoteListViewDataSource&gt; viewDataSource;</div><div class="line">@property (weak, nonatomic) IBOutlet UITableView *noteListTableView;</div><div class="line">@end</div><div class="line"></div><div class="line">@implementation ZIKNoteListViewController</div><div class="line"></div><div class="line">- (UITableViewCell *)cellForRowAtIndexPath:(NSIndexPath *)indexPath</div><div class="line">                                      text:(NSString *)text</div><div class="line">                                detailText:(NSString *)detailText &#123;</div><div class="line">    UITableViewCell *cell = [self.noteListTableView dequeueReusableCellWithIdentifier:@&quot;noteListCell&quot; forIndexPath:indexPath];</div><div class="line">    cell.textLabel.text = text;</div><div class="line">    cell.detailTextLabel.text = detailText;</div><div class="line">    return cell;</div><div class="line">&#125;</div><div class="line"></div><div class="line">#pragma mark UITableViewDataSource</div><div class="line"></div><div class="line">- (NSInteger)tableView:(UITableView *)tableView numberOfRowsInSection:(NSInteger)section &#123;</div><div class="line">    return [self.viewDataSource numberOfRowsInSection:section];</div><div class="line">&#125;</div><div class="line"></div><div class="line">- (UITableViewCell *)tableView:(UITableView *)tableView cellForRowAtIndexPath:(NSIndexPath *)indexPath &#123;</div><div class="line">    NSString *text = [self.viewDataSource textOfCellForRowAtIndexPath:indexPath];</div><div class="line">    NSString *detailText = [self.viewDataSource detailTextOfCellForRowAtIndexPath:indexPath];</div><div class="line">    UITableViewCell *cell = [self cellForRowAtIndexPath:indexPath</div><div class="line">                                                   text:text</div><div class="line">                                             detailText:detailText];</div><div class="line">    return cell;</div><div class="line">&#125;</div><div class="line"></div><div class="line">#pragma mark UITableViewDelegate</div><div class="line"></div><div class="line">- (void)tableView:(UITableView *)tableView didSelectRowAtIndexPath:(NSIndexPath *)indexPath &#123;</div><div class="line">    [tableView deselectRowAtIndexPath:indexPath animated:YES];</div><div class="line">    </div><div class="line">    [self.eventHandler handleDidSelectRowAtIndexPath:indexPath];</div><div class="line">&#125;</div><div class="line"></div><div class="line">@end</div></pre></td></tr></table></figure>
+<p>一般来说，viewDataSource和eventHandler都是由Presenter来担任的，Presenter接收到dataSource请求时，从Interactor里获取并返回对应的数据。你也可以选择在View和Presenter之间用ViewModel来进行交互。</p>
+<h3 id="Presenter"><a href="#Presenter" class="headerlink" title="Presenter"></a>Presenter</h3><p>Presenter由View持有，它的职责有：</p>
+<ul>
+<li>接收并处理来自View的事件</li>
+<li>维护和View相关的各种状态和配置，比如界面是否使用夜间模式等</li>
+<li>调用Interactor提供的Use Case执行业务逻辑</li>
+<li>向Interactor提供View中的数据，让Interactor生成需要的Model</li>
+<li>接收并处理来自Interactor的业务事件回调事件</li>
+<li>通知View进行更新操作</li>
+<li>通过Wireframe跳转到其他View</li>
+</ul>
+<p>Presenter是View和业务之间的中转站，它不包含业务实现代码，而是负责调用现成的各种Use Case，将具体事件转化为具体业务。Presenter里不应该导入UIKit，否则就有可能入侵View层的渲染工作。Presenter里也不应该出现Model类，当数据从Interactor传递到Presenter里时，应该转变为简单的数据结构。</p>
+<p>示例代码：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div><div class="line">27</div><div class="line">28</div><div class="line">29</div><div class="line">30</div><div class="line">31</div><div class="line">32</div><div class="line">33</div><div class="line">34</div><div class="line">35</div></pre></td><td class="code"><pre><div class="line">@interface ZIKNoteListViewPresenter () &lt;ZIKNoteListViewDataSource, ZIKNoteListViewEventHandler&gt;</div><div class="line">@property (nonatomic, strong) id&lt;ZIKNoteListWireframeProtocol&gt; wireframe;</div><div class="line">@property (nonatomic, weak) id&lt;ZIKViperView,ZIKNoteListViewProtocol&gt; view;</div><div class="line">@property (nonatomic, strong) id&lt;ZIKNoteListInteractorInput&gt; interactor;</div><div class="line">@end</div><div class="line"></div><div class="line">@implementation ZIKNoteListViewPresenter</div><div class="line"></div><div class="line">#pragma mark ZIKNoteListViewDataSource</div><div class="line"></div><div class="line">- (NSInteger)numberOfRowsInSection:(NSInteger)section &#123;</div><div class="line">    return self.interactor.noteCount;</div><div class="line">&#125;</div><div class="line"></div><div class="line">- (NSString *)textOfCellForRowAtIndexPath:(NSIndexPath *)indexPath &#123;</div><div class="line">    NSString *title = [self.interactor titleForNoteAtIndex:indexPath.row];</div><div class="line">    return title;</div><div class="line">&#125;</div><div class="line"></div><div class="line">- (NSString *)detailTextOfCellForRowAtIndexPath:(NSIndexPath *)indexPath &#123;</div><div class="line">    NSString *content = [self.interactor contentForNoteAtIndex:indexPath.row];</div><div class="line">    return content;</div><div class="line">&#125;</div><div class="line"></div><div class="line">#pragma mark ZIKNoteListViewEventHandler</div><div class="line"></div><div class="line">- (void)handleDidSelectRowAtIndexPath:(NSIndexPath *)indexPath &#123;</div><div class="line">    NSString *uuid = [self.interactor noteUUIDAtIndex:indexPath.row];</div><div class="line">    NSString *title = [self.interactor noteTitleAtIndex:indexPath.row];</div><div class="line">    NSString *content = [self.interactor noteContentAtIndex:indexPath.row];</div><div class="line">    </div><div class="line">    [self.wireframe pushEditorViewForEditingNoteWithUUID:uuid title:title content:content delegate:self];</div><div class="line">&#125;</div><div class="line"></div><div class="line">@end</div></pre></td></tr></table></figure>
+<h3 id="Interactor"><a href="#Interactor" class="headerlink" title="Interactor"></a>Interactor</h3><p>Ineractor的职责：</p>
+<ul>
+<li>实现和封装各种业务的Use Case，供外部调用</li>
+<li>维护和业务相关的各种状态，比如是否正在编辑笔记</li>
+<li>Interactor可以获取各种Manager和Service，用于组合实现业务逻辑，这些Manager和Service应该是由外部注入的依赖，而不是直接引用具体的类</li>
+<li>通过DataManager维护Model</li>
+<li>监听各种外部的业务事件并处理，必要时将事件发送给eventHandler</li>
+<li>Interactor持有一个由外部注入的eventHandler对象，将需要外部处理的业务事件发送给eventHandler，或者通过eventHandler接口对某些数据操作的过程进行回调</li>
+<li>Interactor持有一个由外部注入的dataSource对象，用于获取View上的数据，以更新Model</li>
+</ul>
+<p>Interactor是业务的实现者和维护者，它会调用各种Service来实现业务逻辑，封装成明确的用例。而这些Service在使用时，也都是基于接口的，因为Interactor的实现不和具体的类绑定，而是由Application注入Interactor需要的Service。</p>
+<p>示例代码：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div></pre></td><td class="code"><pre><div class="line">@protocol ZIKNoteListInteractorInput &lt;NSObject&gt;</div><div class="line">- (void)loadAllNotes;</div><div class="line">- (NSInteger)noteCount;</div><div class="line">- (NSString *)titleForNoteAtIndex:(NSUInteger)idx;</div><div class="line">- (NSString *)contentForNoteAtIndex:(NSUInteger)idx;</div><div class="line">- (NSString *)noteUUIDAtIndex:(NSUInteger)idx;</div><div class="line">- (NSString *)noteTitleAtIndex:(NSUInteger)idx;</div><div class="line">- (NSString *)noteContentAtIndex:(NSUInteger)idx;</div><div class="line">@end</div></pre></td></tr></table></figure>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div><div class="line">27</div><div class="line">28</div><div class="line">29</div><div class="line">30</div><div class="line">31</div><div class="line">32</div><div class="line">33</div><div class="line">34</div><div class="line">35</div><div class="line">36</div><div class="line">37</div><div class="line">38</div><div class="line">39</div><div class="line">40</div><div class="line">41</div><div class="line">42</div><div class="line">43</div><div class="line">44</div><div class="line">45</div><div class="line">46</div><div class="line">47</div><div class="line">48</div><div class="line">49</div><div class="line">50</div><div class="line">51</div><div class="line">52</div><div class="line">53</div><div class="line">54</div><div class="line">55</div><div class="line">56</div><div class="line">57</div></pre></td><td class="code"><pre><div class="line">@interface ZIKNoteListInteractor : NSObject &lt;ZIKNoteListInteractorInput&gt;</div><div class="line">@property (nonatomic, weak) id dataSource;</div><div class="line">@property (nonatomic, weak) id eventHandler;</div><div class="line">@end</div><div class="line"></div><div class="line">@implementation ZIKNoteListInteractor</div><div class="line"></div><div class="line">- (void)loadAllNotes &#123;</div><div class="line">    [[ZIKNoteDataManager sharedInsatnce] fetchAllNotesWithCompletion:^(NSArray *notes) &#123;</div><div class="line">        [self.eventHandler didFinishLoadAllNotes];</div><div class="line">    &#125;];</div><div class="line">&#125;</div><div class="line"></div><div class="line">- (NSArray&lt;ZIKNoteModel *&gt; *)noteList &#123;</div><div class="line">    return [ZIKNoteDataManager sharedInsatnce].noteList;</div><div class="line">&#125;</div><div class="line"></div><div class="line">- (NSInteger)noteCount &#123;</div><div class="line">    return self.noteList.count;</div><div class="line">&#125;</div><div class="line"></div><div class="line">- (NSString *)titleForNoteAtIndex:(NSUInteger)idx &#123;</div><div class="line">    if (self.noteList.count - 1 &lt; idx) &#123;</div><div class="line">        return nil;</div><div class="line">    &#125;</div><div class="line">    return [[self.noteList objectAtIndex:idx] title];</div><div class="line">&#125;</div><div class="line"></div><div class="line">- (NSString *)contentForNoteAtIndex:(NSUInteger)idx &#123;</div><div class="line">    if (self.noteList.count - 1 &lt; idx) &#123;</div><div class="line">        return nil;</div><div class="line">    &#125;</div><div class="line">    return [[self.noteList objectAtIndex:idx] content];</div><div class="line">&#125;</div><div class="line"></div><div class="line">- (NSString *)noteUUIDAtIndex:(NSUInteger)idx &#123;</div><div class="line">    if (self.noteList.count - 1 &lt; idx) &#123;</div><div class="line">        return nil;</div><div class="line">    &#125;</div><div class="line">    return [[self.noteList objectAtIndex:idx] uuid];</div><div class="line">&#125;</div><div class="line"></div><div class="line">- (NSString *)noteTitleAtIndex:(NSUInteger)idx &#123;</div><div class="line">    if (self.noteList.count - 1 &lt; idx) &#123;</div><div class="line">        return nil;</div><div class="line">    &#125;</div><div class="line">    return [[self.noteList objectAtIndex:idx] title];</div><div class="line">&#125;</div><div class="line"></div><div class="line">- (NSString *)noteContentAtIndex:(NSUInteger)idx &#123;</div><div class="line">    if (self.noteList.count - 1 &lt; idx) &#123;</div><div class="line">        return nil;</div><div class="line">    &#125;</div><div class="line">    return [[self.noteList objectAtIndex:idx] content];</div><div class="line">&#125;</div><div class="line"></div><div class="line">@end</div></pre></td></tr></table></figure>
+<h3 id="Service"><a href="#Service" class="headerlink" title="Service"></a>Service</h3><p>向Interactor提供各种封装好的服务，例如数据库的访问、存储，调用定位功能等。Service由Application在执行路由时注入到Builder里，再由Buidler注入到Interactor里。也可以只注入一个Service Router，在运行时再通过这个Service Router懒加载需要的Service，相当于注入了一个提供Router功能的Service。</p>
+<p>Service可以看作是没有View的VIPER，也有自己的路由和Builder。</p>
+<h3 id="Wireframe"><a href="#Wireframe" class="headerlink" title="Wireframe"></a>Wireframe</h3><p>翻译成中文叫线框，用于表达从一个Module到另一个Module的过程。虽然也是扮演者执行路由的角色，但是其实它和Router是有区别的。</p>
+<p>Wireframe和storyboard中连接好的一个个segue类似，负责提供一系列具体的路由用例，这个用例里已经配置好了源界面和目的界面的一些依赖，包括转场动画、模块间传参等。Wireframe的接口是提供给模块内部使用的，它通过调用Router来执行真正的路由操作。</p>
+<p>示例代码：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div></pre></td><td class="code"><pre><div class="line">@interface ZIKTNoteListWireframe : NSObject &lt;ZIKTViperWireframe&gt;</div><div class="line">- (void)presentLoginViewWithMessage:(NSString *)message delegate:(id&lt;ZIKTLoginViewDelegate&gt;)delegate completion:(void (^ __nullable)(void))completion;</div><div class="line">- (void)dismissLoginView:(UIViewController *)viewController animated:(BOOL)animated completion:(void (^ __nullable)(void))completion;</div><div class="line">- (void)presentEditorForCreatingNewNoteWithDelegate:(id&lt;ZIKTEditorDelegate&gt;)delegate completion:(void (^ __nullable)(void))completion;</div><div class="line">- (void)pushEditorViewForEditingNoteWithUUID:(NSString *)uuid title:(NSString *)title content:(NSString *)content delegate:(id&lt;ZIKTEditorDelegate&gt;)delegate;</div><div class="line">- (UIViewController *)editorViewForEditingNoteWithUUID:(NSString *)uuid title:(NSString *)title content:(NSString *)content delegate:(id&lt;ZIKTEditorDelegate&gt;)delegate;</div><div class="line">- (void)pushEditorViewController:(UIViewController *)destination fromViewController:(UIViewController *)source animated:(BOOL)animated;</div><div class="line">- (void)quitEditorViewWithAnimated:(BOOL)animated;</div><div class="line">@end</div></pre></td></tr></table></figure>
+<h3 id="Router"><a href="#Router" class="headerlink" title="Router"></a>Router</h3><p>Router则是由Application提供的具体路由技术，可以简单封装UIKit里的那些跳转方法，也可以用URL Router来执行路由。但是一个模块是不需要知道app使用的是什么具体技术的。Router才是真正连接各个模块的地方。它也负责寻找对应的目的模块，并且通过Buidler进行依赖注入。</p>
+<p>示例代码：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div></pre></td><td class="code"><pre><div class="line">@interface ZIKTRouter : NSObject &lt;ZIKTViperRouter&gt;</div><div class="line">///封装UIKit的跳转方法</div><div class="line">+ (void)pushViewController:(UIViewController *)destination fromViewController:(UIViewController *)source animated:(BOOL)animated;</div><div class="line">+ (void)popViewController:(UIViewController *)viewController animated:(BOOL)animated;</div><div class="line">+ (void)presentViewController:(UIViewController *)viewControllerToPresent fromViewController:(UIViewController *)source animated:(BOOL)animated completion:(void (^ __nullable)(void))completion;</div><div class="line">+ (void)dismissViewController:(UIViewController *)viewController animated:(BOOL)animated completion:(void (^ __nullable)(void))completion;</div><div class="line">@end</div><div class="line"></div><div class="line">@implementation ZIKTRouter (ZIKTEditor)</div><div class="line"></div><div class="line">+ (UIViewController *)viewForCreatingNoteWithDelegate:(id&lt;ZIKTEditorDelegate&gt;)delegate &#123;</div><div class="line">    return [ZIKTEditorBuilder viewForCreatingNoteWithDelegate:delegate];</div><div class="line">&#125;</div><div class="line"></div><div class="line">+ (UIViewController *)viewForEditingNoteWithUUID:(NSString *)uuid title:(NSString *)title content:(NSString *)content delegate:(id&lt;ZIKTEditorDelegate&gt;)delegate &#123;</div><div class="line">    return [ZIKTEditorBuilder viewForEditingNoteWithUUID:uuid title:title content:content delegate:delegate];</div><div class="line">&#125;</div><div class="line"></div><div class="line">@end</div></pre></td></tr></table></figure>
+<h3 id="Adapter"><a href="#Adapter" class="headerlink" title="Adapter"></a>Adapter</h3><p>由Application实现，负责在模块通信时进行一些接口的转换，例如两个模块使用了相同业务功能的某个Service，使用的protocol实现一样，但是protocol名字不一样，就可以在路由时，在Adapter里进行一次转换。甚至只要定义的逻辑一样，依赖参数的名字和数据类型也可以允许不同。这样就能让模块不依赖于某个具体的protocol，而是依赖于protocol实际定义的依赖和接口。</p>
+<p>注意这里的Adapter和Clean Architecture里的<code>Interface Adapter</code>是不一样的。这里的Adapter就是字面意义上的接口转换，而Clean Architecture里的<code>Interface Adapter</code>层更加抽象，是Use Case层与具体实现技术之间的转换，囊括了更多的角色。</p>
+<h3 id="Builder"><a href="#Builder" class="headerlink" title="Builder"></a>Builder</h3><p>负责初始化整个模块，配置VIPER之间的关系，并对外声明模块需要的依赖，让外部执行注入。</p>
+<h2 id="模块间解耦"><a href="#模块间解耦" class="headerlink" title="模块间解耦"></a>模块间解耦</h2><p>一个VIPER模块可以看做是一个独立的组件，可以被单独封装成一个库，被app引用。这时候，app就负责将各个模块连接起来，也就是图中灰色的<code>Application Context</code>部分。一个模块，肯定是存在于一个上下文环境中才能运行起来的。</p>
+<p><code>Wireframe</code> -&gt; <code>Router</code> -&gt; <code>Adapter</code> -&gt; <code>Builder</code> 实现了一个完整的模块间路由，并且实现了模块间的解耦。</p>
+<p>其中Wireframe和Builder是分别由引用者模块和被引用模块提供的，是两个模块的出口和入口，而Router和Adapter则是由模块的使用者——Application实现的。</p>
+<p>当两个模块之间存在引用关系时，说明存在业务逻辑上的耦合，这种耦合是业务的一部分，是不可能消除的。我们能做的就是把耦合尽量交给模块调用者，由Application来提供具体的类，注入到各个模块之中，而模块内部只面向protocol即可。这样的话，被引用模块只要实现了相同的接口，就可以随时替换，甚至接口有一些差异时，只要被引用模块提供了相同功能的接口，也可以通过Adapter来做接口兼容转换，让引用者模块无需做任何修改。</p>
+<p>Wireframe相当于插头，Builder相当于插座，而Router和Adapter相当于电路和转接头，将不同规格的插座和插头连接起来。把这些连接和适配的工作交给Application层，就能让两个模块实现各自独立。</p>
+<h2 id="子模块"><a href="#子模块" class="headerlink" title="子模块"></a>子模块</h2><p>大部分方案都没有讨论子模块存在的情况。在VIPER里如何引入另一个VIPER模块？多个模块之间如何交互？子模块由谁初始化、由谁管理？</p>
+<p>其他几个实现中，只有Uber较为详细地讨论了子模块的问题。在Uber的Riblets架构里，子模块的Router被添加到父模块的Router，模块之间通过delegate和监听的方式进行通信。这样做会让模块间产生一定的耦合。如果子模块是由于父View使用了一个子View控件而被引入的，那么父Interactor就会在代码里多出一个子Interactor，这样就导致了View的实现方式影响了Interactor的实现。</p>
+<h3 id="子模块的来源"><a href="#子模块的来源" class="headerlink" title="子模块的来源"></a>子模块的来源</h3><p>子模块的来源有：</p>
+<ul>
+<li>View引用了一个封装好的子View控件，连带着引入了子View的整个VIPER</li>
+<li>Interactor使用了一个Service</li>
+</ul>
+<h3 id="通信方式"><a href="#通信方式" class="headerlink" title="通信方式"></a>通信方式</h3><p>子View可能是一个UIView，也可能是一个Child UIViewController。因此子View有可能需要向外部请求数据，也可能独立完成所有任务，不需要依赖父模块。</p>
+<p>如果子View可以独立，那在子模块里不会出现和父模块交互的逻辑，只有把一些事件通过Output传递出去的接口。这时只需要把子View的接口封装在父View的接口里即可，父Presenter和父Interactor是不知道父View提供的这几个接口是通过子View实现的。这样父模块就能接收到子模块的事件了，而且能够保持Interactor和Presenter、View之间从低到高的依赖关系。</p>
+<p>如果父模块需要调用子模块的某些功能，或者从子模块获取数据，可以选择封装到父View的接口里，不过如果涉及到数据模型，并且不想让数据模型出现在View的接口中，可以把子Interactor作为父Interactor的一个Service，在引入子模块时，通过父Builder注入到父Interactor里，或者根据依赖关系解耦地再彻底一点，注入到父Presenter里，让父Presenter再把接口转发给父Interactor。这样子模块和父模块就能通过Service的形式进行通信了，而这时，父Interactor也不知道这个Service是来自子模块里的。</p>
+<p>在这样的设计下，子模块和父模块是不知道彼此的存在的，只是通过接口进行交互。好处是父View如果想要更换为另一个相同功能的子View控件，就只需要在父View里修改，不会影响Presenter和Interactor。</p>
+<h2 id="依赖注入"><a href="#依赖注入" class="headerlink" title="依赖注入"></a>依赖注入</h2><p>这个VIPER的设计是通过接口将各个部分组合在一起的，一个类需要设置很多依赖，例如Interactor需要依赖许多Service。这就涉及到了两个问题：</p>
+<ul>
+<li>在哪里配置依赖</li>
+<li>一个类怎么声明自己的依赖</li>
+</ul>
+<p>在这个方案中，由Builder声明整个模块的依赖，然后在Builder内部为不同的类设置依赖，外部在注入依赖时，就不必知道内部是怎么使用这些依赖参数的。一个类如果有必需的依赖参数，可以直接在init方法里体现，对于那些非必需的依赖，可以通过暴露接口来声明。</p>
+<p>如果需要动态注入，而不是在模块初始化时就配置所有的依赖，Builder也可以提供动态注入的接口。</p>
+<h2 id="映射到MVC"><a href="#映射到MVC" class="headerlink" title="映射到MVC"></a>映射到MVC</h2><p>如果你需要把一个模块从MVC重构到VIPER，可以先按照这个步骤：</p>
+<ul>
+<li>整理Controller中的代码，把不同职责的代码用pragma mark分隔好</li>
+<li>整理好后，按照各部分的职责，将代码分散到VIPER的各个角色中，此时View、Presenter、Interactor之间可以直接互相引用</li>
+<li>把View、Presenter、Interactor进行解耦，抽出接口，互相之间依赖接口进行交互</li>
+</ul>
+<p>下面就是第一步里在Controller中可以分隔出的职责：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div><div class="line">27</div><div class="line">28</div><div class="line">29</div><div class="line">30</div><div class="line">31</div><div class="line">32</div><div class="line">33</div><div class="line">34</div><div class="line">35</div><div class="line">36</div><div class="line">37</div><div class="line">38</div><div class="line">39</div><div class="line">40</div><div class="line">41</div><div class="line">42</div><div class="line">43</div><div class="line">44</div><div class="line">45</div><div class="line">46</div><div class="line">47</div><div class="line">48</div><div class="line">49</div><div class="line">50</div></pre></td><td class="code"><pre><div class="line">@implementation ViewController</div><div class="line">//------View-------</div><div class="line"></div><div class="line">//View的生命周期</div><div class="line">#pragma mark View life</div><div class="line"></div><div class="line">//View的配置，包括布局设置</div><div class="line">#pragma mark View config</div><div class="line"></div><div class="line">//更新View的接口</div><div class="line">#pragma mark Update view</div><div class="line"></div><div class="line">//View需要从model中获取的数据</div><div class="line">#pragma mark Request view data source</div><div class="line"></div><div class="line">//监控、接收View的事件</div><div class="line">#pragma mark Send view event</div><div class="line"></div><div class="line">//------Presenter-------</div><div class="line"></div><div class="line">//处理View的事件</div><div class="line">#pragma mark Handle view event</div><div class="line"></div><div class="line">//界面跳转</div><div class="line">#pragma mark Wireframe</div><div class="line"></div><div class="line">//向View提供配置用的数据</div><div class="line">#pragma mark Provide view data source</div><div class="line"></div><div class="line">//提供生成model需要的数据</div><div class="line">#pragma mark Provide model data source</div><div class="line"></div><div class="line">//处理业务事件，调用业务用例</div><div class="line">#pragma mark Handle business event</div><div class="line"></div><div class="line">//------Interactor-------</div><div class="line"></div><div class="line">//监控、接收业务事件</div><div class="line">#pragma mark Send business event</div><div class="line"></div><div class="line">//业务用例</div><div class="line">#pragma mark Business use case</div><div class="line"></div><div class="line">//获取生成model需要的数据</div><div class="line">#pragma mark Request data for model</div><div class="line"></div><div class="line">//维护model</div><div class="line">#pragma mark Manage model</div><div class="line"></div><div class="line">@end</div></pre></td></tr></table></figure>
+<p>这里缺少了View状态管理、业务状态管理等职责，因为这些状态一般都是@property，用pragma mark不能分隔它们，只能在@interface里声明的时候进行隔离。</p>
+<h2 id="方案二：允许适当耦合"><a href="#方案二：允许适当耦合" class="headerlink" title="方案二：允许适当耦合"></a>方案二：允许适当耦合</h2><p>上面的方案是以最彻底的解耦为目标设计的，在实践中，如果真的完全按照这个设计，代码量的确不小。其实一些地方的耦合并不会引起多大问题，除非你的模块需要封装成通用组件供多个app使用，否则并不需要按照100%的解耦要求来编写。因此接下来我再总结一个稍微简化的方案，总结一下各部分可以在哪些地方出现耦合，哪些耦合不能出现。</p>
+<p>在这个方案里，我使用了一个中介者来减少一部分代码，Router就是一个很适合成为中介者的角色。</p>
+<p>架构图如下：</p>
+<p><img src="http://upload-images.jianshu.io/upload_images/1865432-2a5e4eaf6275caba.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240" alt="final_viper"></p>
+<h3 id="View-1"><a href="#View-1" class="headerlink" title="View"></a>View</h3><ul>
+<li>View可以直接通过Router引入另一个子View，不需要通过Presenter的路由来引入</li>
+<li>View中的一些delegate如果变化的可能性不大，可以直接让Presenter实现（例如<code>UITableViewDataSource</code>），不用再封装一遍后交给Presenter</li>
+<li>View不能出现Model类</li>
+</ul>
+<h3 id="Presenter-1"><a href="#Presenter-1" class="headerlink" title="Presenter"></a>Presenter</h3><ul>
+<li>Presenter可以直接调用Router执行路由，不用再通过Wireframe封装一遍</li>
+<li>Presenter的接口参数中可以出现Model类，但是不能导入Model类的头文件并且使用Model类，只能用于参数传递</li>
+<li>Presenter中不建议导入UIKit，除非能保证不会使用那些会影响控件渲染的方法</li>
+</ul>
+<h3 id="Interactor-1"><a href="#Interactor-1" class="headerlink" title="Interactor"></a>Interactor</h3><ul>
+<li>一些app中常用的Service可以直接引入，不需要通过外部注入的方式来使用</li>
+<li>Interactor可以用一个Service Router来动态获取Service</li>
+</ul>
+<h3 id="路由和依赖注入"><a href="#路由和依赖注入" class="headerlink" title="路由和依赖注入"></a>路由和依赖注入</h3><p>改变得最多的就是路由部分。View、Presenter和Interactor都可以使用路由来获取一些模块。View可以通过路由获取子View，Presenter可以通过路由获取其他View模块，Interactor可以通过路由获取Service。</p>
+<p>在实现时，可以把Wireframe、Router、Builder整合到一起，全都放到Router里，Router由模块实现并提供给外部使用。类似于Brigade团队和Rambler&amp;Co团队的实现。但是他们的实现都是直接在Router里引入其他模块的Router，这样会导致依赖混乱，更好的方式是通过一个中间人统一提供其他模块的接口。</p>
+<p>我在这里造了个轮子，通过protocol来寻找需要的模块并执行路由，不用直接导入目的模块中的类，并且提供了Adapter的支持，可以让多个protocol指向同一个模块。这样就能避免模块间的直接依赖。</p>
+<p>示例代码：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div><div class="line">27</div><div class="line">28</div><div class="line">29</div><div class="line">30</div><div class="line">31</div><div class="line">32</div><div class="line">33</div><div class="line">34</div><div class="line">35</div><div class="line">36</div><div class="line">37</div></pre></td><td class="code"><pre><div class="line">///editor模块的依赖声明</div><div class="line">@protocol NoteEditorProtocol &lt;NSObject&gt;</div><div class="line">@property (nonatomic, weak) id&lt;ZIKEditorDelegate&gt; delegate;</div><div class="line">- (void)constructForCreatingNewNote;</div><div class="line">- (void)constructForEditingNote:(ZIKNoteModel *)note;</div><div class="line">@end</div><div class="line"></div><div class="line">@implementation ZIKNoteListViewPresenter</div><div class="line"></div><div class="line">- (void)handleDidSelectRowAtIndexPath:(NSIndexPath *)indexPath &#123;</div><div class="line">    NSAssert([[self.view routeSource] isKindOfClass:[UIViewController class]], nil);</div><div class="line">    </div><div class="line">    //跳转到编辑器界面；通过protocol获取对应的router类，再通过protocol注入依赖</div><div class="line">    //App可以用Adapter把NoteEditorProtocol和真正的protocol进行匹配和转接</div><div class="line">    [ZIKViewRouterForConfig(@protocol(NoteEditorProtocol))</div><div class="line">	     performWithConfigure:^(ZIKViewRouteConfiguration&lt;NoteEditorProtocol&gt; *config) &#123;</div><div class="line">	         //路由配置</div><div class="line">	         //跳转的源界面</div><div class="line">	         config.source = [self.view routeSource];</div><div class="line">	         //设置跳转方式，支持所有界面跳转类型</div><div class="line">	         config.routeType = ZIKViewRouteTypePush;</div><div class="line">	         //Router内部负责用获取到的参数初始化editor模块</div><div class="line">	         config.delegate = self;</div><div class="line">	         [config constructForEditingNote:[self.interactor noteAtIndex:indexPath.row]];</div><div class="line">	         config.prepareForRoute = ^(id destination) &#123;</div><div class="line">	             //跳转前配置目的界面</div><div class="line">	         &#125;;</div><div class="line">	         config.routeCompletion = ^(id destination) &#123;</div><div class="line">	             //跳转结束处理</div><div class="line">	         &#125;;</div><div class="line">	         config.performerErrorHandler = ^(SEL routeAction, NSError * error) &#123;</div><div class="line">	             //跳转失败处理</div><div class="line">	         &#125;;</div><div class="line">	     &#125;];</div><div class="line">&#125;</div><div class="line"></div><div class="line">@end</div></pre></td></tr></table></figure>
+<h3 id="总结-1"><a href="#总结-1" class="headerlink" title="总结"></a>总结</h3><p>这个方案依赖于一个统一的中间人，也就是路由工具，在我的实现里就是<a href="https://github.com/Zuikyo/ZIKRouter" target="_blank" rel="external">ZIKRouter</a>。View、Presenter、Interactor都可以使用对应功能的Router获取子模块。而由于ZIKRouter仍然是通过protocol的方式来和子模块进行交互，因此仍然可保持模块间解耦。唯一的耦合就是各部分都引用了ZIKRouter这个工具。如果你想把模块和ZIKRouter的耦合也去除，可以让Router也变成面向接口，由外部注入。</p>
+<h2 id="Demo和代码模板"><a href="#Demo和代码模板" class="headerlink" title="Demo和代码模板"></a>Demo和代码模板</h2><p>针对两个方案，同时写了两个相同功能的Demo，可以比较一下代码上的区别。地址在：<a href="https://github.com/Zuikyo/ZIKViper" target="_blank" rel="external">ZIKViper</a></p>
+<p>项目里也提供了Xcode File Template用于快速生成VIPER代码模板。把<code>.xctemplate</code>后缀的文件夹拷贝到<code>~/Library/Developer/Xcode/Templates/</code>目录下，就可以在Xcode的<code>New-&gt;File-&gt;Template</code>里选择代码模板快速生成代码。</p>
+<h2 id="总结-2"><a href="#总结-2" class="headerlink" title="总结"></a>总结</h2><p>VIPER是按照Clean Architecture中由外向内的依赖进行设计的，各部分职责十分明确。并且由于引入了路由部分，更容易支持组件化开发。</p>
+<p>下一篇文章将讨论基于接口的路由设计，总结UIKit中的各种视图转场，并讲解ZIKRouter的实现。</p>
+<h2 id="参考"><a href="#参考" class="headerlink" title="参考"></a>参考</h2><ul>
+<li><a href="https://mutualmobile.com/posts/meet-viper-fast-agile-non-lethal-ios-architecture-framework" target="_blank" rel="external">MEET VIPER: MUTUAL MOBILE’S APPLICATION OF CLEAN ARCHITECTURE FOR IOS APPS</a></li>
+<li><a href="https://www.objc.io/issues/13-architecture/viper/" target="_blank" rel="external">Architecting iOS Apps with VIPER</a></li>
+<li><a href="https://8thlight.com/blog/uncle-bob/2012/08/13/the-clean-architecture.html" target="_blank" rel="external">Clean Architecture</a></li>
+<li><a href="https://brigade.engineering/brigades-experience-using-an-mvc-alternative-36ef1601a41f" target="_blank" rel="external">Brigade’s Experience Using an MVC Alternative: VIPER architecture for iOS applications</a></li>
+<li><a href="https://swifting.io/blog/2016/03/07/8-viper-to-be-or-not-to-be/" target="_blank" rel="external">VIPER to be or not to be?</a></li>
+<li><a href="https://cheesecakelabs.com/blog/best-practices-viper-architecture/" target="_blank" rel="external">VIPER architecture: Our best practices to build an app like a boss</a></li>
+<li><a href="https://github.com/strongself/The-Book-of-VIPER" target="_blank" rel="external">The-Book-of-VIPER</a></li>
+<li><a href="https://eng.uber.com/new-rider-app/" target="_blank" rel="external">ENGINEERING THE ARCHITECTURE BEHIND UBER’S NEW RIDER APP</a></li>
+</ul>
+]]></content>
+    
+    <summary type="html">
+    
+      &lt;p&gt;第一篇文章对VIPER进行了简单的介绍，这篇文章将从VIPER的源头开始，比较现有的几种VIPER实现，对VIPER进行进一步的职责剖析，并对各种细节实现问题进行挖掘和探讨。最后给出两个完整的VIPER实现，并且提供快速生成VIPER代码的模板。&lt;/p&gt;
+&lt;p&gt;两个实现展示
+    
+    </summary>
+    
+      <category term="代码架构" scheme="http://yoursite.com/categories/%E4%BB%A3%E7%A0%81%E6%9E%B6%E6%9E%84/"/>
+    
+    
+      <category term="iOS" scheme="http://yoursite.com/tags/iOS/"/>
+    
+  </entry>
+  
+  <entry>
+    <title>iOS VIPER架构实践(一)：从MVC到MVVM到VIPER</title>
+    <link href="http://yoursite.com/2017/07/21/iOS%20VIPER%E6%9E%B6%E6%9E%84%E5%AE%9E%E8%B7%B5(%E4%B8%80)%EF%BC%9A%E4%BB%8EMVC%E5%88%B0MVVM%E5%88%B0VIPER/"/>
+    <id>http://yoursite.com/2017/07/21/iOS VIPER架构实践(一)：从MVC到MVVM到VIPER/</id>
+    <published>2017-07-21T12:58:29.000Z</published>
+    <updated>2017-08-13T07:30:28.960Z</updated>
+    
+    <content type="html"><![CDATA[<h2 id="简介"><a href="#简介" class="headerlink" title="简介"></a>简介</h2><p>最近半年在写app的时候，研究了一下各种iOS代码架构，最后选择了VIPER进行实践，在此对实践中遇到的各种设计问题做一番总结，并分享造出的轮子。</p>
+<p>对代码风格和架构有兴趣的同学，肯定都已经在很多地方见过各种架构的介绍。MVC、MVP、MVVM、VIPER，细分程度逐渐上升。这些架构设计都是来自MVC，只是各自用不同的方式对MVC进行了细分，在此只对MVC、MVP和MVVM作精简介绍，想要详细了解可以参考这些文章：</p>
+<p><a href="http://ios.jobbole.com/83727/" target="_blank" rel="external">iOS 架构模式–解密 MVC，MVP，MVVM以及VIPER架构</a>,</p>
+<p><a href="http://draveness.me/mvx.html" target="_blank" rel="external">浅谈 MVC、MVP 和 MVVM 架构模式</a>。</p>
+<h2 id="MVC"><a href="#MVC" class="headerlink" title="MVC"></a>MVC</h2><p><code>Model-View-Controller</code>。MVC简单地将一个模块分为3部分：</p>
+<ul>
+<li>View是展示给外部的界面</li>
+<li>Model是Controller内部管理的数据模型</li>
+<li>Controller负责将Model的变化更新到View</li>
+<li>Controller负责处理来自View的事件</li>
+</ul>
+<p>MVC的划分粒度很粗，因此有很多种具体实现，各个实现有差异，因此并没有一个十分明确的标准定义。</p>
+<h2 id="苹果的MVC"><a href="#苹果的MVC" class="headerlink" title="苹果的MVC"></a>苹果的MVC</h2><p>苹果的Cocoa Touch就遵照了MVC的设计，一个界面分为UIView和UIViewController，UIView负责渲染和接收触摸事件，UIViewController负责子view之间的布局、组合、更新以及事件处理。</p>
+<p>尽管苹果已经给我们提供了简单的MVC支持，但是在实践中我们却常常没有遵守MVC。原因在于Cocoa Touch中的Model部分是由我们自己负责管理的，并没有提供原生的设计支持。所以有时候会出现这样的情况：一个UIView为了方便，提供了一个从某个model进行配置的方法。乍一看十分合理，但是仔细想想就会发现，这么做已经将View和Model耦合，很容易就破坏了MVC。</p>
+<p>另外，UIViewController存在的一些问题，导致了它很容易变得臃肿和耦合。</p>
+<p>首先，UIViewController和UIView耦合得十分紧密，导致UIViewController经常和某些具体的UIView耦合，几乎无法重用。而且在测试的时候，很难做到单独测试没有View的那部分代码，因为在写的时候就很容易将View的逻辑入侵到各处，Controller会受到View的状态的影响，无法稳定测试。因此，应该尽量把和View无关的代码放到UIViewController之外。</p>
+<p>第二，UIViewController负责了界面跳转的操作，界面跳转的相关配置是直接在对应的UIViewController实例上设置的，这样就很容易把源界面和目的界面耦合起来，简单地把界面跳转的部分单独抽离为一个封装好的跳转方法可以一定程度上减少这部分耦合，但也不可避免地会多写许多代码。</p>
+<p>因此，苹果的MVC，实际上是<code>Model-View-ViewController</code>。它是一个视图驱动的设计，Controller只是为了管理View而存在的。苹果把UIViewController和Model的关系设计交给了我们自己。所以，如何把一个UIViewController进行更明确的分工，就是这些架构要做的事。</p>
+<h2 id="MVP"><a href="#MVP" class="headerlink" title="MVP"></a>MVP</h2><p><code>Model-View-Presenter</code>用一个Presenter，把Controller中View的部分剔除，实现了View和Model的隔绝。各部分分工如下：</p>
+<ul>
+<li>View负责界面展示和布局管理，向Presenter暴露视图更新和数据获取的接口</li>
+<li>Presenter负责接收来自View的事件，通过View提供的接口更新视图，并管理Model</li>
+<li>Model和MVC中的一样，提供数据模型</li>
+</ul>
+<p>在iOS里，UIView和UIViewController共同组合成了MVP中的View。UIView负责元素的展示，UIViewController负责界面布局和组合，并把事件转发给Presenter。<br>因此在MVP里，业务逻辑被放到了Presenter中，由它负责协调View和Model。而由于View的抽离，Presenter的状态是可控的，在测试时更不容易受外部影响。</p>
+<p>在iOS中使用MVP很简单，在View和Presenter之间用protocol做好事件传递就可以。缺点就是多了一层用于隔离的接口，会导致代码数量增大。</p>
+<p>但是随着界面越来越复杂，Presenter中的业务代码也会越来越庞大，总有一天会遇到一个新的问题：如何再细分Presenter。</p>
+<h2 id="MVVM"><a href="#MVVM" class="headerlink" title="MVVM"></a>MVVM</h2><p><code>Model-View-ViewModel-Controller</code>模式，它也和MVP一样，目的是解决View和Model的耦合。各部分分工如下：</p>
+<ul>
+<li>Model提供数据模型</li>
+<li>View负责视图展示</li>
+<li>ViewModel用于描述View的状态，例如View的颜色、显示的文字等属性类的信息，将View抽象成了一个特殊的模型</li>
+<li>Controller通过修改ViewModel来更新View，并且负责事件处理，维护Model</li>
+</ul>
+<p>在MVP中，View通过接口的方式来描述自己，在MVVM中，则通过ViewModel来描述自己的特征。那么ViewModel如何将自己的变化更新到View上呢？MVVM经常和数据绑定一起出现，在Controller中，将View和ViewModel的属性用类似KVO的方式进行绑定，这样ViewModel的变化就能立即传输到View上。但是数据绑定的缺点也很明显：调试困难，数据来源难以回溯，在线上出bug的时候就很难追踪了。</p>
+<p>其实数据绑定只是一种为了减少胶水代码的技术实现方式，MVVM的设计并没有要求必须要使用数据绑定，你也完全可以使用protocol的方式来将ViewModel的变化传递给View，让数据流向更清晰。MVVM的关键是将View进行了抽象，并且这个抽象很容易在其他Controller中复用。</p>
+<p>Controller在绑定完View和ViewModel之后，就不应该在其他地方使用View了。你也可以单独用一个ViewModelManager来负责设置ViewModel和View之间的数据传递。而其他的业务代码，还是放在Controller中，ViewModel应该只负责管理View相关的状态、传递View的事件，不应该存在本属于Controller中的其他业务。当然如果你不打算重用这个ViewModel的话，也可以在ViewModel里加入一些和Model相关的业务逻辑，只不过基于单一职责原则，这么做是不好的。</p>
+<p>和MVP相比，MVVM用了一种更优雅的方式来抽象View。但它和MVP其实是类似的，仍然没有对Controller进行进一步的细分。</p>
+<p>那么如何对Controller进行进一步的职责细分呢？答案就是VIPER。</p>
+<h2 id="VIPER"><a href="#VIPER" class="headerlink" title="VIPER"></a>VIPER</h2><p>VIPER的全称是<code>View-Interactor-Presenter-Entity-Router</code>。示意图如下：</p>
+<p><img src="http://upload-images.jianshu.io/upload_images/1865432-580872920986b640.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240" alt="VIPER"></p>
+<p>相比之前的MVX架构，VIPER多出了两个东西：Interactor（交互器）和Router（路由）。</p>
+<p>各部分职责如下：</p>
+<h3 id="View"><a href="#View" class="headerlink" title="View"></a>View</h3><ul>
+<li>提供完整的视图，负责视图的组合、布局、更新</li>
+<li>向Presenter提供更新视图的接口</li>
+<li>将View相关的事件发送给Presenter</li>
+</ul>
+<h3 id="Presenter"><a href="#Presenter" class="headerlink" title="Presenter"></a>Presenter</h3><ul>
+<li>接收并处理来自View的事件</li>
+<li>向Interactor请求调用业务逻辑</li>
+<li>向Interactor提供View中的数据</li>
+<li>接收并处理来自Interactor的数据回调事件</li>
+<li>通知View进行更新操作</li>
+<li>通过Router跳转到其他View</li>
+</ul>
+<h3 id="Router"><a href="#Router" class="headerlink" title="Router"></a>Router</h3><ul>
+<li>提供View之间的跳转功能，减少了模块间的耦合</li>
+<li>初始化VIPER的各个模块</li>
+</ul>
+<h3 id="Interactor"><a href="#Interactor" class="headerlink" title="Interactor"></a>Interactor</h3><ul>
+<li>维护主要的业务逻辑功能，向Presenter提供现有的业务用例</li>
+<li>维护、获取、更新Entity</li>
+<li>当有业务相关的事件发生时，处理事件，并通知Presenter</li>
+</ul>
+<h3 id="Entity"><a href="#Entity" class="headerlink" title="Entity"></a>Entity</h3><ul>
+<li>和Model一样的数据模型</li>
+</ul>
+<h3 id="和MVX的区别"><a href="#和MVX的区别" class="headerlink" title="和MVX的区别"></a>和MVX的区别</h3><p>VIPER把MVC中的Controller进一步拆分成了Presenter、Router和Interactor。和MVP中负责业务逻辑的Presenter不同，VIPER的Presenter的主要工作是在View和Interactor之间传递事件，并管理一些View的展示逻辑，主要的业务逻辑实现代码都放在了Interactor里。Interactor的设计里提出了”用例”的概念，也就是把每一个会出现的业务流程封装好，这样可测试性会大大提高。而Router则进一步解决了不同模块之间的耦合。所以，VIPER和上面几个MVX相比，多总结出了几个需要维护的东西：</p>
+<ul>
+<li>View事件管理</li>
+<li>数据事件管理</li>
+<li>事件和业务的转化</li>
+<li>总结每个业务用例</li>
+<li>模块内分层隔离</li>
+<li>模块间通信</li>
+</ul>
+<p>而这里面，还可以进一步细分一些职责。VIPER实际上已经把Controller的概念淡化了，这拆分出来的几个部分，都有很明确的单一职责，有些部分之间是完全隔绝的，在开发时就应该清晰地区分它们各自的职责，而不是将它们视为一个Controller。</p>
+<h3 id="优点"><a href="#优点" class="headerlink" title="优点"></a>优点</h3><p>VIPER的特色就是职责明确，粒度细，隔离关系明确，这样能带来很多优点：</p>
+<ul>
+<li>可测试性好。UI测试和业务逻辑测试可以各自单独进行。</li>
+<li>易于迭代。各部分遵循单一职责，可以很明确地知道新的代码应该放在哪里。</li>
+<li>隔离程度高，耦合程度低。一个模块的代码不容易影响到另一个模块。</li>
+<li>易于团队合作。各部分分工明确，团队合作时易于统一代码风格，可以快速接手别人的代码。</li>
+</ul>
+<h3 id="缺点"><a href="#缺点" class="headerlink" title="缺点"></a>缺点</h3><ul>
+<li>一个模块内的类数量增大，代码量增大，在层与层之间需要花更多时间设计接口。</li>
+</ul>
+<p>使用代码模板来自动生成文件和模板代码可以减少很多重复劳动，而花费时间设计和编写接口是减少耦合的路上不可避免的，你也可以使用数据绑定这样的技术来减少一些传递的层次。</p>
+<ul>
+<li>模块的初始化较为复杂，打开一个新的界面需要生成View、Presenter、Interactor，并且设置互相之间的依赖关系。而iOS中缺少这种设置复杂初始化的原生方式。</li>
+</ul>
+<p>简单来说，就是Cocoa框架缺少一个强大的自定义依赖注入工具。这个问题影响不是特别大，可以选用一些第三方工具来实现，也可以在Router的界面跳转方法里，对模块进行初始化，只不过总是不够完美。针对这个问题，我实现了一个基于protocol声明依赖的界面跳转Router，将会在之后的文章中进行详解。</p>
+<h3 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h3><p>有人可能会觉得，一个界面模块真的有必要使用这么复杂的架构吗？这样是不是过度设计？</p>
+<p>我反对这种观点。不要被VIPER的组织图吓到，VIPER并不复杂，它是将原来MVC中的Controller中的各种任务进行了清晰的分解，在写代码时，你会很清楚你正在做什么。事实上，它比使用了数据绑定技术的MVVM更加简单，就是因为它职责明确。从MVC转到VIPER的过程同样是很清晰的，它甚至把重构的思路都体现出来了。而MVVM则留下了许多尚未明确的责任，导致不同的人会在某些地方有不同的实现。即便你还在使用MVC，你也应该在Controller中分离出VIPER总结出的那些专项职责，既然如此，为何不彻底地明确这些职责，把它们分散到不同的文件中呢？一旦开始这样的工作，你就已经向VIPER靠拢了。</p>
+<p>有人可能会觉得，VIPER适合大型app，中小型app没必要过早使用。</p>
+<p>我反对这种观点。VIPER是单个界面模块内的架构设计，并不是整个app架构层面的设计，和app的整体架构没有多大的关系，也不存在过早使用VIPER的情况。你是愿意1天开发，3天修bug，还是更愿意1.5天开发，1天修bug呢？</p>
+<p>至此，我的结论就是，快点拥抱VIPER的怀抱吧。</p>
+<h3 id="开始实践"><a href="#开始实践" class="headerlink" title="开始实践"></a>开始实践</h3><p>VIPER是2013年首次在iOS平台上提出的设计，十分年轻，因此缺少大量参与者，以总结出更多最佳实践。下一篇文章将会从VIPER的源头开始，比较现有的各种VIPER实现，总结出一个我认为较好的实施方案。</p>
+<h3 id="参考"><a href="#参考" class="headerlink" title="参考"></a>参考</h3><ul>
+<li><a href="http://ios.jobbole.com/83727/" target="_blank" rel="external">iOS 架构模式–解密 MVC，MVP，MVVM以及VIPER架构</a></li>
+<li><a href="http://draveness.me/mvx.html" target="_blank" rel="external">浅谈 MVC、MVP 和 MVVM 架构模式</a></li>
+</ul>
+]]></content>
+    
+    <summary type="html">
+    
+      &lt;h2 id=&quot;简介&quot;&gt;&lt;a href=&quot;#简介&quot; class=&quot;headerlink&quot; title=&quot;简介&quot;&gt;&lt;/a&gt;简介&lt;/h2&gt;&lt;p&gt;最近半年在写app的时候，研究了一下各种iOS代码架构，最后选择了VIPER进行实践，在此对实践中遇到的各种设计问题做一番总结，并分享造出的
+    
+    </summary>
+    
+      <category term="代码架构" scheme="http://yoursite.com/categories/%E4%BB%A3%E7%A0%81%E6%9E%B6%E6%9E%84/"/>
+    
+    
+      <category term="iOS" scheme="http://yoursite.com/tags/iOS/"/>
+    
+  </entry>
+  
+  <entry>
+    <title>CFRunloop的多线程隐患</title>
+    <link href="http://yoursite.com/2017/05/22/CFRunloop%E7%9A%84%E5%A4%9A%E7%BA%BF%E7%A8%8B%E9%9A%90%E6%82%A3/"/>
+    <id>http://yoursite.com/2017/05/22/CFRunloop的多线程隐患/</id>
+    <published>2017-05-22T08:29:29.000Z</published>
+    <updated>2017-08-13T07:25:24.120Z</updated>
+    
+    <content type="html"><![CDATA[<p>如果你还不了解什么是runloop，可以看这里的详解<a href="http://blog.ibireme.com/2015/05/18/runloop/" target="_blank" rel="external">深入理解RunLoop</a>。</p>
+<p>苹果<a href="https://developer.apple.com/library/content/documentation/Cocoa/Conceptual/Multithreading/RunLoopManagement/RunLoopManagement.html#//apple_ref/doc/uid/10000057i-CH16-SW26" target="_blank" rel="external">官方文档</a>中，声明了CFRunloop是线程安全的：</p>
+<blockquote>
+<p>Thread safety varies depending on which API you are using to manipulate your run loop. The functions in Core Foundation are <strong><em>generally</em></strong> thread-safe and can be called from any thread. If you are performing operations that alter the configuration of the run loop, however, it is still good practice to do so from the thread that owns the run loop whenever possible.</p>
+</blockquote>
+<p>但是需要注意的是，狡猾的苹果使用了<code>generally</code>这个模糊的词。</p>
+<p>从实践中来看，CFRunloop在停止runloop的阶段的某些操作是存在多线程隐患的。</p>
+<h2 id="不安全的CFRunloopSource"><a href="#不安全的CFRunloopSource" class="headerlink" title="不安全的CFRunloopSource"></a>不安全的CFRunloopSource</h2><p>CFRunloop是线程安全的，但是加上CFRunloopSource就不一定了。比如CFSocket。</p>
+<h3 id="示例代码"><a href="#示例代码" class="headerlink" title="示例代码"></a>示例代码</h3><p>看这样一段自定义线程的代码：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div><div class="line">27</div><div class="line">28</div><div class="line">29</div><div class="line">30</div><div class="line">31</div><div class="line">32</div><div class="line">33</div><div class="line">34</div><div class="line">35</div><div class="line">36</div><div class="line">37</div><div class="line">38</div><div class="line">39</div><div class="line">40</div><div class="line">41</div><div class="line">42</div><div class="line">43</div><div class="line">44</div><div class="line">45</div><div class="line">46</div><div class="line">47</div><div class="line">48</div><div class="line">49</div><div class="line">50</div><div class="line">51</div><div class="line">52</div><div class="line">53</div><div class="line">54</div><div class="line">55</div><div class="line">56</div><div class="line">57</div><div class="line">58</div><div class="line">59</div><div class="line">60</div><div class="line">61</div><div class="line">62</div><div class="line">63</div><div class="line">64</div><div class="line">65</div><div class="line">66</div></pre></td><td class="code"><pre><div class="line">@interface MyThread()</div><div class="line">@property (nonatomic, strong) NSThread *currentThread;</div><div class="line">@property (nonatomic, assign) CFRunLoopSourceRef socketSource;</div><div class="line">@property (nonatomic, assign) CFSocketRef socket;</div><div class="line">@property (nonatomic, assign) CFRunLoopRef currentRunloop;</div><div class="line"></div><div class="line">@end</div><div class="line"></div><div class="line">@implementation MyThread</div><div class="line"></div><div class="line">//初始化线程</div><div class="line">- (instancetype)init &#123;</div><div class="line">    if (self = [super init]) &#123;</div><div class="line">        _currentThread = [[NSThread alloc] initWithTarget:self selector:@selector(runThread) object:nil];</div><div class="line">    &#125;</div><div class="line">    return self;</div><div class="line">&#125;</div><div class="line"></div><div class="line">//开启线程；此方法在使用时没有多线程调用</div><div class="line">- (void)startThread &#123;</div><div class="line">    [self.currentThread start];</div><div class="line">&#125;</div><div class="line"></div><div class="line">//线程入口</div><div class="line">- (void)runThread &#123;</div><div class="line">    @autoreleasepool &#123;</div><div class="line">    //返回runloop，可以让其他线程停止此线程</div><div class="line">        self.currentRunloop = CFRunLoopGetCurrent();</div><div class="line">        [self addSocketSource];</div><div class="line">        </div><div class="line">        CFRunLoopRun();</div><div class="line">    &#125;</div><div class="line">    NSLog(@&quot;线程退出&quot;);</div><div class="line">&#125;</div><div class="line"></div><div class="line">//此方法在使用时没有多线程调用</div><div class="line">- (void)stopThread &#123;</div><div class="line">	 [self removeSocketSource];</div><div class="line">	 @synchronized (_currentRunloop) &#123;</div><div class="line">        if (_currentRunloop) &#123;</div><div class="line">	        CFRunLoopStop(_currentRunloop);</div><div class="line">	        self.currentRunloop = NULL;</div><div class="line">	    &#125;</div><div class="line">    &#125;</div><div class="line">&#125;</div><div class="line"></div><div class="line">//此方法在使用时没有多线程调用</div><div class="line">- (void)addSocketSource &#123;</div><div class="line">    int sock;</div><div class="line">    sock = socket(AF_INET6, SOCK_STREAM, 0);</div><div class="line">    CFSocketContext context = &#123;0, (__bridge void *)(self), NULL, NULL, NULL&#125;;</div><div class="line">    self.socket = CFSocketCreateWithNative(NULL, sock, kCFSocketReadCallBack, socketCallBack, &amp;context);</div><div class="line">    self.socketSource = CFSocketCreateRunLoopSource(NULL, self.socket, 0);</div><div class="line">    CFRunLoopAddSource(_currentRunloop, _socketSource, kCFRunLoopDefaultMode);</div><div class="line">&#125;</div><div class="line"></div><div class="line">- (void)removeSocketSource &#123;</div><div class="line">	@synchronized (_socket) &#123;</div><div class="line">		if (_socket) &#123;</div><div class="line">			//CFSocketInvalidate可能被抛到另一个线程去执行，因此 CFSocketInvalidate 和 CFRunLoopStop可能有多线程同时调用的情况       </div><div class="line">	        CFSocketInvalidate(_socket);</div><div class="line">	        CFRelease(_socket);</div><div class="line">	        self.socket = NULL;</div><div class="line">	    &#125;</div><div class="line">	&#125;</div><div class="line">&#125;</div></pre></td></tr></table></figure>
+<p>在实践中，CFSocket是被另一个socket类管理的，所以<code>addSocketSource</code>和<code>removeSocketSource</code>都是在另一个类中的，也就有可能出现<code>CFSocketInvalidate</code>和 <code>CFRunLoopStop</code>多线程同时调用的情况。</p>
+<h3 id="crash实例分析"><a href="#crash实例分析" class="headerlink" title="crash实例分析"></a>crash实例分析</h3><p>看上去并没有什么问题，该加锁的地方都加锁了，而且CF开头的那几个方法都是线程安全的。但是这时候，如果出现<code>CFSocketInvalidate</code>和 <code>CFRunLoopStop</code>多线程同时调用的情况，就有crash的可能。例如我们项目里收到的某个crash：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div><div class="line">27</div><div class="line">28</div><div class="line">29</div></pre></td><td class="code"><pre><div class="line">Thread 0 name:  Dispatch queue: com.apple.main-thread</div><div class="line">Thread 0 Crashed:</div><div class="line">0   CoreFoundation                  0x000000018e6a9144 CFRunLoopWakeUp + 92</div><div class="line">1   CoreFoundation                  0x000000018e6a9140 CFRunLoopWakeUp + 88</div><div class="line">2   CoreFoundation                  0x000000018e6d71e8 CFSocketInvalidate + 712</div><div class="line">3   MyApp                           0x00000001000fe424 (-[MySocket stop] + 136)</div><div class="line">4   MyApp                           0x00000001000fcd50 (-[MySocket dealloc] + 56)</div><div class="line">5   libsystem_blocks.dylib          0x000000018d6afa28 _Block_release + 144</div><div class="line">6   libdispatch.dylib               0x000000018d65a1bc _dispatch_client_callout + 16</div><div class="line">7   libdispatch.dylib               0x000000018d65ed68 _dispatch_main_queue_callback_4CF + 1000</div><div class="line">8   CoreFoundation                  0x000000018e77e810 __CFRUNLOOP_IS_SERVICING_THE_MAIN_DISPATCH_QUEUE__ + 12</div><div class="line">9   CoreFoundation                  0x000000018e77c3fc __CFRunLoopRun + 1660</div><div class="line">10  CoreFoundation                  0x000000018e6aa2b8 CFRunLoopRunSpecific + 444</div><div class="line">11  GraphicsServices                0x000000019015e198 GSEventRunModal + 180</div><div class="line">12  UIKit                           0x00000001946f17fc -[UIApplication _run] + 684</div><div class="line">13  UIKit                           0x00000001946ec534 UIApplicationMain + 208</div><div class="line">14  DuoYiIM                         0x000000010003ca58 0x100024000 + 100952 (main + 132)</div><div class="line">15  libdyld.dylib                   0x000000018d68d5b8 start + 4</div><div class="line"></div><div class="line">Thread 0 crashed with ARM-64 Thread State:</div><div class="line">  cpsr: 0x0000000020000000     fp: 0x000000016fddab30     lr: 0x000000018e6a9140     pc: 0x000000018e6a9144 </div><div class="line">    sp: 0x000000016fddaa00     x0: 0x0000000000000000     x1: 0x0000000000000000    x10: 0x0000000000000000 </div><div class="line">   x11: 0x0000000000000000    x12: 0x0000000000000000    x13: 0x0000000000000000    x14: 0x0000000000000000 </div><div class="line">   x15: 0x0000000000001203    x16: 0x000000000000012d    x17: 0x000000018f1eef74    x18: 0x0000000000000000 </div><div class="line">   x19: 0x000000017056cb50     x2: 0x0000000000001000    x20: 0x000000017056cb40    x21: 0x96e73914144e0055 </div><div class="line">   x22: 0x0000000174452990    x23: 0x000000017048bae0    x24: 0x0000000000000000    x25: 0x00000000ffffffff </div><div class="line">   x26: 0xffffffffffffffff    x27: 0x000000017426f1c0    x28: 0x0000000002ffffff    x29: 0x000000016fddab30 </div><div class="line">    x3: 0x000000000017e4a6     x4: 0x0000000000012068     x5: 0x0000000000000000     x6: 0x0000000000000036 </div><div class="line">    x7: 0xffffffffffffffec     x8: 0x8c8c8c8c8c8c8c8c     x9: 0x000000000000000c</div></pre></td></tr></table></figure>
+<p><code>CFSocketInvalidate</code>在主线程被调用了。看堆栈，在<code>CFSocketInvalidate</code>内部调用<code>CFRunLoopWakeUp</code>时，出现了crash。</p>
+<p>看不出具体是什么原因crash，所以需要看看是在<code>CFRunLoopWakeUp</code>的哪里挂的。查看对应版本的<code>CoreFoundation</code>的汇编代码：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div><div class="line">27</div><div class="line">28</div><div class="line">29</div></pre></td><td class="code"><pre><div class="line">_CFRunLoopWakeUp:</div><div class="line">0x0000000181521b9c FF0305D1               sub        sp, sp, #0x140             ; CODE XREF=_CFRunLoopAddTimer+696, _CFRunLoopTimerSetNextFireDate+592, _CFSocketInvalidate+708, __wakeUpRunLoop+276, __CFXRegistrationPost+344, -[CFPrefsSearchListSource asynchronouslyNotifyOfChangesFromDictionary:toDictionary:]+172, ___CFSocketPerformV0+1408, ___CFSocketManager+2004, ___CFSocketManager+4248, _boundPairRead+604, _boundPairReadClose+124, …</div><div class="line">0x0000000181521ba0 FC6F11A9               stp        x28, x27, [sp, #0x110]</div><div class="line">0x0000000181521ba4 F44F12A9               stp        x20, x19, [sp, #0x120]</div><div class="line">0x0000000181521ba8 FD7B13A9               stp        x29, x30, [sp, #0x130]</div><div class="line">0x0000000181521bac FDC30491               add        x29, sp, #0x130</div><div class="line">0x0000000181521bb0 F40300AA               mov        x20, x0</div><div class="line">0x0000000181521bb4 C80C10F0               adrp       x8, #0x1a16bc000</div><div class="line">0x0000000181521bb8 084140F9               ldr        x8, [x8, #0x80]            ; -[_CFXPreferences init]_1a16bc080</div><div class="line">0x0000000181521bbc 080140F9               ldr        x8, [x8]</div><div class="line">0x0000000181521bc0 292013F0               adrp       x9, #0x1a7928000</div><div class="line">0x0000000181521bc4 29E90791               add        x9, x9, #0x1fa             ; ___CF120290</div><div class="line">0x0000000181521bc8 A8831DF8               stur       x8, [x29, #-0x28]</div><div class="line">0x0000000181521bcc E8030032               orr        w8, wzr, #0x1</div><div class="line">0x0000000181521bd0 28010039               strb       w8, [x9]                   ; ___CF120290</div><div class="line">0x0000000181521bd4 E8731290               adrp       x8, #0x1a639d000</div><div class="line">0x0000000181521bd8 08F13F91               add        x8, x8, #0xffc             ; ___CF120293</div><div class="line">0x0000000181521bdc 08014039               ldrb       w8, [x8]                   ; ___CF120293</div><div class="line">0x0000000181521be0 48000034               cbz        w8, loc_181521be8</div><div class="line"></div><div class="line">0x0000000181521be4 E3560394               bl         ___THE_PROCESS_HAS_FORKED_AND_YOU_CANNOT_USE_THIS_COREFOUNDATION_FUNCTIONALITY___YOU_MUST_EXEC__</div><div class="line"></div><div class="line">                                      loc_181521be8:</div><div class="line">0x0000000181521be8 93420091               add        x19, x20, #0x10            ; CODE XREF=_CFRunLoopWakeUp+68</div><div class="line">0x0000000181521bec E00313AA               mov        x0, x19</div><div class="line">0x0000000181521bf0 70300694               bl         imp___stubs_-[NSOrderedSet sortedArrayFromRange:options:usingComparator:]//真机的系统库做了混淆，这里其实是__CFRunLoopLock</div><div class="line">0x0000000181521bf4 882E40F9               ldr        x8, [x20, #0x58]</div><div class="line">0x0000000181521bf8 080D40B9               ldr        w8, [x8, #0xc]</div><div class="line">0x0000000181521bfc A8010034               cbz        w8, loc_181521c30</div></pre></td></tr></table></figure>
+<p>crash日志中，崩溃在<code>CFRunLoopWakeUp + 92</code>，对应汇编地址为<code>0x0000000181521b9c + 92</code>=<code>0x0000000181521bf8</code>，在<code>ldr        w8, [x8, #0xc]</code>的时候挂了。查看crash时寄存器的值，<code>x8: 0x8c8c8c8c8c8c8c8c</code>，很明显<code>x8</code>指向的内存已经被释放了。<code>x8</code>是从<code>ldr        x8, [x20, #0x58]</code>得来的（也就是<code>x20</code>的地址偏移<code>0x58</code>后的值），而<code>x20</code>则是从<code>mov        x20, x0</code>得来的，<code>x0</code>就是<code>CFRunloopWakeUp</code>的第一个参数，<code>CFRunLoopRef</code>结构体，所以<code>x8</code>就是<code>CFRunLoopRef</code>偏移<code>0x58</code>后的值。</p>
+<p><code>CoreFoundation</code>的代码是开源的，可以在这里下载：<a href="https://opensource.apple.com/tarballs/CF/CF-1153.18.tar.gz" target="_blank" rel="external">CF-1153.18</a>。</p>
+<p>对应<code>CFRunloopWakeUp</code>源码：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div></pre></td><td class="code"><pre><div class="line">void CFRunLoopWakeUp(CFRunLoopRef rl) &#123;</div><div class="line">    CHECK_FOR_FORK();</div><div class="line">    __CFRunLoopLock(rl);</div><div class="line">    if (__CFRunLoopIsIgnoringWakeUps(rl)) &#123;</div><div class="line">        __CFRunLoopUnlock(rl);</div><div class="line">        return;</div><div class="line">    &#125;</div><div class="line">    kern_return_t ret;</div><div class="line">    ret = __CFSendTrivialMachMessage(rl-&gt;_wakeUpPort, 0, MACH_SEND_TIMEOUT, 0);</div><div class="line">    if (ret != MACH_MSG_SUCCESS &amp;&amp; ret != MACH_SEND_TIMED_OUT) CRASH(&quot;*** Unable to send message to wake up port. (%d) ***&quot;, ret);</div><div class="line">    __CFRunLoopUnlock(rl);</div><div class="line">&#125;</div><div class="line"></div><div class="line">CF_INLINE Boolean __CFRunLoopIsIgnoringWakeUps(CFRunLoopRef rl) &#123;</div><div class="line">    return (rl-&gt;_perRunData-&gt;ignoreWakeUps) ? true : false;    </div><div class="line">&#125;</div></pre></td></tr></table></figure>
+<p>CFRunloop结构体：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div><div class="line">27</div><div class="line">28</div><div class="line">29</div><div class="line">30</div><div class="line">31</div></pre></td><td class="code"><pre><div class="line">struct __CFRunLoop &#123;</div><div class="line">    CFRuntimeBase _base;	//16 byte</div><div class="line">    pthread_mutex_t _lock;	//64 byte</div><div class="line">    __CFPort _wakeUpPort; //mach_port_t (unsign int), 4 byte</div><div class="line">    Boolean _unused;	//bool变量占用1 byte，但是需要和4字节对齐，所以也是4 byte</div><div class="line">    volatile _per_run_data *_perRunData;</div><div class="line">    pthread_t _pthread;</div><div class="line">    uint32_t _winthread;</div><div class="line">    CFMutableSetRef _commonModes;</div><div class="line">    CFMutableSetRef _commonModeItems;</div><div class="line">    CFRunLoopModeRef _currentMode;</div><div class="line">    CFMutableSetRef _modes;</div><div class="line">    struct _block_item *_blocks_head;</div><div class="line">    struct _block_item *_blocks_tail;</div><div class="line">    CFAbsoluteTime _runTime;</div><div class="line">    CFAbsoluteTime _sleepTime;</div><div class="line">    CFTypeRef _counterpart;</div><div class="line">&#125;;</div><div class="line"></div><div class="line">typedef struct __CFRuntimeBase &#123;</div><div class="line">    uintptr_t _cfisa;	//unsigned long 8 byte</div><div class="line">    uint8_t _cfinfo[4];	//unsigned char 4 byte</div><div class="line">#if __LP64__</div><div class="line">    uint32_t _rc;	//unsigned int 4 byte</div><div class="line">#endif</div><div class="line">&#125; CFRuntimeBase;</div><div class="line"></div><div class="line">struct pthread_mutex_t &#123;</div><div class="line">	long __sig;	//8 byte</div><div class="line">	char __opaque[56]; //56 byte</div><div class="line">&#125;;</div></pre></td></tr></table></figure>
+<p>计算结构体size后，得出<code>ldr        x8, [x20, #0x58]</code>就是<code>runloop-&gt; _perRunData</code>。也就是在调用<code>__CFRunLoopIsIgnoringWakeUps</code>的时候，<code>CFRunLoopRef</code>已经被释放了。</p>
+<h3 id="分析CFSocket源码"><a href="#分析CFSocket源码" class="headerlink" title="分析CFSocket源码"></a>分析<code>CFSocket</code>源码</h3><p>查看<code>CFSocketInvalidate</code>源码：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div><div class="line">27</div><div class="line">28</div><div class="line">29</div><div class="line">30</div><div class="line">31</div><div class="line">32</div><div class="line">33</div><div class="line">34</div></pre></td><td class="code"><pre><div class="line">void CFSocketInvalidate(CFSocketRef s) &#123;</div><div class="line">    CHECK_FOR_FORK();</div><div class="line">    CFRetain(s);</div><div class="line">    __CFLock(&amp;__CFAllSocketsLock);</div><div class="line">    __CFSocketLock(s);</div><div class="line">    if (__CFSocketIsValid(s)) &#123;</div><div class="line">    </div><div class="line">        //省略部分代码...</div><div class="line"></div><div class="line">		 //取出socket中的runloop数组</div><div class="line">        CFArrayRef runLoops = (CFArrayRef)CFRetain(s-&gt;_runLoops);</div><div class="line">       //CFRunloop释放操作1       </div><div class="line">        CFRelease(s-&gt;_runLoops);</div><div class="line">        </div><div class="line">        s-&gt;_runLoops = NULL;</div><div class="line">        </div><div class="line">        //省略部分代码...</div><div class="line">        </div><div class="line">        __CFSocketUnlock(s);</div><div class="line">        </div><div class="line">        // Do this after the socket unlock to avoid deadlock (10462525)</div><div class="line">        for (idx = CFArrayGetCount(runLoops); idx--;) &#123;</div><div class="line">            CFRunLoopWakeUp((CFRunLoopRef)CFArrayGetValueAtIndex(runLoops, idx));</div><div class="line">        &#125;</div><div class="line">        //CFRunloop释放操作3</div><div class="line">        CFRelease(runLoops);</div><div class="line"></div><div class="line">        //省略部分代码...</div><div class="line">    &#125; else &#123;</div><div class="line">        __CFSocketUnlock(s);</div><div class="line">    &#125;</div><div class="line">    __CFUnlock(&amp;__CFAllSocketsLock);</div><div class="line">    CFRelease(s);</div><div class="line">&#125;</div></pre></td></tr></table></figure>
+<p><code>CFSocketInvalidate</code>中唯一使用到<code>CFRunLoopWakeUp</code>的地方，就是最后遍历runloops的操作。<br>但是此时<code>CFRunLoopRef</code>还在数组里，正在被数组强引用，到了<code>CFRunLoopWakeUp</code>里怎么就被释放了呢？</p>
+<p>注意，<code>CFSocketInvalidate</code>里遍历runloops的操作是在锁外面进行的，说明CFSocket很有可能没有管理好它的runloops数组，导致数组在遍历时被释放了。从<code>Do this after the socket unlock to avoid deadlock (10462525)</code>这一行注释猜测，这部分遍历操作之前应该也是在锁内的，但是会出现死锁，所以放到了锁外。苹果的bug report是不对外公开的，只在这里找到了可能相关的讨论：<a href="https://bugreports.qt.io/browse/QTBUG-22789" target="_blank" rel="external">bug #10462525</a>。</p>
+<p>最大的可能是出现在<code>__CFSocketCancel</code>里。在runloop停止的时候，也会执行remove source操作，在<code>CFRunLoopRemoveSource</code>里，会执行source0的cancel函数，也就是<code>__CFSocketCancel</code>：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div><div class="line">27</div><div class="line">28</div><div class="line">29</div><div class="line">30</div><div class="line">31</div></pre></td><td class="code"><pre><div class="line">void CFRunLoopRemoveSource(CFRunLoopRef rl, CFRunLoopSourceRef rls, CFStringRef modeName) \</div><div class="line">    CHECK_FOR_FORK();</div><div class="line">    Boolean doVer0Callout = false, doRLSRelease = false;</div><div class="line">    __CFRunLoopLock(rl);</div><div class="line">    if (modeName == kCFRunLoopCommonModes) &#123;</div><div class="line">	//省略代码...</div><div class="line">    &#125; else &#123;</div><div class="line">	CFRunLoopModeRef rlm = __CFRunLoopFindMode(rl, modeName, false);</div><div class="line">	if (NULL != rlm &amp;&amp; ((NULL != rlm-&gt;_sources0 &amp;&amp; CFSetContainsValue(rlm-&gt;_sources0, rls)) || (NULL != rlm-&gt;_sources1 &amp;&amp; CFSetContainsValue(rlm-&gt;_sources1, rls)))) &#123;</div><div class="line">	    CFRetain(rls);</div><div class="line">	    //省略代码...</div><div class="line">	    if (0 == rls-&gt;_context.version0.version) &#123;</div><div class="line">	        if (NULL != rls-&gt;_context.version0.cancel) &#123;</div><div class="line">	            doVer0Callout = true;</div><div class="line">	        &#125;</div><div class="line">	    &#125;</div><div class="line">	    doRLSRelease = true;</div><div class="line">	&#125;</div><div class="line">        //省略代码...</div><div class="line">	&#125;</div><div class="line">    &#125;</div><div class="line">    __CFRunLoopUnlock(rl);</div><div class="line">    if (doVer0Callout) &#123;</div><div class="line">        // although it looses some protection for the source, we have no choice but</div><div class="line">        // to do this after unlocking the run loop and mode locks, to avoid deadlocks</div><div class="line">        // where the source wants to take a lock which is already held in another</div><div class="line">        // thread which is itself waiting for a run loop/mode lock</div><div class="line">        rls-&gt;_context.version0.cancel(rls-&gt;_context.version0.info, rl, modeName);	/* CALLOUT */</div><div class="line">    &#125;</div><div class="line">    if (doRLSRelease) CFRelease(rls);</div><div class="line">&#125;</div></pre></td></tr></table></figure>
+<p><code>__CFSocketCancel</code>源码：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div></pre></td><td class="code"><pre><div class="line">static void __CFSocketCancel(void *info, CFRunLoopRef rl, CFStringRef mode) &#123;</div><div class="line">    CFSocketRef s = (CFSocketRef)info;</div><div class="line">    __CFSocketLock(s);</div><div class="line">    if (0 == s-&gt;_socketSetCount) &#123;</div><div class="line">        //省略代码...</div><div class="line">    if (NULL != s-&gt;_runLoops) &#123;</div><div class="line">    //从runloops数组中移除此runloop；对原数组执行拷贝后，释放原数组</div><div class="line">        CFMutableArrayRef runLoopsOrig = s-&gt;_runLoops;</div><div class="line">        CFMutableArrayRef runLoopsCopy = CFArrayCreateMutableCopy(kCFAllocatorSystemDefault, 0, s-&gt;_runLoops);</div><div class="line">        idx = CFArrayGetFirstIndexOfValue(runLoopsCopy, CFRangeMake(0, CFArrayGetCount(runLoopsCopy)), rl);</div><div class="line">        if (0 &lt;= idx) CFArrayRemoveValueAtIndex(runLoopsCopy, idx);</div><div class="line">        s-&gt;_runLoops = runLoopsCopy;</div><div class="line">        //CFRunloop释放操作2</div><div class="line">        CFRelease(runLoopsOrig);</div><div class="line">    &#125;</div><div class="line">    __CFSocketUnlock(s);</div><div class="line">&#125;</div></pre></td></tr></table></figure>
+<p><code>__CFSocketCancel</code>也有一次对<code>CFRunloopRef</code>的释放操作，加上<code>CFSocketInvalidate</code>里的2个，总共有3个释放操作。</p>
+<p>所以，如果<code>__CFSocketCancel</code>和<code>CFSocketInvalidate</code>在多线程同时执行，就有可能出现对CFSocket中的runloops数组过度释放，因此在遍历runloops的时候就会出现<code>CFRunLoopRef</code>被释放的情况。虽然这个crash出现的概率比较低，但是在项目里隔一段时间就会稳定出现。</p>
+<p>所以，不是加了锁就万事大吉了，<code>CFSocketInvalidate</code>里在遍历数组前应该再加一个retain才能保证安全。</p>
+<h3 id="解决方法"><a href="#解决方法" class="headerlink" title="解决方法"></a>解决方法</h3><ul>
+<li>既然是CFSocket里的bug，那就只能避免不要出现<code>CFSocketInvalidate</code>和<code>CFRunloopStop</code>多线程执行的代码。</li>
+<li>如果你的socket只在这个线程里运行，那直接调用<code>CFRunloopStop</code>即可，runloop会自动清理所有source。</li>
+<li>如果这个线程需要重用，那就不需要stop，而是停止socket后，在同一个线程里新建socket。</li>
+</ul>
+<h2 id="自动停止的Runloop"><a href="#自动停止的Runloop" class="headerlink" title="自动停止的Runloop"></a>自动停止的Runloop</h2><p>那么，如果把stop代码改成这样，应该就没问题了吧？</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div></pre></td><td class="code"><pre><div class="line">- (void)runThread &#123;</div><div class="line">    @autoreleasepool &#123;</div><div class="line">        self.currentRunloop = CFRunLoopGetCurrent();</div><div class="line">        [self addRunloopSource];</div><div class="line">        [self addSocketSource];</div><div class="line">        </div><div class="line">        CFRunLoopRun();</div><div class="line">    &#125;</div><div class="line">    NSLog(@&quot;线程退出&quot;);</div><div class="line">&#125;</div><div class="line"></div><div class="line">- (void)stopThread &#123;</div><div class="line">    if (_currentRunloop) &#123;</div><div class="line">	    //保证removeSocketSource的操作只会在这里执行，没有多线程的情况</div><div class="line">        [self removeSocketSource];</div><div class="line">        CFRunLoopStop(_currentRunloop);</div><div class="line">        self.currentRunloop = NULL;</div><div class="line">    &#125;</div><div class="line">&#125;</div></pre></td></tr></table></figure>
+<p>很遗憾，这样写还是不安全的。</p>
+<p>原因在于<code>removeSocketSource</code>之后，runloop里source就全部为空了，runloop如果检测到了source为空，就会自动停止runloop循环，销毁线程。</p>
+<p>因此如果你在另一个线程调用<code>stopThread</code>，在<code>removeSocketSource</code>之后线程就会随时停止，runloop在调用<code>CFRunLoopStop</code>时可能已经被释放了。</p>
+<p>上面的写法出现crash的概率太低，但是稍微改一下就能必现：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div></pre></td><td class="code"><pre><div class="line">- (void)stopThread &#123;</div><div class="line">    if (_currentRunloop) &#123;</div><div class="line">        [self removeSocketSource];</div><div class="line">        </div><div class="line">        //插入一个耗时操作</div><div class="line">        sleep(2);</div><div class="line">        //必定crash</div><div class="line">        CFRunLoopStop(_currentRunloop);</div><div class="line">        self.currentRunloop = NULL;</div><div class="line">    &#125;</div><div class="line">&#125;</div></pre></td></tr></table></figure>
+<p>这种情况下crash的原因其实是没做好内存管理，只要对runloop增加一次retain操作就没问题了：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div></pre></td><td class="code"><pre><div class="line">- (void)runThread &#123;</div><div class="line">    @autoreleasepool &#123;</div><div class="line">	    //做一次retain操作</div><div class="line">        self.currentRunloop = CFRetain(CFRunLoopGetCurrent());</div><div class="line">        [self addRunloopSource];</div><div class="line">        [self addSocketSource];</div><div class="line">        </div><div class="line">        CFRunLoopRun();</div><div class="line">    &#125;</div><div class="line">    NSLog(@&quot;线程退出&quot;);</div><div class="line">&#125;</div><div class="line"></div><div class="line">- (void)stopThread &#123;</div><div class="line">    if (_currentRunloop) &#123;</div><div class="line">        [self removeSocketSource];</div><div class="line">        CFRunLoopStop(_currentRunloop);</div><div class="line">        CFRelease(_currentRunloop);</div><div class="line">        self.currentRunloop = NULL;</div><div class="line">    &#125;</div><div class="line">&#125;</div></pre></td></tr></table></figure>
+<h2 id="结论"><a href="#结论" class="headerlink" title="结论"></a>结论</h2><p>在使用runloop source的时候要谨慎，尤其在处理stop的阶段。其他source可能也存在类似的问题。</p>
+<p>一个变量有多线程操作的时候，在锁外的操作即使是只读也是不安全的，在读取之前最好再做一次retain操作，防止在读取的过程中被释放。</p>
+]]></content>
+    
+    <summary type="html">
+    
+      &lt;p&gt;如果你还不了解什么是runloop，可以看这里的详解&lt;a href=&quot;http://blog.ibireme.com/2015/05/18/runloop/&quot; target=&quot;_blank&quot; rel=&quot;external&quot;&gt;深入理解RunLoop&lt;/a&gt;。&lt;/p&gt;
+&lt;p&gt;苹果
+    
+    </summary>
+    
+    
+      <category term="iOS" scheme="http://yoursite.com/tags/iOS/"/>
+    
+  </entry>
   
   <entry>
     <title>iOS逆向：在任意app上开启malloc stack追踪内存来源</title>
@@ -759,7 +1201,7 @@
     <link href="http://yoursite.com/2016/12/07/interface%E7%9A%84%E8%A7%84%E8%8C%83%E5%86%99%E6%B3%95/"/>
     <id>http://yoursite.com/2016/12/07/interface的规范写法/</id>
     <published>2016-12-07T00:55:29.000Z</published>
-    <updated>2016-12-07T03:33:02.790Z</updated>
+    <updated>2017-05-24T18:00:55.540Z</updated>
     
     <content type="html"><![CDATA[<p>总结一些interface声明时的规范，相关宏的介绍，定义方法时有用的修饰符，编写注释的规范，最终写出一个合格的头文件。</p>
 <ul>
