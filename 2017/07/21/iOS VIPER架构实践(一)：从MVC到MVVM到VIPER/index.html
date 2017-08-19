@@ -95,7 +95,7 @@
 <meta property="og:description" content="简介最近半年在写app的时候，研究了一下各种iOS代码架构，最后选择了VIPER进行实践，在此对实践中遇到的各种设计问题做一番总结，并分享造出的轮子。
 对代码风格和架构有兴趣的同学，肯定都已经在很多地方见过各种架构的介绍。MVC、MVP、MVVM、VIPER，细分程度逐渐上升。这些架构设计都是来自MVC，只是各自用不同的方式对MVC进行了细分，在此只对MVC、MVP和MVVM作精简介绍，想要详细了">
 <meta property="og:image" content="http://upload-images.jianshu.io/upload_images/1865432-580872920986b640.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240">
-<meta property="og:updated_time" content="2017-08-13T07:30:28.960Z">
+<meta property="og:updated_time" content="2017-08-19T14:57:14.160Z">
 <meta name="twitter:card" content="summary">
 <meta name="twitter:title" content="iOS VIPER架构实践(一)：从MVC到MVVM到VIPER">
 <meta name="twitter:description" content="简介最近半年在写app的时候，研究了一下各种iOS代码架构，最后选择了VIPER进行实践，在此对实践中遇到的各种设计问题做一番总结，并分享造出的轮子。
@@ -352,11 +352,12 @@
 <li>Model提供数据模型</li>
 <li>View负责视图展示</li>
 <li>ViewModel用于描述View的状态，例如View的颜色、显示的文字等属性类的信息，将View抽象成了一个特殊的模型</li>
-<li>Controller通过修改ViewModel来更新View，并且负责事件处理，维护Model</li>
+<li>Controller(Presenter)通过修改ViewModel来更新View，并且负责事件处理，维护Model</li>
 </ul>
-<p>在MVP中，View通过接口的方式来描述自己，在MVVM中，则通过ViewModel来描述自己的特征。那么ViewModel如何将自己的变化更新到View上呢？MVVM经常和数据绑定一起出现，在Controller中，将View和ViewModel的属性用类似KVO的方式进行绑定，这样ViewModel的变化就能立即传输到View上。但是数据绑定的缺点也很明显：调试困难，数据来源难以回溯，在线上出bug的时候就很难追踪了。</p>
+<p>在MVP中，View通过接口的方式来描述自己，在MVVM中，则通过ViewModel来描述自己的特征。那么ViewModel如何将自己的变化更新到View上呢？MVVM经常和数据绑定一起出现，在Controller中，将View和ViewModel的属性用类似KVO的方式进行绑定，这样ViewModel的变化就能立即传输到View上。注意，这里的Controller不是UIViewController，而是负责模块业务逻辑的一个角色，类似于Presenter。</p>
+<p>但是数据绑定的缺点也很明显：调试困难，数据来源难以回溯，在线上出bug的时候就很难追踪了。</p>
 <p>其实数据绑定只是一种为了减少胶水代码的技术实现方式，MVVM的设计并没有要求必须要使用数据绑定，你也完全可以使用protocol的方式来将ViewModel的变化传递给View，让数据流向更清晰。MVVM的关键是将View进行了抽象，并且这个抽象很容易在其他Controller中复用。</p>
-<p>Controller在绑定完View和ViewModel之后，就不应该在其他地方使用View了。你也可以单独用一个ViewModelManager来负责设置ViewModel和View之间的数据传递。而其他的业务代码，还是放在Controller中，ViewModel应该只负责管理View相关的状态、传递View的事件，不应该存在本属于Controller中的其他业务。当然如果你不打算重用这个ViewModel的话，也可以在ViewModel里加入一些和Model相关的业务逻辑，只不过基于单一职责原则，这么做是不好的。</p>
+<p>Controller在绑定完View和ViewModel之后，就不应该在其他地方使用View了。你也可以单独用一个ViewModelManager来负责设置ViewModel和View之间的数据传递。而其他的业务代码，还是放在Controller中，ViewModel应该只负责管理View相关的状态、传递View的事件，不应该存在本属于Controller中的其他业务。当然如果你不打算重用这个ViewModel的话，也可以在ViewModel里加入一些和Model相关的业务逻辑，维护Model，只不过基于单一职责原则，这么做是不好的。</p>
 <p>和MVP相比，MVVM用了一种更优雅的方式来抽象View。但它和MVP其实是类似的，仍然没有对Controller进行进一步的细分。</p>
 <p>那么如何对Controller进行进一步的职责细分呢？答案就是VIPER。</p>
 <h2 id="VIPER"><a href="#VIPER" class="headerlink" title="VIPER"></a>VIPER</h2><p>VIPER的全称是<code>View-Interactor-Presenter-Entity-Router</code>。示意图如下：</p>

@@ -341,7 +341,7 @@
 <p>越靠近内层，越变得抽象，越接近设计的核心。越靠近外层，越和具体的平台和实现技术相关。内层的部分完全不知道外层的存在和实现方式，代码只能从外层向内层引用，目的是为了实现层与层之间的隔离。将不同抽象程度的层进行隔离，做到了把业务规则和具体实现分离开。你可以把外层看作是内层的delegate，外层只能通过内层提供的delegate接口来使用内层。</p>
 <h3 id="Enterprise-Business-Rules"><a href="#Enterprise-Business-Rules" class="headerlink" title="Enterprise Business Rules"></a>Enterprise Business Rules</h3><p>代表了这个软件项目的业务规则。由数据实体体现，是一些可以在不同的程序应用之间共享的数据结构。</p>
 <h3 id="Application-Business-Rules"><a href="#Application-Business-Rules" class="headerlink" title="Application Business Rules"></a>Application Business Rules</h3><p>代表了本应用所使用的一些业务规则。封装和实现了用到的业务功能，会将各种实体的数据结构转为在用例中传递的实体类，但是和具体的数据库技术或者UI无关。</p>
-<h3 id="Interface-Adapters"><a href="#Interface-Adapters" class="headerlink" title="Interface Adapters"></a>Interface Adapters</h3><p>接口适配层。将用例的规则和具体的实现技术进行抽象地对接，将用例中用到的实体类转为供数据库存储的格式或者供View展示的格式。类似于MVVM中把Model转为ViewModel供View显示。</p>
+<h3 id="Interface-Adapters"><a href="#Interface-Adapters" class="headerlink" title="Interface Adapters"></a>Interface Adapters</h3><p>接口适配层。将用例的规则和具体的实现技术进行抽象地对接，将用例中用到的实体类转为供数据库存储的格式或者供View展示的格式。类似于MVVM中把Model的数据传递给ViewModel供View显示。</p>
 <p>右下角表示了接口适配层中不同模块间的通信方式。不同的模块在业务用例中产生关联和数据传递。Input、Output就是Use Case提供给外层的数据流动接口。</p>
 <h3 id="Frameworks-amp-Drivers"><a href="#Frameworks-amp-Drivers" class="headerlink" title="Frameworks &amp; Drivers"></a>Frameworks &amp; Drivers</h3><p>库和驱动层，代表了选用的各种具体的实现技术，例如持久层使用SQLite还是Core Data，网络层使用NSURLSession、NSURLConnection还是AFNetworking等。</p>
 <h3 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h3><p>可以看到，Clean Architecture里已经出现了Use Case、Interactor、Presenter等概念，它为VIPER的工程实现提供了设计思想，VIPER将它的设计转化成了具体的实现。VIPER里的各部分正是存在着由外向内的依赖，从外向内表现为：<code>View -&gt; Presenter -&gt; Interactor -&gt; Entity</code>，<code>Wireframe</code>严格来说也是一类特殊的Use Case，用于不同模块之间通信，连接了不同的<code>Presenter</code>。</p>
@@ -696,11 +696,12 @@
 <li>Model提供数据模型</li>
 <li>View负责视图展示</li>
 <li>ViewModel用于描述View的状态，例如View的颜色、显示的文字等属性类的信息，将View抽象成了一个特殊的模型</li>
-<li>Controller通过修改ViewModel来更新View，并且负责事件处理，维护Model</li>
+<li>Controller(Presenter)通过修改ViewModel来更新View，并且负责事件处理，维护Model</li>
 </ul>
-<p>在MVP中，View通过接口的方式来描述自己，在MVVM中，则通过ViewModel来描述自己的特征。那么ViewModel如何将自己的变化更新到View上呢？MVVM经常和数据绑定一起出现，在Controller中，将View和ViewModel的属性用类似KVO的方式进行绑定，这样ViewModel的变化就能立即传输到View上。但是数据绑定的缺点也很明显：调试困难，数据来源难以回溯，在线上出bug的时候就很难追踪了。</p>
+<p>在MVP中，View通过接口的方式来描述自己，在MVVM中，则通过ViewModel来描述自己的特征。那么ViewModel如何将自己的变化更新到View上呢？MVVM经常和数据绑定一起出现，在Controller中，将View和ViewModel的属性用类似KVO的方式进行绑定，这样ViewModel的变化就能立即传输到View上。注意，这里的Controller不是UIViewController，而是负责模块业务逻辑的一个角色，类似于Presenter。</p>
+<p>但是数据绑定的缺点也很明显：调试困难，数据来源难以回溯，在线上出bug的时候就很难追踪了。</p>
 <p>其实数据绑定只是一种为了减少胶水代码的技术实现方式，MVVM的设计并没有要求必须要使用数据绑定，你也完全可以使用protocol的方式来将ViewModel的变化传递给View，让数据流向更清晰。MVVM的关键是将View进行了抽象，并且这个抽象很容易在其他Controller中复用。</p>
-<p>Controller在绑定完View和ViewModel之后，就不应该在其他地方使用View了。你也可以单独用一个ViewModelManager来负责设置ViewModel和View之间的数据传递。而其他的业务代码，还是放在Controller中，ViewModel应该只负责管理View相关的状态、传递View的事件，不应该存在本属于Controller中的其他业务。当然如果你不打算重用这个ViewModel的话，也可以在ViewModel里加入一些和Model相关的业务逻辑，只不过基于单一职责原则，这么做是不好的。</p>
+<p>Controller在绑定完View和ViewModel之后，就不应该在其他地方使用View了。你也可以单独用一个ViewModelManager来负责设置ViewModel和View之间的数据传递。而其他的业务代码，还是放在Controller中，ViewModel应该只负责管理View相关的状态、传递View的事件，不应该存在本属于Controller中的其他业务。当然如果你不打算重用这个ViewModel的话，也可以在ViewModel里加入一些和Model相关的业务逻辑，维护Model，只不过基于单一职责原则，这么做是不好的。</p>
 <p>和MVP相比，MVVM用了一种更优雅的方式来抽象View。但它和MVP其实是类似的，仍然没有对Controller进行进一步的细分。</p>
 <p>那么如何对Controller进行进一步的职责细分呢？答案就是VIPER。</p>
 <h2 id="VIPER"><a href="#VIPER" class="headerlink" title="VIPER"></a>VIPER</h2><p>VIPER的全称是<code>View-Interactor-Presenter-Entity-Router</code>。示意图如下：</p>

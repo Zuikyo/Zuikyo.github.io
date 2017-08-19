@@ -113,7 +113,7 @@
 <meta property="og:image" content="http://upload-images.jianshu.io/upload_images/1865432-e71eed65c555ddc5.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240">
 <meta property="og:image" content="http://upload-images.jianshu.io/upload_images/1865432-a204e884cdb08f63.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240">
 <meta property="og:image" content="http://upload-images.jianshu.io/upload_images/1865432-2a5e4eaf6275caba.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240">
-<meta property="og:updated_time" content="2017-08-13T07:33:27.220Z">
+<meta property="og:updated_time" content="2017-08-19T14:54:10.830Z">
 <meta name="twitter:card" content="summary">
 <meta name="twitter:title" content="iOS VIPER架构实践(二)：VIPER详解与实现">
 <meta name="twitter:description" content="第一篇文章对VIPER进行了简单的介绍，这篇文章将从VIPER的源头开始，比较现有的几种VIPER实现，对VIPER进行进一步的职责剖析，并对各种细节实现问题进行挖掘和探讨。最后给出两个完整的VIPER实现，并且提供快速生成VIPER代码的模板。
@@ -363,7 +363,7 @@
 <p>越靠近内层，越变得抽象，越接近设计的核心。越靠近外层，越和具体的平台和实现技术相关。内层的部分完全不知道外层的存在和实现方式，代码只能从外层向内层引用，目的是为了实现层与层之间的隔离。将不同抽象程度的层进行隔离，做到了把业务规则和具体实现分离开。你可以把外层看作是内层的delegate，外层只能通过内层提供的delegate接口来使用内层。</p>
 <h3 id="Enterprise-Business-Rules"><a href="#Enterprise-Business-Rules" class="headerlink" title="Enterprise Business Rules"></a>Enterprise Business Rules</h3><p>代表了这个软件项目的业务规则。由数据实体体现，是一些可以在不同的程序应用之间共享的数据结构。</p>
 <h3 id="Application-Business-Rules"><a href="#Application-Business-Rules" class="headerlink" title="Application Business Rules"></a>Application Business Rules</h3><p>代表了本应用所使用的一些业务规则。封装和实现了用到的业务功能，会将各种实体的数据结构转为在用例中传递的实体类，但是和具体的数据库技术或者UI无关。</p>
-<h3 id="Interface-Adapters"><a href="#Interface-Adapters" class="headerlink" title="Interface Adapters"></a>Interface Adapters</h3><p>接口适配层。将用例的规则和具体的实现技术进行抽象地对接，将用例中用到的实体类转为供数据库存储的格式或者供View展示的格式。类似于MVVM中把Model转为ViewModel供View显示。</p>
+<h3 id="Interface-Adapters"><a href="#Interface-Adapters" class="headerlink" title="Interface Adapters"></a>Interface Adapters</h3><p>接口适配层。将用例的规则和具体的实现技术进行抽象地对接，将用例中用到的实体类转为供数据库存储的格式或者供View展示的格式。类似于MVVM中把Model的数据传递给ViewModel供View显示。</p>
 <p>右下角表示了接口适配层中不同模块间的通信方式。不同的模块在业务用例中产生关联和数据传递。Input、Output就是Use Case提供给外层的数据流动接口。</p>
 <h3 id="Frameworks-amp-Drivers"><a href="#Frameworks-amp-Drivers" class="headerlink" title="Frameworks &amp; Drivers"></a>Frameworks &amp; Drivers</h3><p>库和驱动层，代表了选用的各种具体的实现技术，例如持久层使用SQLite还是Core Data，网络层使用NSURLSession、NSURLConnection还是AFNetworking等。</p>
 <h3 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h3><p>可以看到，Clean Architecture里已经出现了Use Case、Interactor、Presenter等概念，它为VIPER的工程实现提供了设计思想，VIPER将它的设计转化成了具体的实现。VIPER里的各部分正是存在着由外向内的依赖，从外向内表现为：<code>View -&gt; Presenter -&gt; Interactor -&gt; Entity</code>，<code>Wireframe</code>严格来说也是一类特殊的Use Case，用于不同模块之间通信，连接了不同的<code>Presenter</code>。</p>
