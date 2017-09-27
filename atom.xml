@@ -5,7 +5,7 @@
   <link href="/atom.xml" rel="self"/>
   
   <link href="http://yoursite.com/"/>
-  <updated>2017-08-21T07:01:52.000Z</updated>
+  <updated>2017-09-27T15:38:47.640Z</updated>
   <id>http://yoursite.com/</id>
   
   <author>
@@ -14,6 +14,389 @@
   </author>
   
   <generator uri="http://hexo.io/">Hexo</generator>
+  
+  <entry>
+    <title>iOS VIPER架构实践(三)：面向接口的路由设计</title>
+    <link href="http://yoursite.com/2017/09/27/iOS%20VIPER%E6%9E%B6%E6%9E%84%E5%AE%9E%E8%B7%B5(%E4%B8%89)%EF%BC%9A%E5%9F%BA%E4%BA%8E%E6%8E%A5%E5%8F%A3%E7%9A%84%E8%B7%AF%E7%94%B1%E8%AE%BE%E8%AE%A1/"/>
+    <id>http://yoursite.com/2017/09/27/iOS VIPER架构实践(三)：基于接口的路由设计/</id>
+    <published>2017-09-27T15:36:00.000Z</published>
+    <updated>2017-09-27T15:38:47.640Z</updated>
+    
+    <content type="html"><![CDATA[<p>路由是实现模块间解耦的一个有效工具。如果要进行组件化开发，路由是必不可少的一部分。目前iOS上绝大部分的路由工具都是基于URL匹配的，优缺点都很明显。这篇文章里将会给出一个更加原生和安全的设计，这个设计的特点是：</p>
+<ul>
+<li>路由时用protocol寻找模块</li>
+<li><strong>可以对模块进行固定的依赖注入和运行时依赖注入</strong></li>
+<li><strong>支持不同模块间进行接口适配和转发，因此无需和某个固定的protocol关联</strong></li>
+<li><strong>充分解耦的同时，增加类型安全</strong></li>
+<li>支持移除已执行的路由</li>
+<li>封装UIKit界面跳转方法，可以一键跳转和移除</li>
+<li>支持storyboard，支持其他任意模块</li>
+<li>可以检测界面跳转时的大部分错误</li>
+</ul>
+<p>如果你想要一个能够充分解耦、类型安全、有依赖注入功能的路由器，那这个就是目前所能找到的最佳方案。</p>
+<p>这个路由工具是为了实践VIPER模式而设计的，目的是为VIPER提供依赖注入功能，不过它也可以用于MVC、MVP、MVVM，没有任何限制。</p>
+<p>工具和Demo地址：<a href="https://github.com/Zuikyo/ZIKRouter" target="_blank" rel="external">ZIKRouter</a>。</p>
+<h2 id="目录"><a href="#目录" class="headerlink" title="目录"></a>目录</h2><ul>
+<li>Router的作用<ul>
+<li>路由缺失时的情况</li>
+<li>寻找模块</li>
+<li>声明依赖和接口</li>
+<li>Builder和依赖注入</li>
+</ul>
+</li>
+<li>现有的Router<ul>
+<li>URL Router<ul>
+<li>优点<ul>
+<li>极高的动态性</li>
+<li>统一多端路由规则</li>
+<li>适配URL scheme</li>
+</ul>
+</li>
+<li>缺点<ul>
+<li>不适合通用模块</li>
+<li>安全性差</li>
+<li>维护困难</li>
+</ul>
+</li>
+</ul>
+</li>
+<li>Protocol Router<ul>
+<li>优点 <ul>
+<li>安全性好，维护简单  </li>
+<li>适用于所有模块</li>
+<li>优雅地声明依赖</li>
+</ul>
+</li>
+<li>缺点<ul>
+<li>动态性有限</li>
+<li>需要额外适配URL Scheme</li>
+</ul>
+</li>
+<li>Protocol是否会导致耦合？<ul>
+<li>业务设计的互相关联</li>
+<li><code>Required Interface</code> 和 <code>Provided Interface</code></li>
+</ul>
+</li>
+</ul>
+</li>
+<li>Target-Action<ul>
+<li>优点</li>
+<li>缺点</li>
+</ul>
+</li>
+<li>UIStoryboardSegue</li>
+<li>总结</li>
+</ul>
+</li>
+<li>ZIKRouter的特性<ul>
+<li>离散式管理</li>
+<li>自由定义路由参数</li>
+<li>移除已执行的路由</li>
+<li>通过protocol获取对应模块<ul>
+<li>Protocol作为匹配标识</li>
+<li>多对一匹配</li>
+</ul>
+</li>
+<li>依赖注入和依赖声明<ul>
+<li>固定依赖和运行时依赖</li>
+<li>直接在头文件中声明</li>
+</ul>
+</li>
+<li>使用泛型指明特定router</li>
+<li>类型安全<ul>
+<li>传入正确的protocol</li>
+<li>泛型的协变和逆变</li>
+</ul>
+</li>
+<li>用Adapter兼容接口<ul>
+<li>为<code>Provided</code>模块添加<code>Required Interface</code></li>
+<li>用中介者转发接口</li>
+</ul>
+</li>
+<li>封装UIKit跳转和移除方法<ul>
+<li>封装iOS的路由方法</li>
+<li>识别<code>adaptative</code>类型的路由</li>
+<li>支持自定义路由</li>
+<li>关于extension里的跳转方法</li>
+</ul>
+</li>
+<li>支持storyboard</li>
+<li>AOP</li>
+<li>路由错误检查</li>
+<li>支持任意模块</li>
+<li>性能</li>
+</ul>
+</li>
+<li>项目地址和Demo</li>
+</ul>
+<h2 id="Router的作用"><a href="#Router的作用" class="headerlink" title="Router的作用"></a>Router的作用</h2><p>首先，我们需要梳理清楚，为什么我们需要Router，Router能带来什么好处，解决什么问题？我们需要一个什么样的Router？</p>
+<h3 id="路由缺失时的情况"><a href="#路由缺失时的情况" class="headerlink" title="路由缺失时的情况"></a>路由缺失时的情况</h3><p>没有路由时，界面跳转的代码就很容易产生模块间耦合。</p>
+<p>iOS中执行界面跳转时，用的是UIViewController上提供的跳转方法：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line">[sourceViewController.navigationController pushViewController:destinationViewController animated:YES];</div></pre></td></tr></table></figure>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line">[sourceViewController presentViewController:destinationViewController animated:YES completion:nil];</div></pre></td></tr></table></figure>
+<p>如果是直接导入destinationViewController的头文件进行引用，就会导致和destinationViewController模块产生耦合。类似的，一个模块引用另一个模块时也会产生这样的耦合。因此我们需要一个方式来获取destinationViewController，但又不能对其产生直接引用。</p>
+<p>这时候就需要路由提供的”寻找模块”的功能。以某种动态的方式获取目的模块。</p>
+<p>那么路由是怎么解决模块耦合的呢？在上一篇VIPER讲解里，路由有这几个主要职责：</p>
+<ul>
+<li>寻找指定模块，执行具体的路由操作</li>
+<li>声明模块的依赖</li>
+<li>声明模块的对外接口</li>
+<li>对模块内各部分进行依赖注入</li>
+</ul>
+<p>通过这几个功能，就能实现模块间的完全解耦。</p>
+<h3 id="寻找模块"><a href="#寻找模块" class="headerlink" title="寻找模块"></a>寻找模块</h3><p>路由最重要的功能就是给出一种寻找某个指定模块的方案。这个方案是松耦合的，获取到的模块在另一端可以随时被另一个相同功能的模块替换，从而实现两个模块之间的解耦。</p>
+<p>寻找模块的实现方式其实只有有限的几种：</p>
+<ul>
+<li>用一个字符串identifier来标识某个对应的界面（URL Router、UIStoryboardSegue）</li>
+<li>利用Objective-C的runtime特性，直接调用目的模块的方法（CTMediator）</li>
+<li>用一个protocol来和某个界面进行匹配（蘑菇街的第二种路由和阿里的BeeHive），这样就可以更安全的对目的模块进行传参</li>
+</ul>
+<p>这几种方案的优劣将在之后逐一细说。</p>
+<h3 id="声明依赖和接口"><a href="#声明依赖和接口" class="headerlink" title="声明依赖和接口"></a>声明依赖和接口</h3><p>一个模块A有时候需要使用其他模块的功能，例如最通用的log功能，不同的app有不同的log模块，如果模块A对通用性要求很高，log方法就不能在模块A里写死，而是应该通过外部调用。这时这个模块A就依赖于一个log模块了。App在使用模块A的时候，需要知道它的依赖，从而在使用模块A之前，对其注入依赖。</p>
+<p>当通过cocoapods这样的包管理工具来配置不同模块间的依赖时，一般模块之间是强耦合的，模块是一一对应的，当需要替换一个模块时会很麻烦，容易牵一发而动全身。如果是一个单一功能模块，的确需要依赖其他特定的各种库时，那这样做没有问题。但是如果是一个业务模块中引用了另一个业务模块，就应该尽量避免互相耦合。因为不同的业务模块一般是由不同的人负责，应该避免出现一个业务模块的简单修改（例如调整了方法或者属性的名字）导致引用了它的业务模块也必须修改的情况。</p>
+<p>这时候，业务模块就需要在代码里声明自己需要依赖的模块，让app在使用时提供这些模块，从而充分解耦。</p>
+<p>示例代码：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div></pre></td><td class="code"><pre><div class="line">@protocol ZIKLoginServiceInput &lt;NSObject&gt;</div><div class="line">- (void)loginWithAccount:(NSString *)account</div><div class="line">                password:(NSString *)password</div><div class="line">                 success:(void(^_Nullable)(void))successHandler</div><div class="line">                   error:(void(^_Nullable)(void))errorHandler;</div><div class="line">@end</div></pre></td></tr></table></figure>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div></pre></td><td class="code"><pre><div class="line">@interface ZIKNoteListViewController ()</div><div class="line">//笔记界面需要登录后才能查看，因此在头文件中声明，让外部在使用的时候设置此属性</div><div class="line">@property (nonatomic, strong) id&lt;ZIKLoginServiceInput&gt; loginService;</div><div class="line">@end</div></pre></td></tr></table></figure>
+<p>这个声明依赖的工作其实是模块的Builder的职责。一个界面模块大部分情况下都不止有一个UIViewController，也有其他一些Manager或者Service，而这些角色都是有各自的依赖的，都统一由模块的Builder声明，再在Builder内部设置依赖。不过在上一篇文章的VIPER讲解里，我们把Builder的职责也放到了Router里，让每个模块单独提供一个自己的Router。因此在这里，Router是一个离散的设计，而不是一个单例Router掌管所有的路由。这样的好处就是每个模块可以充分定制和控制自己的路由过程。</p>
+<p>可以声明依赖，也就可以同时声明模块的对外接口。这两者很相似，所以不再重复说明。</p>
+<h3 id="Builder和依赖注入"><a href="#Builder和依赖注入" class="headerlink" title="Builder和依赖注入"></a>Builder和依赖注入</h3><p>执行路由的同时用Builder进行模块构建，构建的时候就对模块内各个角色进行依赖注入。当你调用某个模块的时候，需要的不是某个简单的具体类，而是一个构建完毕的模块中的某个具体类。在使用这个模块前，模块需要做一些初始化的操作，比如VIPER里设置各个角色之间的依赖关系，就是一个初始化操作。因此使用路由去获取某个模块中的类，必定需要通过模块的Builder进行。很多路由工具都缺失了这部分功能。</p>
+<p>你可以把依赖注入简单地看成对目的模块传参。在进行界面跳转和使用某个模块时，经常需要设置目的模块的一些参数，例如设置delegate回调。这时候就必须调用一些目的模块的方法，或者传递一些对象。由于每个模块需要的参数都不一样，目前大部分Router都是使用字典包裹参数进行传递。但其实还有更好、更安全的方案，下面将会进行详解。</p>
+<p>你也可以把Router、Builder和Dependency Injector分开，不过如果Router是一个离散型的设计，那么都交给各自的Router去做也很合理，同时能够减少代码量，也能够提供细粒度的AOP。</p>
+<h2 id="现有的Router"><a href="#现有的Router" class="headerlink" title="现有的Router"></a>现有的Router</h2><p>梳理完了路由的职责，现在来比较一下现有的各种Router方案。关于各个方案的具体实现细节我就不再展开看，可以参考这篇详解的文章：<a href="http://www.jianshu.com/p/76da56b3bd55" target="_blank" rel="external">iOS 组件化 —— 路由设计思路分析</a>。</p>
+<h3 id="URL-Router"><a href="#URL-Router" class="headerlink" title="URL Router"></a>URL Router</h3><p>目前绝大多数的Router都是用一串URL来表示需要打开的某个界面，代码上看来大概是这样：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div></pre></td><td class="code"><pre><div class="line">//注册某个URL，和路由处理进行匹配保存</div><div class="line">[URLRouter registerURL:@&quot;settings&quot; handler:^(NSDictionary *userInfo) &#123;</div><div class="line">	UIViewController *sourceViewController = userInfo[@&quot;sourceViewController&quot;];</div><div class="line">	//获取其他参数</div><div class="line">	id param = userInfo[@&quot;param&quot;];</div><div class="line">	//获取需要的界面</div><div class="line">	UIViewController *settingViewController = [[SettingViewController alloc] init];</div><div class="line">	[sourceViewController.navigationController pushViewController: settingViewController animated:YES];</div><div class="line">&#125;];</div></pre></td></tr></table></figure>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div></pre></td><td class="code"><pre><div class="line">//调用路由</div><div class="line">[URLRouter openURL:@&quot;myapp://noteList/settings?debug=true&quot; userInfo:params completion:^(NSDictionary *info) &#123;</div><div class="line"></div><div class="line">&#125;];</div></pre></td></tr></table></figure>
+<p>传递一串URL就能打开noteList界面的settings界面，用字典包裹需要传递的参数，有时候还会把UIKit的push、present等方法进行简单封装，提供给调用者。</p>
+<p>这种方式的优点和缺点都很突出。</p>
+<h4 id="优点"><a href="#优点" class="headerlink" title="优点"></a>优点</h4><h5 id="极高的动态性"><a href="#极高的动态性" class="headerlink" title="极高的动态性"></a>极高的动态性</h5><p>这是动态性最高的方案，甚至可以在运行时随时修改路由规则，指向不同的界面。也可以很轻松地支持多级页面的跳转。</p>
+<p>如果你的app是电商类app，需要经常做活动，app内的跳转规则经常变动，那么就很适合使用URL的方案。</p>
+<h5 id="统一多端路由规则"><a href="#统一多端路由规则" class="headerlink" title="统一多端路由规则"></a>统一多端路由规则</h5><p>URL的方案是最容易跨平台实现的，iOS、Andorid、web、PC都按照URL来进行路由时，也就可以统一管理多端的路由规则，降低多端各自维护和修改的成本，让不懂技术的运营人员也可以简单快速地修改路由。</p>
+<p>和上一条一样，这也是一个和业务强相关的优点。如果你有统一多端的业务需求，使用URL也很合适。</p>
+<h5 id="适配URL-scheme"><a href="#适配URL-scheme" class="headerlink" title="适配URL scheme"></a>适配URL scheme</h5><p>iOS中的URL scheme可以跨进程通信，从app外打开app内的某个指定页面。当app内的页面都能使用URL打开时，也就直接兼容了URL scheme，无需再做额外的工作。</p>
+<h4 id="缺点"><a href="#缺点" class="headerlink" title="缺点"></a>缺点</h4><h5 id="不适合通用模块"><a href="#不适合通用模块" class="headerlink" title="不适合通用模块"></a>不适合通用模块</h5><p>URL Router的设计只适合UI模块，不适合其他功能性模块的组件。功能性模块的调用并不需要如此强的动态特性，除非是有模块热更新的需求，否则一个模块的调用在一个版本里应该总是稳定不变的，即便要进行模块间解耦，也不应该用这种方式。</p>
+<h5 id="安全性差"><a href="#安全性差" class="headerlink" title="安全性差"></a>安全性差</h5><p>字符串匹配的方式无法进行编译时检查，当页面配置出错时，只能在运行时才能发现。如果某个开发人员不小心在字符串里加了一个空格，编译时也无法发现。你可以用宏定义来减少这种出错的几率。</p>
+<h5 id="维护困难"><a href="#维护困难" class="headerlink" title="维护困难"></a>维护困难</h5><p>没有高效地声明接口的方式，只能从文档里查找，编写时必须仔细对照字符串及其参数类型。</p>
+<p>传参通过字典来进行，参数类型无法保证，而且也无法准确地知道所调用的接口需要哪些参数。当目的模块进行了接口升级，修改了参数类型和数量，那所有用到的地方都要一一修改，并且没有编译器的帮助，你无法知道是否遗漏了某些地方。这将会给维护和重构带来极大的成本。</p>
+<p>针对这个问题，蘑菇街的选择是用另一个Router，用protocol来获取目的模块，再进行调用，增加安全性。</p>
+<h3 id="Protocol-Router"><a href="#Protocol-Router" class="headerlink" title="Protocol Router"></a>Protocol Router</h3><p>这个方案也很容易理解。把之前的字符串匹配改成了protocol匹配，就能获取到一个实现了某个protocol的对象。</p>
+<p>开源方案里只看到了<a href="https://github.com/alibaba/BeeHive" target="_blank" rel="external">BeeHive</a>实现了这样的方式：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line">id&lt;ZIKLoginServiceInput&gt; loginService = [[BeeHive shareInstance] createService:@protocol(ZIKLoginServiceInput)];</div></pre></td></tr></table></figure>
+<h4 id="优点-1"><a href="#优点-1" class="headerlink" title="优点"></a>优点</h4><h5 id="安全性好，维护简单"><a href="#安全性好，维护简单" class="headerlink" title="安全性好，维护简单"></a>安全性好，维护简单</h5><p>再对这个对象调用protocol中的方法，就十分安全了。在重构和修改时，有了编译器的类型检查，效率更高。</p>
+<h5 id="适用于所有模块"><a href="#适用于所有模块" class="headerlink" title="适用于所有模块"></a>适用于所有模块</h5><p>Protocol更加符合OC和Swift原生的设计思想，任何模块都可以使用，而不局限于UI模块。</p>
+<h5 id="优雅地声明依赖"><a href="#优雅地声明依赖" class="headerlink" title="优雅地声明依赖"></a>优雅地声明依赖</h5><p>模块A需要用到登录模块，但是它要怎么才能声明这种依赖关系呢？如果使用Protocol Router，那就只需要在头文件里定义一个属性：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line">@property (nonatomic, string) id&lt;ZIKLoginServiceInput&gt; *loginService;</div></pre></td></tr></table></figure>
+<p>如果这个依赖是必需依赖，而不是一个可选依赖，那就添加到初始化参数里：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div></pre></td><td class="code"><pre><div class="line">@interface ModuleA ()</div><div class="line">- (instancetype)initWithLoginService:(id&lt;ZIKLoginServiceInput&gt;)loginService;</div><div class="line">@end</div></pre></td></tr></table></figure>
+<p>问题是，如果这样的依赖很多，那么初始化方法就会变得很长。因此更好的做法是由Builder进行固定的依赖注入，再提供给外部。目前BeeHive并没有提供依赖注入的功能。</p>
+<h4 id="缺点-1"><a href="#缺点-1" class="headerlink" title="缺点"></a>缺点</h4><h5 id="动态性有限"><a href="#动态性有限" class="headerlink" title="动态性有限"></a>动态性有限</h5><p>你可以维护一份protocol和模块的对照表，使用动态的protocol来尝试动态地更改路由规则，也可以在Protocol Router之上封装一层URL Router专门用于动态性的需求。</p>
+<h5 id="需要额外适配URL-Scheme"><a href="#需要额外适配URL-Scheme" class="headerlink" title="需要额外适配URL Scheme"></a>需要额外适配URL Scheme</h5><p>使用了Protocol Router就需要再额外处理URL Scheme了。不过这样也是正常的，解析URL Scheme本来就应该放到另一个单独的模块里。</p>
+<h4 id="Protocol是否会导致耦合？"><a href="#Protocol是否会导致耦合？" class="headerlink" title="Protocol是否会导致耦合？"></a>Protocol是否会导致耦合？</h4><p>很多谈到这种方案的文章都会指出，和URL Router相比，Protocol Router会导致调用者引用目的模块的protocol，因此会产生”耦合”。我认为这是对”解耦”的错误理解。</p>
+<p>要想避免耦合，首先要弄清楚，我们需要什么程度的解耦。我的定义是：模块A调用了模块B，模块B的接口或者实现在做出简单的修改时，或者模块B被替换为相同功能的模块C时，模块A不需要进行任何修改。这时候就可以认为模块A和模块B是解耦的。</p>
+<h5 id="业务设计的互相关联"><a href="#业务设计的互相关联" class="headerlink" title="业务设计的互相关联"></a>业务设计的互相关联</h5><p>有些时候，表达出两个模块之间的关联是有意义的。</p>
+<p>当一个界面A需要展示一个登录界面时，它可能需要向登录界面传递一个”提示语”参数，用于在登录界面显示一串提示。这时候，界面A在调用登录界面时，是要求登录界面能够显示这个自定义提示语的，在业务设计中就存在两个模块间的强关联性。这时候，URL Router和Protocol Router没有任何区别，包括下面将要提到的<code>Target-Action</code>路由方式，都存在耦合，但是Protocol Router通过简单地改善，是可以把这部分耦合去除的。</p>
+<p>URL Router：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line">[URLRouter openURL:@&quot;login&quot; userInfo:@&#123;@&quot;message&quot;:@&quot;请登录查看笔记详情&quot;&#125;];</div></pre></td></tr></table></figure>
+<p>Protocol Router:</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div></pre></td><td class="code"><pre><div class="line">@protocol LoginViewInput &lt;NSObject&gt;</div><div class="line">@property (nonatomic, copy) NSString *message;</div><div class="line">@end</div><div class="line"></div><div class="line">//获取登录界面进行设置</div><div class="line">UIViewController&lt;LoginViewInput&gt; *loginViewController = [ProtocolRouter destinationForProtocol:@protocol(LoginViewInput)];</div><div class="line">loginViewController.message = @&quot;请登录查看笔记详情&quot;;</div></pre></td></tr></table></figure>
+<p>由于字典传参的原因，URL Router只不过是把这种接口上的关联隐藏到了字典key里，它在参数字典里使用<code>@&quot;message&quot;</code>时，就是在隐式地使用<code>LoginViewInput</code>的接口。</p>
+<p>这种业务设计上导致的模块之间互相关联是不可避免的，也是不需要去隐藏的。隐藏了反而会引来麻烦。如果登录界面的属性名字变了，从<code>NSString *message</code>改成了<code>NSString *notifyString</code>，那么URL Router在register的时候也必须修改传参时的代码。如果register是由登录界面自己执行和处理的，而不是由App Context来处理的，那么此时参数key是固定为<code>@&quot;notifyString&quot;</code>的，那就会要求所有调用者的传参key也修改为<code>notifyString</code>，这种修改如果缺少编译器的帮助会很危险，目前是用宏来减少这种修改导致的工作量。而Protocol Router在修改时就能充分利用编译器进行检查，能够保证100%安全。</p>
+<p>因此，URL Router并不能做到解耦，只是隐藏了接口关联而已。一旦遇到了需要修改或者重构的情况，麻烦就出现了，在替换宏的时候，你还必须仔细检查有没有哪里有直接使用字符串的key。只是简单地修改名字还是可控的，如果是需要增加参数呢？这时候就根本无法检查哪里遗漏了参数传递了。这就是字典传参的坏处。</p>
+<p>关于这部分的讨论，也可以参考Peak大佬的文章：<a href="http://mrpeak.cn/blog/module/" target="_blank" rel="external">iOS组件化方案</a>。</p>
+<p>Protocol Router在这种情况下也需要作出修改，但是它能帮助你安全高效地进行重构。而且只要稍加改进，也可以完全无需修改。解决方法就是把Protocol分离为<code>Required Interface</code>和<code>Provided Interface</code>。</p>
+<h5 id="Required-Interface-和-Provided-Interface"><a href="#Required-Interface-和-Provided-Interface" class="headerlink" title="Required Interface 和 Provided Interface"></a><code>Required Interface</code> 和 <code>Provided Interface</code></h5><p>模块的接口其实是有<code>Required Interface</code>和<code>Provided Interface</code>的区别的。<code>Required Interface</code>就是调用者需要用到的接口，<code>Provided Interface</code>就是实际的被调用者提供的接口。</p>
+<p>在UML的<a href="http://www.uml-diagrams.org/component-diagrams.html" target="_blank" rel="external">组件图</a>中，就很明确地表现出了这两者的概念。下图中的半圆就是<code>Required Interface</code>，框外的圆圈就是<code>Provided Interface</code>：</p>
+<p><img src="http://upload-images.jianshu.io/upload_images/5879294-6309bffe07ebf178.png?imageMogr2/auto-orient/strip%7CimageView2/2" alt="组件图"></p>
+<p>那么如何实施<code>Required Interface</code>和<code>Provided Interface</code>？上一篇文章里已经讨论过，应该由App Context在一个adapter里进行接口适配，从而使得调用者可以继续在内部使用<code>Required Interface</code>，adapter负责把<code>Required Interface</code>和修改后的<code>Provided Interface</code>进行适配。</p>
+<p>示例代码：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div></pre></td><td class="code"><pre><div class="line">@protocol ModuleARequiredLoginViewInput &lt;NSObject&gt;</div><div class="line">@property (nonatomic, copy) NSString *message;</div><div class="line">@end</div><div class="line"></div><div class="line">//Module A中的调用代码</div><div class="line">UIViewController&lt;ModuleARequiredLoginViewInput&gt; *loginViewController = [ProtocolRouter destinationForProtocol:@protocol(LoginViewInput)];</div><div class="line">loginViewController.message = @&quot;请登录查看笔记详情&quot;;</div></pre></td></tr></table></figure>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div></pre></td><td class="code"><pre><div class="line">//Login Module Provided Interface</div><div class="line">@protocol ProvidedLoginViewInput &lt;NSObject&gt;</div><div class="line">@property (nonatomic, copy) NSString *notifyString;</div><div class="line">@end</div></pre></td></tr></table></figure>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div></pre></td><td class="code"><pre><div class="line">//App Context 中的 Adapter，用Objective-C的category或者Swift的extension进行接口适配</div><div class="line">@interface LoginViewController (ModuleAAdapte) &lt;ModuleARequiredLoginViewInput&gt;</div><div class="line">@property (nonatomic, copy) NSString *message;</div><div class="line">@end</div><div class="line">@implementation LoginViewController (ModuleAAdapte)</div><div class="line">- (void)setMessage:(NSString *)message &#123;</div><div class="line">	self.notifyString = message;</div><div class="line">&#125;</div><div class="line">- (NSString *)message &#123;</div><div class="line">	return self.notifyString;</div><div class="line">&#125;</div><div class="line">@end</div></pre></td></tr></table></figure>
+<p>用category、extension、NSProxy等技术兼容新旧接口，工作全部由模块的使用和装配者<code>App Context</code>完成。如果<code>LoginViewController</code>已经有了自己的<code>message</code>属性，这时候就说明新的登录模块是不可兼容的，必须有某一方做出修改。当然，接口适配能做的事情是有限的，例如一个接口从同步变成了异步，那么这时候两个模块也是不能兼容的。</p>
+<p>因此，如果模块需要进行解耦，那么它的接口在设计的时候就应该十分仔细，尽量不要在参数中引入太多其他的模块依赖。</p>
+<p>只有存在<code>Required Interface</code>和<code>Provided Interface</code>概念的设计，才能做到彻底的解耦。目前的路由方案都缺失了这一部分。</p>
+<h3 id="Target-Action"><a href="#Target-Action" class="headerlink" title="Target-Action"></a>Target-Action</h3><p><a href="https://casatwy.com/iOS-Modulization.html" target="_blank" rel="external">CTMediator</a>的方案，把对模块的调用封装到Target-Action中，利用了Objective-C的runtime特性，省略了Target-Action的注册和绑定工作，直接通过CTMediator中介者调用目的模块的方法。</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div></pre></td><td class="code"><pre><div class="line">@implementation CTMediator (CTMediatorModuleAActions)</div><div class="line">- (UIViewController *)CTMediator_viewControllerForDetail</div><div class="line">&#123;</div><div class="line">    UIViewController *viewController = [self performTarget:kCTMediatorTargetA</div><div class="line">                                                    action:kCTMediatorActionNativFetchDetailViewController</div><div class="line">                                                    params:@&#123;@&quot;key&quot;:@&quot;value&quot;&#125;</div><div class="line">                                         shouldCacheTarget:NO</div><div class="line">                                        ];</div><div class="line">    if ([viewController isKindOfClass:[UIViewController class]]) &#123;</div><div class="line">        // view controller 交付出去之后，可以由外界选择是push还是present</div><div class="line">        return viewController;</div><div class="line">    &#125; else &#123;</div><div class="line">        // 这里处理异常场景，具体如何处理取决于产品</div><div class="line">        return [[UIViewController alloc] init];</div><div class="line">    &#125;</div><div class="line">&#125;</div><div class="line">@end</div></pre></td></tr></table></figure>
+<p><code>-performTarget:action:params:shouldCacheTarget:</code>方法通过<code>NSClassFromString</code>，获取目的模块提供的Target类，再调用Target提供的Action，实现了方法调用：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div><div class="line">27</div><div class="line">28</div><div class="line">29</div><div class="line">30</div><div class="line">31</div><div class="line">32</div><div class="line">33</div><div class="line">34</div><div class="line">35</div><div class="line">36</div><div class="line">37</div><div class="line">38</div><div class="line">39</div><div class="line">40</div><div class="line">41</div><div class="line">42</div><div class="line">43</div><div class="line">44</div><div class="line">45</div><div class="line">46</div><div class="line">47</div></pre></td><td class="code"><pre><div class="line">@implementation CTMediator</div><div class="line">- (id)performTarget:(NSString *)targetName action:(NSString *)actionName params:(NSDictionary *)params shouldCacheTarget:(BOOL)shouldCacheTarget</div><div class="line">&#123;</div><div class="line">    </div><div class="line">    NSString *targetClassString = [NSString stringWithFormat:@&quot;Target_%@&quot;, targetName];</div><div class="line">    NSString *actionString = [NSString stringWithFormat:@&quot;Action_%@:&quot;, actionName];</div><div class="line">    Class targetClass;</div><div class="line">    </div><div class="line">    NSObject *target = self.cachedTarget[targetClassString];</div><div class="line">    if (target == nil) &#123;</div><div class="line">        targetClass = NSClassFromString(targetClassString);</div><div class="line">        target = [[targetClass alloc] init];</div><div class="line">    &#125;</div><div class="line">    </div><div class="line">    SEL action = NSSelectorFromString(actionString);</div><div class="line">    </div><div class="line">    if (target == nil) &#123;</div><div class="line">        // 这里是处理无响应请求的地方之一，这个demo做得比较简单，如果没有可以响应的target，就直接return了。实际开发过程中是可以事先给一个固定的target专门用于在这个时候顶上，然后处理这种请求的</div><div class="line">        return nil;</div><div class="line">    &#125;</div><div class="line">    </div><div class="line">    if (shouldCacheTarget) &#123;</div><div class="line">        self.cachedTarget[targetClassString] = target;</div><div class="line">    &#125;</div><div class="line"></div><div class="line">    if ([target respondsToSelector:action]) &#123;</div><div class="line">        return [self safePerformAction:action target:target params:params];</div><div class="line">    &#125; else &#123;</div><div class="line">        // 有可能target是Swift对象</div><div class="line">        actionString = [NSString stringWithFormat:@&quot;Action_%@WithParams:&quot;, actionName];</div><div class="line">        action = NSSelectorFromString(actionString);</div><div class="line">        if ([target respondsToSelector:action]) &#123;</div><div class="line">            return [self safePerformAction:action target:target params:params];</div><div class="line">        &#125; else &#123;</div><div class="line">            // 这里是处理无响应请求的地方，如果无响应，则尝试调用对应target的notFound方法统一处理</div><div class="line">            SEL action = NSSelectorFromString(@&quot;notFound:&quot;);</div><div class="line">            if ([target respondsToSelector:action]) &#123;</div><div class="line">                return [self safePerformAction:action target:target params:params];</div><div class="line">            &#125; else &#123;</div><div class="line">                // 这里也是处理无响应请求的地方，在notFound都没有的时候，这个demo是直接return了。实际开发过程中，可以用前面提到的固定的target顶上的。</div><div class="line">                [self.cachedTarget removeObjectForKey:targetClassString];</div><div class="line">                return nil;</div><div class="line">            &#125;</div><div class="line">        &#125;</div><div class="line">    &#125;</div><div class="line">&#125;</div><div class="line">@end</div></pre></td></tr></table></figure>
+<h4 id="优点-2"><a href="#优点-2" class="headerlink" title="优点"></a>优点</h4><ul>
+<li>实现简洁，整个实现的代码量很少</li>
+<li>省略了路由注册的步骤，可以减少一部分内存消耗和时间消耗，但是也略微降低了调用时的性能</li>
+<li>使用场景不局限于界面模块，所有模块都可以通过中介者调用</li>
+</ul>
+<h4 id="缺点-2"><a href="#缺点-2" class="headerlink" title="缺点"></a>缺点</h4><ul>
+<li>在调用action时使用字典传参，无法保证类型安全，维护困难</li>
+<li>直接使用runtime互相调用，难以明确地区分<code>Required Interface</code>和<code>Provided Interface</code>，因此其实无法实现完全解耦。和URL Router一样，在目的模块变化时，调用模块也必须做出修改</li>
+<li>过于依赖runtime特性，和Swift的类型安全设计是不兼容的，也无法跨平台多端实现</li>
+</ul>
+<h3 id="UIStoryboardSegue"><a href="#UIStoryboardSegue" class="headerlink" title="UIStoryboardSegue"></a>UIStoryboardSegue</h3><p>苹果的storyboard其实也有一套路由API，只不过它的局限性很大。在这里简单介绍一下：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div></pre></td><td class="code"><pre><div class="line">@implementation SourceViewController</div><div class="line"></div><div class="line">- (void)showLoginViewController &#123;</div><div class="line">	//调用在storyboard中定义好的segue identifier</div><div class="line">	[self performSegueWithIdentifier:@&quot;presentLoginViewController&quot; sender:nil];</div><div class="line">&#125;</div><div class="line"></div><div class="line">//perform segue时的回调</div><div class="line">- (BOOL)shouldPerformSegueWithIdentifier:(NSString *)identifier sender:(nullable id)sender &#123;</div><div class="line">    return YES;</div><div class="line">&#125;</div><div class="line"></div><div class="line">//配置目的界面</div><div class="line">- (void)prepareForSegue:(UIStoryboardSegue *)segue sender:(id)sender &#123;</div><div class="line">    //用[segue destinationViewController]获取目的界面，再对目的界面进行传参</div><div class="line">&#125;</div><div class="line">@end</div></pre></td></tr></table></figure>
+<p>UIStoryboardSegue是和storyboard一起使用的，storyboard中定义好了一些界面跳转的参数，比如转场方式（push、present等），在执行路由前，执行路由的UIViewController会收到回调，让调用者配置目的界面的参数。</p>
+<p>在storyboard中连接segue，其实是跳转到一个已经配置好界面的view controller，也就是和View相关的参数，都已经做好了依赖注入。但是自定义的依赖，却还是需要在代码中注入，所以又给了我们一个<code>-prepareForSegue:sender:</code>回调。</p>
+<p>我不建议使用segue，因为它会导致强耦合。但是我们可以借鉴UIStoryboardSegue的sourceViewController、destinationViewController、封装跳转逻辑到segue子类、对页面执行依赖注入等设计。</p>
+<h3 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h3><p>总结了几个路由工具之后，我的结论是：路由的选择还是以业务需求为先。当对动态性要求极高、或者需要多平台统一路由，则选择URL Router，其他情况下，我更倾向于使用Protocol Router。和Peak大大的结论一致。</p>
+<p>Protocol Router目前并没有一个成熟的开源方案。因此我造了个轮子，增加了上面提到的一些需求。</p>
+<h2 id="ZIKRouter的特性"><a href="#ZIKRouter的特性" class="headerlink" title="ZIKRouter的特性"></a>ZIKRouter的特性</h2><h3 id="离散式管理"><a href="#离散式管理" class="headerlink" title="离散式管理"></a>离散式管理</h3><p>每个模块都对应一个或者多个router子类，在子类中管理各自的路由过程，包括对象的生成、模块的初始化、路由状态管理、AOP等。路由时，需要使用对应的router子类，而不是一个单例router掌管所有的路由。如果想要避免引用子类带来的耦合，可以用protocol动态获取router子类，或者用父类+泛型在调用者中代替子类。</p>
+<p>采用离散式的设计的原因是想让各个模块对路由拥有充分的控制权。</p>
+<p>一个router子类的简单实现如下：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div><div class="line">27</div><div class="line">28</div><div class="line">29</div><div class="line">30</div><div class="line">31</div><div class="line">32</div><div class="line">33</div><div class="line">34</div><div class="line">35</div><div class="line">36</div><div class="line">37</div><div class="line">38</div><div class="line">39</div><div class="line">40</div></pre></td><td class="code"><pre><div class="line">@interface ZIKLoginViewRouter : ZIKViewRouter &lt;ZIKViewRouterProtocol&gt;</div><div class="line">@end</div><div class="line"></div><div class="line">@implementation ZIKLoginViewRouter</div><div class="line">//app启动时，注册对应的模块和Router</div><div class="line">//不使用+load和+initialize方法，因为在Swift中已经不适用</div><div class="line">+ (void)registerRoutableDestination &#123;</div><div class="line">    ZIKViewRouter_registerView([ZIKLoginViewController class], self);</div><div class="line">    ZIKViewRouter_registerViewProtocol(@protocol(ZIKLoginViewProtocol), self);</div><div class="line">&#125;</div><div class="line">//执行路由时，返回对应的viewController或者UIView</div><div class="line">- (id)destinationWithConfiguration:(__kindof ZIKRouteConfiguration *)configuration &#123;</div><div class="line">    UIStoryboard *sb = [UIStoryboard storyboardWithName:@&quot;Main&quot; bundle:nil];</div><div class="line">    ZIKLoginViewController *destination = [sb instantiateViewControllerWithIdentifier:@&quot;ZIKLoginViewController&quot;];</div><div class="line">    return destination;</div><div class="line">&#125;</div><div class="line">//检查模块是否已经初始化完毕</div><div class="line">+ (BOOL)destinationPrepared:(UIViewController&lt;ZIKLoginViewProtocol&gt; *)destination &#123;</div><div class="line">    if (destination.loginService != nil) &#123;</div><div class="line">        return YES;</div><div class="line">    &#125;</div><div class="line">    return NO;</div><div class="line">&#125;</div><div class="line">//初始化工作</div><div class="line">- (void)prepareDestination:(UIViewController&lt;ZIKLoginViewProtocol&gt; *)destination configuration:(__kindof ZIKViewRouteConfiguration *)configuration &#123;</div><div class="line">    if (destination.loginService == nil) &#123;</div><div class="line">        //ZIKLoginService也可以用ZIKServiceRouter动态获取</div><div class="line">        destination.loginService = [ZIKLoginService new];</div><div class="line">    &#125;</div><div class="line">&#125;</div><div class="line">//路由时的AOP回调</div><div class="line">+ (void)router:(nullable ZIKViewRouter *)router willPerformRouteOnDestination:(id)destination fromSource:(id)source &#123;</div><div class="line">&#125;</div><div class="line">+ (void)router:(nullable ZIKViewRouter *)router didPerformRouteOnDestination:(id)destination fromSource:(id)source &#123;</div><div class="line">&#125;</div><div class="line">+ (void)router:(nullable ZIKViewRouter *)router willRemoveRouteOnDestination:(id)destination fromSource:(id)source &#123;</div><div class="line">&#125;</div><div class="line">+ (void)router:(nullable ZIKViewRouter *)router didRemoveRouteOnDestination:(id)destination fromSource:(id)source &#123;</div><div class="line">&#125;</div><div class="line">@end</div></pre></td></tr></table></figure>
+<p>你甚至可以在不同情况下返回不同的destination，而调用者对此完全不知情。例如一个alertViewRouter为了兼容UIAlertView和UIAlertController，可以在router内部，iOS8以上使用UIAlertController，iOS8以下则使用UIAlertView。</p>
+<p>一切路由的控制都在router类内部，不需要模块做出任何额外的修改。</p>
+<h3 id="自由定义路由参数"><a href="#自由定义路由参数" class="headerlink" title="自由定义路由参数"></a>自由定义路由参数</h3><p>路由的配置信息都存储在configuration里，在调用者执行路由的时候传入。基本的跳转方法如下：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div></pre></td><td class="code"><pre><div class="line">//跳转到Login界面</div><div class="line">[ZIKLoginViewRouter performWithConfigure:^(ZIKViewRouteConfiguration *config) &#123;</div><div class="line">        //界面跳转时的源界面</div><div class="line">        config.source = self;</div><div class="line">        //跳转类型，支持push、presentModally、presentAsPopover、performSegue、show、showDetail、addChild、addSubview、custom、getDestination</div><div class="line">        config.routeType = ZIKViewRouteTypePush;</div><div class="line">        config.animated = NO;</div><div class="line">        config.prepareForRoute = ^(id&lt;ZIKLoginViewProtocol&gt; destination) &#123;</div><div class="line">            //跳转前配置界面</div><div class="line">        &#125;;</div><div class="line">        config.routeCompletion = ^(id&lt;NoteEditorProtocol&gt; destination) &#123;</div><div class="line">         //跳转成功并结束处理</div><div class="line">      &#125;;</div><div class="line">      config.performerErrorHandler = ^(SEL routeAction, NSError * error) &#123;</div><div class="line">         //跳转失败处理，有失败的详细信息</div><div class="line">      &#125;;</div><div class="line">&#125;];</div></pre></td></tr></table></figure>
+<p>Configuration只能在初始化block里配置，出了block以后就无法修改。你也可以用一个configuration子类添加更多自定义信息。</p>
+<p>如果不需要复杂的配置，也可以只用最简单的跳转：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line">[ZIKLoginViewRouter performWithSource:self routeType:ZIKViewRouteTypePush];</div></pre></td></tr></table></figure>
+<h3 id="移除已执行的路由"><a href="#移除已执行的路由" class="headerlink" title="移除已执行的路由"></a>移除已执行的路由</h3><p>你可以先初始化一个router，再交给其他角色执行路由：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div></pre></td><td class="code"><pre><div class="line">//初始化router</div><div class="line">self.loginRouter = [[ZIKLoginViewRouter alloc] initWithConfigure:^(ZIKViewRouteConfiguration * _Nonnull config) &#123;</div><div class="line">                               config.source = self;</div><div class="line">                               config.routeType = ZIKViewRouteTypePush;</div><div class="line">                           &#125;];</div><div class="line">                           </div><div class="line">//执行路由</div><div class="line">if ([self.loginRouter canPerform] == NO) &#123;</div><div class="line">    NSLog(@&quot;此时无法执行路由:%@&quot;,self.loginRouter);</div><div class="line">    return;</div><div class="line">&#125;</div><div class="line">[self.loginRouter performRouteWithSuccessHandler:^&#123;</div><div class="line">    NSLog(@&quot;performer: push success&quot;);</div><div class="line">&#125; performerErrorHandler:^(SEL  _Nonnull routeAction, NSError * _Nonnull error) &#123;</div><div class="line">    NSLog(@&quot;performer: push failed: %@&quot;,error);</div><div class="line">&#125;];</div></pre></td></tr></table></figure>
+<p>当你需要消除已经展示的界面，或者销毁一个模块时，可以调用移除路由方法一键移除：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div></pre></td><td class="code"><pre><div class="line">if ([self.loginRouter canRemove] == NO) &#123;</div><div class="line">    NSLog(@&quot;此时无法移除路由:%@&quot;, self.loginRouter);</div><div class="line">    return;</div><div class="line">&#125;</div><div class="line">[self.loginRouter removeRouteWithSuccessHandler:^&#123;</div><div class="line">    NSLog(@&quot;performer: pop success&quot;);</div><div class="line">&#125; performerErrorHandler:^(SEL  _Nonnull routeAction, NSError * _Nonnull error) &#123;</div><div class="line">    NSLog(@&quot;performer: pop failed,error:%@&quot;,error);</div><div class="line">&#125;];</div></pre></td></tr></table></figure>
+<h3 id="通过protocol获取对应模块"><a href="#通过protocol获取对应模块" class="headerlink" title="通过protocol获取对应模块"></a>通过protocol获取对应模块</h3><h4 id="Protocol作为匹配标识"><a href="#Protocol作为匹配标识" class="headerlink" title="Protocol作为匹配标识"></a>Protocol作为匹配标识</h4><p>我们不想让外部引用<code>ZIKLoginViewRouter</code>头文件导致耦合，调用者只需要获取一个符合了<code>ZIKLoginViewProtocol</code>的view controller，因此只需要根据<code>ZIKLoginViewProtocol</code>获取到对应的router子类，然后在子类上调用父类<code>ZIKViewRouter</code>提供的路由方法即可，这样就可以做到隐藏子类。</p>
+<p>使用<code>ZIKViewRouterForView()</code>函数，即可通过protocol获取到对应的router子类，并且子类返回的destination必定符合<code>ZIKLoginViewProtocol</code>：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div></pre></td><td class="code"><pre><div class="line">[ZIKViewRouterForView(@protocol(ZIKLoginViewProtocol)) performWithConfigure:^(ZIKViewRouteConfiguration *config) &#123;</div><div class="line">         config.source = self;</div><div class="line">         config.routeType = ZIKViewRouteTypePush;</div><div class="line">         config.prepareForRoute = ^(id&lt;ZIKLoginViewProtocol&gt; destination) &#123;</div><div class="line">             //跳转前配置界面</div><div class="line">         &#125;;</div><div class="line">         config.routeCompletion = ^(id&lt;ZIKLoginViewProtocol&gt; destination) &#123;</div><div class="line">	         //跳转成功并结束处理</div><div class="line">	      &#125;;</div><div class="line"> &#125;];</div></pre></td></tr></table></figure>
+<p>这时候<code>ZIKLoginViewProtocol</code>就相当于LoginView模块的唯一identifier，不能再用到其他view controller上。你可以用多个protocol注册同一个router，用于区分<code>requiredProtocol</code>和<code>providedProtocol</code>。</p>
+<h4 id="多对一匹配"><a href="#多对一匹配" class="headerlink" title="多对一匹配"></a>多对一匹配</h4><p>有时候，一些第三方的模块或者系统模块并没有提供自己的router，你可以为其封装一个router，此时可以有多个不同的router管理同一个UIViewController或者UIView类。这些router可能提供了不同的功能，比如同样是alertRouter，routerA可能是用于封装UIAlertController，routerB可能是用于兼容UIAlertView和UIAlertController，这时候要如何区分并获取两个不同的router？</p>
+<p>像这种提供了独特功能的router，需要你使用configuration的子类，然后让子类conform对应功能的protocol。于是就可以根据configuration的protocol来获取对应的router：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div></pre></td><td class="code"><pre><div class="line">[ZIKViewRouterForConfig(@protocol(ZIKCompatibleAlertConfigProtocol))</div><div class="line"> performWithConfigure:^(ZIKViewRouteConfiguration&lt;ZIKCompatibleAlertConfigProtocol&gt; * _Nonnull config) &#123;</div><div class="line"> 	config.source = self;</div><div class="line"> 	config.routeType = ZIKViewRouteTypeCustom;</div><div class="line"> 	config.title = @&quot;Compatible Alert&quot;;</div><div class="line"> 	config.message = @&quot;Test custom route for alert with UIAlertView and UIAlertController&quot;;</div><div class="line"> 	[config addCancelButtonTitle:@&quot;Cancel&quot; handler:^&#123;</div><div class="line">	 	NSLog(@&quot;Tap cancel alert&quot;);</div><div class="line"> 	&#125;];</div><div class="line"> 	[config addOtherButtonTitle:@&quot;Hello&quot; handler:^&#123;</div><div class="line">	 	NSLog(@&quot;Tap hello button&quot;);</div><div class="line"> 	&#125;];</div><div class="line"> 	config.routeCompletion = ^(id _Nonnull destination) &#123;</div><div class="line">	 	NSLog(@&quot;show custom alert complete&quot;);</div><div class="line"> 	&#125;;</div><div class="line">&#125;];</div></pre></td></tr></table></figure>
+<p>如果模块自己提供了router，并且这个router用于依赖注入，不能被其他router替代，可以声明本router为本模块的唯一指定router，当有多个router尝试管理此模块时，启动时就会产生断言错误。</p>
+<h3 id="依赖注入和依赖声明"><a href="#依赖注入和依赖声明" class="headerlink" title="依赖注入和依赖声明"></a>依赖注入和依赖声明</h3><h4 id="固定依赖和运行时依赖"><a href="#固定依赖和运行时依赖" class="headerlink" title="固定依赖和运行时依赖"></a>固定依赖和运行时依赖</h4><p>模块的依赖分为固定依赖和运行时参数依赖。</p>
+<p>固定依赖就类似于VIPER各角色之间的依赖关系，是一个模块中固定不变的依赖。这种依赖只需要在router内部的<code>-prepareDestination:configuration:</code>固定配置即可。</p>
+<p>运行时依赖就是外部传入的参数，由configuration负责传递，然后同样是在<code>-prepareDestination:configuration:</code>中，获取configuration并配置destination。你可以用一个configuration子类和router配对，这样就能添加更多自定义信息。</p>
+<p>如果依赖参数很简单，也可以让router直接对destination进行配置，声明router的destination遵守<code>ZIKLoginViewProtocol</code>，让调用者在<code>prepareForRoute</code>里设置destination。但是如果依赖涉及到了model对象的传递，并且由于需要隔离View和Model，destination不能接触到这些model对象，这时候还是需要让configuration传递依赖，在router内部再把model传给负责管理model的角色。</p>
+<p>因此，configuration和destination的protocol就负责依赖声明和暴露接口。调用者只需要传入protocol里要求的参数或者调用一些初始化方法即可，至于router内部怎么使用和配置这些依赖，调用者就不用关心了。</p>
+<h4 id="直接在头文件中声明"><a href="#直接在头文件中声明" class="headerlink" title="直接在头文件中声明"></a>直接在头文件中声明</h4><p>声明一个protocol是一个router的config protocol或者view protocol时，只需要让这个protocol继承自<code>ZIKViewConfigRoutable</code>或者<code>ZIKViewRoutable</code>即可。这样，所有的依赖声明都可以在头文件里明确表示，不必再从文档中查找。</p>
+<h3 id="使用泛型指明特定router"><a href="#使用泛型指明特定router" class="headerlink" title="使用泛型指明特定router"></a>使用泛型指明特定router</h3><p>一个模块可以直接在内部用<code>ZIKViewRouterForConfig()</code>和<code>ZIKViewRouterForView()</code>动态获取router，也可以在头文件里添加一个router属性，让builder注入。</p>
+<p>那么一个模块怎么向builder声明自己需要某个特定功能的router呢？答案是父类+泛型。</p>
+<p>ZIKRouter支持用泛型指定参数类型。在OC中可以这样使用：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div></pre></td><td class="code"><pre><div class="line">//注意这个示例代码只是用于演示泛型的意思，实际运行时必须要用一个ZIKViewRouter子类才可以</div><div class="line">[ZIKViewRouter&lt;ZIKViewRouteConfiguration&lt;ZIKLoginConfigProtocol&gt; *, ZIKViewRemoveConfiguration *&gt;</div><div class="line">  performWithConfigure:^(ZIKViewRouteConfiguration&lt;ZIKLoginConfigProtocol&gt; *config) &#123;</div><div class="line">    config.source = self;</div><div class="line">    config.routeType = ZIKViewRouteTypePerformSegue;</div><div class="line">    config.configureSegue(^(ZIKViewRouteSegueConfiguration *segueConfig) &#123;</div><div class="line">    	segueConfig.identifier = @&quot;showLoginViewController&quot;;</div><div class="line">    );</div><div class="line">&#125;];</div></pre></td></tr></table></figure>
+<p><code>ZIKViewRouter&lt;ZIKViewRouteConfiguration&lt;ZIKLoginConfigProtocol&gt; *, ZIKViewRemoveConfiguration *&gt;</code>就是一个指定了泛型的类，尖括号中指定了router的configuration类型。这一串说明相当于是在声明：这是一个用<code>ZIKViewRouteConfiguration&lt;ZIKLoginConfigProtocol&gt; *</code>作为执行路由时的configuration，用<code>ZIKViewRemoveConfiguration *</code>作为移除路由时的configuration的router类。你可以对configuration再添加protocol，表明这个configuration必须遵守指定的protocol。</p>
+<p>这时你就可以用父类+泛型来声明一个router类，这个router类的configuration符合特定的config protocol。而且在写的时候Xcode会给你自动补全。这是一种很好的隐藏子类的方式，而且符合原生的语法。</p>
+<p>但是由于OC中的类都是<code>Class</code>类型，因此只能这样声明一个实例属性：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line">@property (nonatomic, strong) ZIKViewRouter&lt;ZIKViewRouteConfiguration&lt;ZIKLoginConfigProtocol&gt; *, ZIKViewRemoveConfiguration *&gt; *loginViewRouter;</div></pre></td></tr></table></figure>
+<p>Builder只能注入一个router实例，而不是一个router class。因此在OC里一般不这么使用。</p>
+<p>但是Swift中新增了type类型，于是这种模式就能更好地发挥作用了，你可以直接注入一个router class：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div></pre></td><td class="code"><pre><div class="line">//在Builder中注入alertRouterClass</div><div class="line">swiftSampleViewController.alertRouterClass = ZIKCompatibleAlertViewRouter.self</div></pre></td></tr></table></figure>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div></pre></td><td class="code"><pre><div class="line">class SwiftSampleViewController: UIViewController &#123;    </div><div class="line">    //在Builder里注入alertRouterClass后，就可以直接用这个routerClass执行路由</div><div class="line">    var alertRouterClass: ZIKViewRouter&lt;ZIKViewRouteConfiguration &amp; ZIKCompatibleAlertConfigProtocol, ZIKViewRemoveConfiguration&gt;.Type!</div><div class="line">    </div><div class="line">    @IBAction func testInjectedRouter(_ sender: Any) &#123;</div><div class="line">        self.alertRouterClass.perform &#123; config in</div><div class="line">            config.source = self</div><div class="line">            //config 在类型推断时就是 ZIKViewRouteConfiguration &amp; ZIKCompatibleAlertConfigProtocol，无需在判断后再强制转换</div><div class="line">            config.title = &quot;Compatible Alert&quot;</div><div class="line">            config.message = &quot;Test custom route for alert with UIAlertView and UIAlertController&quot;</div><div class="line">            config.addCancelButtonTitle(&quot;Cancel&quot;, handler: &#123;</div><div class="line">                print(&quot;Tap cancel alert&quot;)</div><div class="line">            &#125;)</div><div class="line">            config.addOtherButtonTitle(&quot;Hello&quot;, handler: &#123;</div><div class="line">                print(&quot;Tap Hello alert&quot;)</div><div class="line">            &#125;)</div><div class="line">            config.routeCompletion = &#123; des in</div><div class="line">                print(&quot;show custom alert complete&quot;)</div><div class="line">            &#125;</div><div class="line">            config.performerErrorHandler = &#123; (action, error) in</div><div class="line">                print(&quot;show custom alert failed: %@&quot;,error)</div><div class="line">            &#125;</div><div class="line">        &#125;</div><div class="line">    &#125;</div><div class="line">&#125;</div></pre></td></tr></table></figure>
+<p>声明了<code>ZIKViewRouter&lt;ZIKViewRouteConfiguration &amp; ZIKCompatibleAlertConfigProtocol, ZIKViewRemoveConfiguration&gt;.Type</code>的属性后，外部就可以直接注入一个router的type，不必再实例化一个router对象。如果你不想在Swift里使用太多的<code>ZIKViewRouterForConfig()</code>和<code>ZIKViewRouterForView()</code>，就可以用这种设计模式来保证类型安全，或者用于转移、集中获取router的职责。</p>
+<p>Router可以在定义的时候限制自己的泛型：</p>
+<p>Objective-C:</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div></pre></td><td class="code"><pre><div class="line">@interface ZIKCompatibleAlertViewRouter &lt;__covariant RouteConfig: ZIKViewRouteConfiguration&lt;ZIKCompatibleAlertConfigProtocol&gt; *, __covariant RemoveConfig: ZIKViewRemoveConfiguration *&gt; : ZIKViewRouter&lt;RouteConfig, RemoveConfig&gt;</div><div class="line"></div><div class="line">@end</div></pre></td></tr></table></figure>
+<p>Swift:</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div></pre></td><td class="code"><pre><div class="line">class ZIKCompatibleAlertViewRouter: ZIKViewRouter&lt;ZIKViewRouteConfiguration &amp; ZIKCompatibleAlertConfigProtocol, ZIKViewRemoveConfiguration&gt; &#123;</div><div class="line"></div><div class="line">&#125;</div></pre></td></tr></table></figure>
+<p>这样在传递的时候，就可以让编译器检查router是否正确。</p>
+<h3 id="调用安全和类型安全"><a href="#调用安全和类型安全" class="headerlink" title="调用安全和类型安全"></a>调用安全和类型安全</h3><p>上面的演示已经展示了类型安全的处理，由protocol和泛型共同完成了这个类型安全的设计。不过有一些问题还需要特别注意。</p>
+<h4 id="传入正确的protocol"><a href="#传入正确的protocol" class="headerlink" title="传入正确的protocol"></a>传入正确的protocol</h4><p>如果使用<code>ZIKViewRouterForConfig()</code>和<code>ZIKViewRouterForView()</code>时传入的protocol不正确，就会返回nil。因此最好是只允许传入一个宏定义的protocol，保证每一处调用都是正确的。如果是Objective-C，可以再对参数加个限制，在宏定义里强转。</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div></pre></td><td class="code"><pre><div class="line">//修改为一个无意义的入参类型，传入普通的@protocol(xxx)会有warning</div><div class="line">extern _Nullable Class ZIKViewRouterForView(Protocol&lt;ZIKViewRoutable&gt; *viewProtocol);</div><div class="line"></div><div class="line">//宏定义里加入强转，消除warning</div><div class="line">#define ZIKLoginViewProtocol_routable (Protocol&lt;ZIKViewRoutable&gt; *)@protocol(ZIKLoginViewProtocol)</div><div class="line"></div><div class="line">//没有警告</div><div class="line">ZIKViewRouterForView(ZIKLoginViewProtocol_routable)</div><div class="line">//有警告</div><div class="line">ZIKViewRouterForView(@protocol(ZIKLoginViewProtocol))</div></pre></td></tr></table></figure>
+<p>你可以在<code>Build Settings</code>-&gt;<code>Other C Flags</code>里添加<code>-Werror=incompatible-pointer-types</code>，把参数类型错误警告转为编译错误。</p>
+<p>不过这个办法在Swift上无法使用，因为Swift不能随意强转。</p>
+<h4 id="泛型的协变和逆变"><a href="#泛型的协变和逆变" class="headerlink" title="泛型的协变和逆变"></a>泛型的协变和逆变</h4><p>Swift的自定义泛型不支持协变，所以使用起来有点奇怪。</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div></pre></td><td class="code"><pre><div class="line">let alertRouterClass: ZIKViewRouter&lt;ZIKViewRouteConfiguration, ZIKViewRemoveConfiguration&gt;.Type</div><div class="line"> </div><div class="line"> //编译错误</div><div class="line"> //ZIKCompatibleAlertViewRouter.Type is ZIKViewRouter&lt;ZIKViewRouteConfiguration &amp; ZIKCompatibleAlertConfigProtocol, ZIKViewRemoveConfiguration&gt;.Type</div><div class="line"> alertRouterClass = ZIKCompatibleAlertViewRouter.self</div></pre></td></tr></table></figure>
+<p>Swift的自定义泛型不支持子类型转为父类型，因此把<code>ZIKViewRouter&lt;ZIKViewRouteConfiguration &amp; ZIKCompatibleAlertConfigProtocol, ZIKViewRemoveConfiguration&gt;.Type</code>赋值给<code>ZIKViewRouter&lt;ZIKViewRouteConfiguration, ZIKViewRemoveConfiguration&gt;.Type</code>类型时就会出现编译错误。奇怪的是反过来逆变反而没有编译错误。而Swift原生的集合类型是支持协变的。从2015年开始就有人提议Swift对自定义泛型加入协变，到现在也没支持。在Objective-C里自定义泛型是可以正常协变的。</p>
+<p>这时候如果你需要进行协变，把<code>ZIKCompatibleAlertViewRouter</code>赋值给一个<code>ZIKViewRouter&lt;ZIKViewRouteConfiguration, ZIKViewRemoveConfiguration&gt;</code>时，可以写成<code>alertRouterClass = ZIKViewRouterForConfig(ZIKCompatibleAlertConfigProtocol.self)</code>。相当于把类型信息擦除了。或者也可以在<code>ZIKCompatibleAlertViewRouter</code>的类型定义里去掉<code>ZIKCompatibleAlertConfigProtocol</code>，让使用者自己用逆变来指定对应的protocol：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div></pre></td><td class="code"><pre><div class="line">let alertRouterClass: ZIKViewRouter&lt;ZIKViewRouteConfiguration &amp; ZIKCompatibleAlertConfigProtocol, ZIKViewRemoveConfiguration&gt;.Type</div><div class="line">alertRouterClass = ZIKCompatibleAlertViewRouter.self</div></pre></td></tr></table></figure>
+<p>不过这样有点不太安全，在逆变的时候需要仔细检查。</p>
+<p>同样由于Swift不支持协变的原因，暂时没有对configuration加入泛型支持，否则就可以用泛型来指定destination的类型了。</p>
+<h3 id="用Adapter兼容接口"><a href="#用Adapter兼容接口" class="headerlink" title="用Adapter兼容接口"></a>用Adapter兼容接口</h3><p>可以用不同的protocol获取到相同的router。也就是<code>requiredProtocol</code>和<code>providedProtocol</code>只要有声明，都可以获取到同一个router。</p>
+<p>首先检查<code>requiredProtocol</code>和<code>providedProtocol</code>，确定两个接口提供的功能是一致的。否则无法兼容。</p>
+<h4 id="为Provided模块添加Required-Interface"><a href="#为Provided模块添加Required-Interface" class="headerlink" title="为Provided模块添加Required Interface"></a>为<code>Provided</code>模块添加<code>Required Interface</code></h4><p><code>requiredProtocol</code>是外部的要求目的模块额外兼容的，由App Context在ZIKViewAdapter的子类里进行接口兼容。</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div></pre></td><td class="code"><pre><div class="line">@protocol ModuleARequiredLoginViewInput &lt;ZIKViewRoutable&gt;</div><div class="line">@property (nonatomic, copy) NSString *message;</div><div class="line">@end</div><div class="line"></div><div class="line">//Module A中的调用代码</div><div class="line">UIViewController&lt;ModuleARequiredLoginViewInput&gt; *loginViewController = [ProtocolRouter destinationForProtocol:@protocol(LoginViewInput)];</div><div class="line">loginViewController.message = @&quot;请登录查看笔记详情&quot;;</div></pre></td></tr></table></figure>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div></pre></td><td class="code"><pre><div class="line">//Login Module Provided Interface</div><div class="line">@protocol ProvidedLoginViewInput &lt;NSObject&gt;</div><div class="line">@property (nonatomic, copy) NSString *notifyString;</div><div class="line">@end</div></pre></td></tr></table></figure>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div></pre></td><td class="code"><pre><div class="line">//ZIKEditorAdapter.h，ZIKViewAdapter子类</div><div class="line">@interface ZIKEditorAdapter : ZIKViewRouteAdapter</div><div class="line">@end</div></pre></td></tr></table></figure>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div></pre></td><td class="code"><pre><div class="line">//ZIKEditorAdapter.m</div><div class="line">//用Objective-C的category、Swift的extension进行接口适配</div><div class="line">@interface LoginViewController (ModuleAAdapte) &lt;ModuleARequiredLoginViewInput&gt;</div><div class="line">@property (nonatomic, copy) NSString *message;</div><div class="line">@end</div><div class="line">@implementation LoginViewController (ModuleAAdapte)</div><div class="line">- (void)setMessage:(NSString *)message &#123;</div><div class="line">	self.notifyString = message;</div><div class="line">&#125;</div><div class="line">- (NSString *)message &#123;</div><div class="line">	return self.notifyString;</div><div class="line">&#125;</div><div class="line">@end</div><div class="line"></div><div class="line">@implementation ZIKEditorAdapter</div><div class="line"></div><div class="line">+ (void)registerRoutableDestination &#123;</div><div class="line">	//注册NoteListRequiredNoteEditorProtocol和ZIKEditorViewRouter匹配</div><div class="line">	ZIKViewRouter_registerViewProtocol(@protocol(NoteListRequiredNoteEditorProtocol), [ZIKEditorViewRouter class]);</div><div class="line">&#125;</div><div class="line"></div><div class="line">@end</div></pre></td></tr></table></figure>
+<h4 id="用中介者转发接口"><a href="#用中介者转发接口" class="headerlink" title="用中介者转发接口"></a>用中介者转发接口</h4><p>如果遇到protocol里的一些delegate需要兼容：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div></pre></td><td class="code"><pre><div class="line">@protocol ModuleARequiredLoginViewDelegate &lt;NSObject&gt;</div><div class="line">- (void)didFinishLogin;</div><div class="line">@end</div><div class="line"></div><div class="line">@protocol ModuleARequiredLoginViewInput &lt;ZIKViewRoutable&gt;</div><div class="line">@property (nonatomic, copy) NSString *message;</div><div class="line">@property (nonatomic, weak) id&lt;ModuleARequiredLoginViewDelegate&gt; delegate;</div><div class="line">@end</div></pre></td></tr></table></figure>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div></pre></td><td class="code"><pre><div class="line">@protocol LoginViewDelegate &lt;NSObject&gt;</div><div class="line">- (void)didLogin;</div><div class="line">@end</div><div class="line"></div><div class="line">@protocol ProvidedLoginViewInput &lt;NSObject&gt;</div><div class="line">@property (nonatomic, copy) NSString *notifyString;</div><div class="line">@property (nonatomic, weak) id&lt;LoginViewDelegate&gt; delegate;</div><div class="line">@end</div></pre></td></tr></table></figure>
+<p>这种情况在OC里可以hook<code>-setDelegate:</code>方法，用<code>NSProxy</code>来进行消息转发，把<code>LoginViewDelegate</code>的消息转发为对应的<code>ModuleARequiredLoginViewDelegate</code>中的消息。</p>
+<p>不过Swift里就不适合这么干了，相同方法有不同参数类型时，可以用一个新的router代替真正的router，在新的router里插入一个中介者，负责转发接口：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div></pre></td><td class="code"><pre><div class="line">@implementation ZIKEditorMediatorViewRouter</div><div class="line">+ (void)registerRoutableDestination &#123;</div><div class="line">	//注册NoteListRequiredNoteEditorProtocol，和新的ZIKEditorMediatorViewRouter配对，而不是目的模块中的ZIKEditorViewRouter</div><div class="line">	//新的ZIKEditorMediatorViewRouter负责调用ZIKEditorViewRouter，插入一个中介者</div><div class="line">	ZIKViewRouter_registerView(/* mediator的类*/, self);	</div><div class="line">	ZIKViewRouter_registerViewProtocol(@protocol(NoteListRequiredNoteEditorProtocol), self);</div><div class="line">&#125;</div><div class="line">- (id)destinationWithConfiguration:(ZIKViewRouteConfiguration *)configuration &#123;</div><div class="line">    __block id&lt;ProvidedLoginViewInput&gt; realDestination;</div><div class="line">    //用ZIKEditorViewRouter获取真正的destination</div><div class="line">    [ZIKEditorViewRouter performWithConfigure:^(ZIKViewRouteConfiguration *config) &#123;</div><div class="line">        config.routeType = ZIKViewRouteTypeGetDestination;</div><div class="line">        config.routeCompletion = ^(id&lt;ProvidedLoginViewInput&gt; destination) &#123;</div><div class="line">            realDestination = destination;</div><div class="line">        &#125;;</div><div class="line">    &#125;]</div><div class="line">    //获取一个负责转发ProvidedLoginViewInput和ModuleARequiredLoginViewInput的mediator</div><div class="line">    id&lt;ModuleARequiredLoginViewInput&gt; mediator = MediatorForDestination(realDestination);</div><div class="line">    return mediator;</div><div class="line">&#125;</div><div class="line">@end</div></pre></td></tr></table></figure>
+<p>一般来说，并不需要立即把所有的protocol都分离为<code>requiredProtocol</code>和<code>providedProtocol</code>。调用模块和目的模块可以暂时共用protocol，或者只是简单地改个名字，在第一次需要替换模块的时候再对protocol进行分离。</p>
+<h3 id="封装UIKit跳转和移除方法"><a href="#封装UIKit跳转和移除方法" class="headerlink" title="封装UIKit跳转和移除方法"></a>封装UIKit跳转和移除方法</h3><h4 id="封装iOS的路由方法"><a href="#封装iOS的路由方法" class="headerlink" title="封装iOS的路由方法"></a>封装iOS的路由方法</h4><p><code>ZIKViewRouter</code>把UIKit中路由相关的方法：</p>
+<ul>
+<li><code>-pushViewController:animated:</code></li>
+<li><code>-presentViewController:animated:completion:</code></li>
+<li><code>UIPopoverController</code>的<code>-presentPopoverFromRect:inView:permittedArrowDirections:animated:</code></li>
+<li><code>UIPopoverPresentationController</code>的配置</li>
+<li><code>-performSegueWithIdentifier:sender:</code></li>
+<li><code>-showViewController:sender:</code></li>
+<li><code>-showDetailViewController:sender:</code></li>
+<li><code>-addChildViewController:</code></li>
+<li><code>-addSubview:</code></li>
+</ul>
+<p>全都统一封装，可以用枚举一键切换：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div></pre></td><td class="code"><pre><div class="line">[ZIKViewRouterForView(@protocol(ZIKLoginViewProtocol)) performWithConfigure:^(ZIKViewRouteConfiguration *config) &#123;</div><div class="line">         config.source = self;</div><div class="line">         config.routeType = ZIKViewRouteTypePush;</div><div class="line"> &#125;];</div></pre></td></tr></table></figure>
+<p>对应的枚举值：</p>
+<ul>
+<li><code>ZIKViewRouteTypePush</code></li>
+<li><code>ZIKViewRouteTypePresentModally</code></li>
+<li><code>ZIKViewRouteTypePresentAsPopover</code></li>
+<li><code>ZIKViewRouteTypePerformSegue</code></li>
+<li><code>ZIKViewRouteTypeShow</code></li>
+<li><code>ZIKViewRouteTypeShowDetail</code></li>
+<li><code>ZIKViewRouteTypeAddAsChildViewController</code></li>
+<li><code>ZIKViewRouteTypeAddAsSubview</code></li>
+<li><code>ZIKViewRouteTypeCustom</code></li>
+<li><code>ZIKViewRouteTypeGetDestination</code></li>
+</ul>
+<p>移除路由时，也不必再判断不同情况分别调用<code>-popViewControllerAnimated:</code>、<code>-dismissViewControllerAnimated:completion:</code>、<code>-dismissPopoverAnimated:</code>、<code>-removeFromParentViewController</code>、<code>-removeFromSuperview</code>等方法。</p>
+<p><code>ZIKViewRouter</code>会在内部自动调用对应的方法。</p>
+<h4 id="识别adaptative类型的路由"><a href="#识别adaptative类型的路由" class="headerlink" title="识别adaptative类型的路由"></a>识别<code>adaptative</code>类型的路由</h4><p><code>-performSegueWithIdentifier:sender:</code>、<code>-showViewController:sender:</code>、<code>-showDetailViewController:sender:</code>这些<code>adaptative</code>的路由方法，系统会根据不同的情况适配<code>UINavigationController</code>和<code>UISplitViewController</code>，选择调用<code>push</code>、<code>present</code>或者其他方式。直接调用时无法明确知道最终调用的是哪个方法，也就无法移除界面。</p>
+<p><code>ZIKViewRouter</code>可以识别这些路由方法在调用后真正执行的路由操作，所以你现在也可以在使用这些方法后移除界面。</p>
+<h4 id="支持自定义路由"><a href="#支持自定义路由" class="headerlink" title="支持自定义路由"></a>支持自定义路由</h4><p><code>ZIKViewRouter</code>也支持在子类中提供自定义的路由和移除路由方法。只要写好对应的协议即可。</p>
+<h4 id="关于extension里的跳转方法"><a href="#关于extension里的跳转方法" class="headerlink" title="关于extension里的跳转方法"></a>关于extension里的跳转方法</h4><p>App extension里还有一些特有的跳转方法，比如<code>Watch</code>扩展里<code>WKInterfaceController</code>的<code>-pushControllerWithName:context:</code>和<code>-popController</code>，<code>Share</code>扩展里<code>SLComposeServiceViewController</code>的<code>-pushConfigurationViewController:</code>和<code>-popConfigurationViewController</code>。</p>
+<p>看了一下extension的种类有十几个，懒得一个个去适配了。而且extension里的界面不会特别复杂，不是特别需要路由工具。如果你需要适配extension，可以自己增加，也可以用<code>ZIKViewRouteTypeCustom</code>来适配。</p>
+<h3 id="支持storyboard"><a href="#支持storyboard" class="headerlink" title="支持storyboard"></a>支持storyboard</h3><p><code>ZIKViewRouter</code>支持storyboard，这也是和其他Router相比更强的地方。毕竟storyboard有时候也是很好用的，当使用了storyboard的项目中途使用router的时候，总不能为了适配router，把所有使用storyboard的界面都重构吧？</p>
+<p>适配storyboard的原理是hook了所有UIViewController的<code>-prepareForSegue:sender:</code>方法，检查destinationViewController是否遵守<code>ZIKRoutableView</code>协议，如果遵守，就说明是一个由router管理的界面，获取注册的对应router类，生成router实例，对其进行依赖注入。如果destination需要传入动态参数，就会调用sourceViewController的<code>-prepareForDestinationRoutingFromExternal:configuration:</code>方法，让sourceViewController传参。如果有多个router类注册了同一个view controller，则取随机的一个router。</p>
+<p>你不需要对现有的模块做任何修改，就可以直接兼容。而且原来view controller中的<code>-prepareForSegue:sender:</code>也能照常使用。</p>
+<h3 id="AOP"><a href="#AOP" class="headerlink" title="AOP"></a>AOP</h3><p><code>ZIKViewRouter</code>会在一个界面执行路由和移除路由的时候，对所有注册了此界面的router回调4个方法：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div></pre></td><td class="code"><pre><div class="line">+ (void)router:(nullable ZIKViewRouter *)router willPerformRouteOnDestination:(id)destination fromSource:(id)source &#123;</div><div class="line">&#125;</div><div class="line">+ (void)router:(nullable ZIKViewRouter *)router didPerformRouteOnDestination:(id)destination fromSource:(id)source &#123;</div><div class="line">&#125;</div><div class="line">+ (void)router:(nullable ZIKViewRouter *)router willRemoveRouteOnDestination:(id)destination fromSource:(id)source &#123;</div><div class="line">&#125;</div><div class="line">+ (void)router:(nullable ZIKViewRouter *)router didRemoveRouteOnDestination:(id)destination fromSource:(id)source &#123;</div><div class="line">&#125;</div></pre></td></tr></table></figure>
+<p>你可以在这些方法中检查界面是否配置正确。也可以用于AOP记录。</p>
+<p>例如，你可以为<code>UIViewController</code>这个所有view controller的父类注册一个router，这样就可以监控所有的<code>UIViewController</code>子类的路由事件。</p>
+<h3 id="路由错误检查"><a href="#路由错误检查" class="headerlink" title="路由错误检查"></a>路由错误检查</h3><p><code>ZIKRouter</code>会在启动时进行所有router的注册，这样就能检测出router是否有冲突、protocol是否和router正确匹配，保证所有router都能正确工作。当检测到错误时，断言将会失败。</p>
+<p><code>ZIKViewRouter</code>在执行界面路由时，会检测并报告路由时的错误。例如：</p>
+<ul>
+<li>使用了错误的protocol执行路由</li>
+<li>执行路由时configuration配置错误</li>
+<li>不支持的路由方式（router可以限制界面只能使用push、present等有限的跳转方式）</li>
+<li>在其他界面的跳转过程中，执行了另一个界面的跳转（<code>unbalanced transition</code>错误，会导致<code>-viewWillAppear:</code>、<code>-viewDidAppear:</code>、<code>-viewWillDisAppear:</code>、<code>-viewDidDisappear:</code>等事件的顺序发生错乱）</li>
+<li>Source view controller此时的状态无法执行当前路由</li>
+<li>路由时container view controller配置错误</li>
+<li>segue在代理方法中被取消，导致路由未执行</li>
+<li>重复执行路由</li>
+</ul>
+<p>基本上包含了界面跳转时会发生的大部分错误事件。</p>
+<h3 id="支持任意模块"><a href="#支持任意模块" class="headerlink" title="支持任意模块"></a>支持任意模块</h3><p><code>ZIKRouter</code>包含<code>ZIKViewRouter</code>和<code>ZIKServiceRouter</code>。<code>ZIKViewRouter</code>专门用于界面跳转，<code>ZIKServiceRouter</code>则可以添加任意类进行实例获取。</p>
+<p>你可以用<code>ZIKServiceRouter</code>管理需要的类，并且<code>ZIKServiceRouter</code>增添了和<code>ZIKViewRouter</code>相同的动态性和泛型支持。</p>
+<h3 id="性能"><a href="#性能" class="headerlink" title="性能"></a>性能</h3><p>为了错误检查、支持storyboard和注册，<code>ZIKViewRouter</code>和<code>ZIKServiceRouter</code>会在app启动时遍历所有类，进行hook和注册的工作。注册时只是把view class、protocol和router class的地址加入字典，不会对内存有影响。</p>
+<p>在release模式下，iPhone6s机型上，测试了5000个UIViewController以及5000个对应的router，遍历所有类并且hook的耗时大约为15ms，注册router的耗时大约为50ms。基本上不会遇到性能问题。</p>
+<p>如果你不需要支持storyboard，可以去掉view class和router class配对的注册，去掉以后就无法自动为storyboard里的view controller创建router。至于protocol和router的注册，目前似乎是无法避免的。</p>
+<h2 id="项目地址和Demo"><a href="#项目地址和Demo" class="headerlink" title="项目地址和Demo"></a>项目地址和Demo</h2><p>简单来说，ZIKRouter就是一个用于模块间路由，基于接口进行模块发现和依赖注入的Router。它以原生的语法执行路由，在OC和Swift中都能使用。</p>
+<p>项目地址在：<a href="https://github.com/Zuikyo/ZIKRouter" target="_blank" rel="external">ZIKRouter</a>。里面包含了一个demo，用于演示iOS中大部分的界面路由场景，建议在横屏iPad上运行。</p>
+<p>最后记得点个star~</p>
+<p>Demo截图，控制台的输出就是界面路由时的AOP回调：</p>
+<p><img src="http://upload-images.jianshu.io/upload_images/1865432-f1eef5831de2a8ce.gif?imageMogr2/auto-orient/strip" alt="demo"></p>
+<h2 id="参考"><a href="#参考" class="headerlink" title="参考"></a>参考</h2><ul>
+<li><a href="http://mrpeak.cn/blog/module/" target="_blank" rel="external">iOS组件化方案</a></li>
+<li><a href="http://www.jianshu.com/p/76da56b3bd55" target="_blank" rel="external">iOS 组件化 —— 路由设计思路分析</a></li>
+<li><a href="http://www.uml-diagrams.org/component-diagrams.html" target="_blank" rel="external">component-diagrams</a></li>
+<li><a href="https://github.com/alibaba/BeeHive" target="_blank" rel="external">BeeHive</a></li>
+<li><a href="https://casatwy.com/iOS-Modulization.html" target="_blank" rel="external">CTMediator</a></li>
+</ul>
+]]></content>
+    
+    <summary type="html">
+    
+      &lt;p&gt;路由是实现模块间解耦的一个有效工具。如果要进行组件化开发，路由是必不可少的一部分。目前iOS上绝大部分的路由工具都是基于URL匹配的，优缺点都很明显。这篇文章里将会给出一个更加原生和安全的设计，这个设计的特点是：&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;路由时用protocol寻找模块&lt;
+    
+    </summary>
+    
+      <category term="代码架构" scheme="http://yoursite.com/categories/%E4%BB%A3%E7%A0%81%E6%9E%B6%E6%9E%84/"/>
+    
+    
+      <category term="iOS" scheme="http://yoursite.com/tags/iOS/"/>
+    
+  </entry>
   
   <entry>
     <title>iOS VIPER架构实践(二)：VIPER详解与实现</title>
@@ -267,7 +650,7 @@
     <link href="http://yoursite.com/2017/07/21/iOS%20VIPER%E6%9E%B6%E6%9E%84%E5%AE%9E%E8%B7%B5(%E4%B8%80)%EF%BC%9A%E4%BB%8EMVC%E5%88%B0MVVM%E5%88%B0VIPER/"/>
     <id>http://yoursite.com/2017/07/21/iOS VIPER架构实践(一)：从MVC到MVVM到VIPER/</id>
     <published>2017-07-21T12:58:29.000Z</published>
-    <updated>2017-08-19T14:57:14.160Z</updated>
+    <updated>2017-09-27T15:36:01.030Z</updated>
     
     <content type="html"><![CDATA[<h2 id="简介"><a href="#简介" class="headerlink" title="简介"></a>简介</h2><p>最近半年在写app的时候，研究了一下各种iOS代码架构，最后选择了VIPER进行实践，在此对实践中遇到的各种设计问题做一番总结，并分享造出的轮子。</p>
 <p>对代码风格和架构有兴趣的同学，肯定都已经在很多地方见过各种架构的介绍。MVC、MVP、MVVM、VIPER，细分程度逐渐上升。这些架构设计都是来自MVC，只是各自用不同的方式对MVC进行了细分，在此只对MVC、MVP和MVVM作精简介绍，想要详细了解可以参考这些文章：</p>
@@ -282,7 +665,7 @@
 </ul>
 <p>MVC的划分粒度很粗，因此有很多种具体实现，各个实现有差异，因此并没有一个十分明确的标准定义。</p>
 <h2 id="苹果的MVC"><a href="#苹果的MVC" class="headerlink" title="苹果的MVC"></a>苹果的MVC</h2><p>苹果的Cocoa Touch就遵照了MVC的设计，一个界面分为UIView和UIViewController，UIView负责渲染和接收触摸事件，UIViewController负责子view之间的布局、组合、更新以及事件处理。</p>
-<p>尽管苹果已经给我们提供了简单的MVC支持，但是在实践中我们却常常没有遵守MVC。原因在于Cocoa Touch中的Model部分是由我们自己负责管理的，并没有提供原生的设计支持。所以有时候会出现这样的情况：一个UIView为了方便，提供了一个从某个model进行配置的方法。乍一看十分合理，但是仔细想想就会发现，这么做已经将View和Model耦合，很容易就破坏了MVC。</p>
+<p>尽管苹果已经给我们提供了简单的MVC支持，但是在实践中我们却常常没有遵守MVC。原因在于Cocoa Touch中的Model部分是由我们自己负责管理的，并没有提供原生的设计支持。所以有时候会出现这样的情况：一个UIView为了方便，提供了一个从某个model进行配置的方法。乍一看十分合理，但是仔细想想就会发现，这么做已经将View和Model耦合，不符合苹果官方的MVC规范(<a href="https://developer.apple.com/library/content/featuredarticles/ViewControllerPGforiPhoneOS/index.html#//apple_ref/doc/uid/TP40007457-CH2-SW1" target="_blank" rel="external">The Role of View Controllers</a>)。</p>
 <p>另外，UIViewController存在的一些问题，导致了它很容易变得臃肿和耦合。</p>
 <p>首先，UIViewController和UIView耦合得十分紧密，导致UIViewController经常和某些具体的UIView耦合，几乎无法重用。而且在测试的时候，很难做到单独测试没有View的那部分代码，因为在写的时候就很容易将View的逻辑入侵到各处，Controller会受到View的状态的影响，无法稳定测试。因此，应该尽量把和View无关的代码放到UIViewController之外。</p>
 <p>第二，UIViewController负责了界面跳转的操作，界面跳转的相关配置是直接在对应的UIViewController实例上设置的，这样就很容易把源界面和目的界面耦合起来，简单地把界面跳转的部分单独抽离为一个封装好的跳转方法可以一定程度上减少这部分耦合，但也不可避免地会多写许多代码。</p>

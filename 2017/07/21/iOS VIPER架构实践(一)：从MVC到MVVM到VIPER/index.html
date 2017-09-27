@@ -95,7 +95,7 @@
 <meta property="og:description" content="简介最近半年在写app的时候，研究了一下各种iOS代码架构，最后选择了VIPER进行实践，在此对实践中遇到的各种设计问题做一番总结，并分享造出的轮子。
 对代码风格和架构有兴趣的同学，肯定都已经在很多地方见过各种架构的介绍。MVC、MVP、MVVM、VIPER，细分程度逐渐上升。这些架构设计都是来自MVC，只是各自用不同的方式对MVC进行了细分，在此只对MVC、MVP和MVVM作精简介绍，想要详细了">
 <meta property="og:image" content="http://upload-images.jianshu.io/upload_images/1865432-580872920986b640.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240">
-<meta property="og:updated_time" content="2017-08-19T14:57:14.160Z">
+<meta property="og:updated_time" content="2017-09-27T15:36:01.030Z">
 <meta name="twitter:card" content="summary">
 <meta name="twitter:title" content="iOS VIPER架构实践(一)：从MVC到MVVM到VIPER">
 <meta name="twitter:description" content="简介最近半年在写app的时候，研究了一下各种iOS代码架构，最后选择了VIPER进行实践，在此对实践中遇到的各种设计问题做一番总结，并分享造出的轮子。
@@ -333,7 +333,7 @@
 </ul>
 <p>MVC的划分粒度很粗，因此有很多种具体实现，各个实现有差异，因此并没有一个十分明确的标准定义。</p>
 <h2 id="苹果的MVC"><a href="#苹果的MVC" class="headerlink" title="苹果的MVC"></a>苹果的MVC</h2><p>苹果的Cocoa Touch就遵照了MVC的设计，一个界面分为UIView和UIViewController，UIView负责渲染和接收触摸事件，UIViewController负责子view之间的布局、组合、更新以及事件处理。</p>
-<p>尽管苹果已经给我们提供了简单的MVC支持，但是在实践中我们却常常没有遵守MVC。原因在于Cocoa Touch中的Model部分是由我们自己负责管理的，并没有提供原生的设计支持。所以有时候会出现这样的情况：一个UIView为了方便，提供了一个从某个model进行配置的方法。乍一看十分合理，但是仔细想想就会发现，这么做已经将View和Model耦合，很容易就破坏了MVC。</p>
+<p>尽管苹果已经给我们提供了简单的MVC支持，但是在实践中我们却常常没有遵守MVC。原因在于Cocoa Touch中的Model部分是由我们自己负责管理的，并没有提供原生的设计支持。所以有时候会出现这样的情况：一个UIView为了方便，提供了一个从某个model进行配置的方法。乍一看十分合理，但是仔细想想就会发现，这么做已经将View和Model耦合，不符合苹果官方的MVC规范(<a href="https://developer.apple.com/library/content/featuredarticles/ViewControllerPGforiPhoneOS/index.html#//apple_ref/doc/uid/TP40007457-CH2-SW1" target="_blank" rel="external">The Role of View Controllers</a>)。</p>
 <p>另外，UIViewController存在的一些问题，导致了它很容易变得臃肿和耦合。</p>
 <p>首先，UIViewController和UIView耦合得十分紧密，导致UIViewController经常和某些具体的UIView耦合，几乎无法重用。而且在测试的时候，很难做到单独测试没有View的那部分代码，因为在写的时候就很容易将View的逻辑入侵到各处，Controller会受到View的状态的影响，无法稳定测试。因此，应该尽量把和View无关的代码放到UIViewController之外。</p>
 <p>第二，UIViewController负责了界面跳转的操作，界面跳转的相关配置是直接在对应的UIViewController实例上设置的，这样就很容易把源界面和目的界面耦合起来，简单地把界面跳转的部分单独抽离为一个封装好的跳转方法可以一定程度上减少这部分耦合，但也不可避免地会多写许多代码。</p>
@@ -545,7 +545,7 @@
         <nav class="site-state motion-element">
           <div class="site-state-item site-state-posts">
             <a href="/archives">
-              <span class="site-state-item-count">10</span>
+              <span class="site-state-item-count">11</span>
               <span class="site-state-item-name">日志</span>
             </a>
           </div>

@@ -89,7 +89,7 @@
 <meta name="description" content="🐼">
 <meta property="og:type" content="website">
 <meta property="og:title" content="zuik's blog">
-<meta property="og:url" content="http://yoursite.com/categories/代码架构/index.html">
+<meta property="og:url" content="http://yoursite.com/page/2/index.html">
 <meta property="og:site_name" content="zuik's blog">
 <meta property="og:description" content="🐼">
 <meta name="twitter:card" content="summary">
@@ -115,9 +115,9 @@
 
 
 
-  <link rel="canonical" href="http://yoursite.com/categories/代码架构/"/>
+  <link rel="canonical" href="http://yoursite.com/page/2/"/>
 
-  <title> 分类: 代码架构 | zuik's blog </title>
+  <title> zuik's blog </title>
 </head>
 
 <body itemscope itemtype="http://schema.org/WebPage" lang="zh-Hans">
@@ -138,7 +138,9 @@
     
   
 
-  <div class="container one-collumn sidebar-position-left  ">
+  <div class="container one-collumn sidebar-position-left 
+   page-home 
+ ">
     <div class="headband"></div>
 
     <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
@@ -225,96 +227,140 @@
         <div class="content-wrap">
           <div id="content" class="content">
             
+  <section id="posts" class="posts-expand">
+    
+      
 
-  <section id="posts" class="posts-collapse">
-    <div class="collection-title">
-      <h2 >
-        代码架构
-        <small>分类</small>
-      </h2>
+  
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal " itemscope itemtype="http://schema.org/Article">
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">
+            
+            
+              
+                
+                <a class="post-title-link" href="/2016/10/10/私有API-iOS10 openURL方法跳转到设置界面失效的解决方法/" itemprop="url">
+                  私有API-iOS10 openURL方法跳转到设置界面失效的解决方法
+                </a>
+              
+            
+          </h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            <span class="post-meta-item-icon">
+              <i class="fa fa-calendar-o"></i>
+            </span>
+            <span class="post-meta-item-text">发表于</span>
+            <time itemprop="dateCreated" datetime="2016-10-10T08:48:29+08:00" content="2016-10-10">
+              2016-10-10
+            </time>
+          </span>
+
+          
+            <span class="post-category" >
+              &nbsp; | &nbsp;
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+              
+                <span itemprop="about" itemscope itemtype="https://schema.org/Thing">
+                  <a href="/categories/私有API/" itemprop="url" rel="index">
+                    <span itemprop="name">私有API</span>
+                  </a>
+                </span>
+
+                
+                
+
+              
+            </span>
+          
+
+          
+            
+              <span class="post-comments-count">
+                &nbsp; | &nbsp;
+                <a href="/2016/10/10/私有API-iOS10 openURL方法跳转到设置界面失效的解决方法/#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count disqus-comment-count" data-disqus-identifier="2016/10/10/私有API-iOS10 openURL方法跳转到设置界面失效的解决方法/" itemprop="commentsCount"></span>
+                </a>
+              </span>
+            
+          
+
+          
+
+          
+          
+
+          
+
+        </div>
+      </header>
+    
+
+
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        
+          
+            <h2 id="问题"><a href="#问题" class="headerlink" title="问题"></a>问题</h2><p>在iOS10之前，跳转到系统设置界面的某个指定界面的方式如下：<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div></pre></td><td class="code"><pre><div class="line">//打开定位服务界面</div><div class="line">NSURL*url=[NSURL URLWithString:@&quot;prefs:root=Privacy&amp;path=LOCATION&quot;];</div><div class="line">if ([[UIApplication sharedApplication] canOpenURL:url]) &#123;</div><div class="line">    [[UIApplication sharedApplication] openURL:url];</div><div class="line">&#125;;</div></pre></td></tr></table></figure></p>
+<p>但是在iOS10上，调用canOpenURL:打开系统设置界面时控制台会报如下错误，并且无法跳转：<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line">-canOpenURL: failed for URL: &quot;Prefs:root=Privacy&amp;path=LOCATION&quot; - error: &quot;The operation couldn’t be completed. (OSStatus error -10814.)&quot;</div></pre></td></tr></table></figure></p>
+<p>原因是iOS10只允许如下方式跳转到设置里自己app的界面，对跳转到其他界面做了限制：<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line">[[UIApplication sharedApplication] openURL:[NSURL URLWithString:UIApplicationOpenSettingsURLString]];</div></pre></td></tr></table></figure></p>
+<h2 id="解决方法"><a href="#解决方法" class="headerlink" title="解决方法"></a>解决方法</h2><p>可以使用<code>MobileCoreServices.framework</code>里的私有API:<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line">- (BOOL)openSensitiveURL:(id)arg1 withOptions:(id)arg2;</div></pre></td></tr></table></figure></p>
+<p>头文件参考：<a href="https://github.com/JaviSoto/iOS10-Runtime-Headers/blob/master/Frameworks/MobileCoreServices.framework/LSApplicationWorkspace.h" target="_blank" rel="external">LSApplicationWorkspace.h</a><br>使用方法：<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div></pre></td><td class="code"><pre><div class="line">//注意首字母改成了大写，prefs-&gt;Prefs</div><div class="line">NSURL*url=[NSURL URLWithString:@&quot;Prefs:root=Privacy&amp;path=LOCATION&quot;];</div><div class="line">Class LSApplicationWorkspace = NSClassFromString(@&quot;LSApplicationWorkspace&quot;);</div><div class="line">[[LSApplicationWorkspace performSelector:@selector(defaultWorkspace)] performSelector:@selector(openSensitiveURL:withOptions:) withObject:url withObject:nil];</div></pre></td></tr></table></figure></p>
+<p><code>MobileCoreServices.framework</code>不是私有库，所以直接使用<code>performSelector:</code>即可调用私有API。</p>
+<h2 id="注意"><a href="#注意" class="headerlink" title="注意"></a>注意</h2><ul>
+<li>iOS10的系统URLScheme改成了首字母大写，使用小写的方式会无法打开。</li>
+<li>使用私有API的app无法通过App Store审核。你也可以尝试把私有类名和selector字符串混淆一下，绕过审核。例如<a href="http://blog.csdn.net/wenmingzheng/article/details/50475671" target="_blank" rel="external">这位仁兄</a>用ASCII混淆的方法：</li>
+</ul>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div></pre></td><td class="code"><pre><div class="line">- (UIView *)statusBarView &#123; </div><div class="line">    UIView *statusBar = nil; </div><div class="line">    NSData *data = [NSData dataWithBytes:(unsigned char [])&#123;0x73, 0x74, 0x61, 0x74, 0x75, 0x73, 0x42, 0x61, 0x72&#125; length:9]; </div><div class="line">    NSString *key = [[NSString alloc] initWithData:data encoding:NSASCIIStringEncoding]; </div><div class="line">    id object = [UIApplication sharedApplication]; </div><div class="line">    if ([object respondsToSelector:NSSelectorFromString(key)]) &#123;</div><div class="line">        statusBar = [object valueForKey:key]; </div><div class="line">    &#125;</div><div class="line">    return statusBar; </div><div class="line">&#125;</div></pre></td></tr></table></figure>
+<p>不过，还是不建议使用私有API，因为它是不可靠的。也许某天苹果就把它移除了。</p>
+<h4 id="update"><a href="#update" class="headerlink" title="update:"></a><em>update:</em></h4><ul>
+<li>还有一步遗漏了，app需要添加一个<code>Prefs</code>的URL Schemes，即添加到<code>info.plist</code>的<code>LSApplicationQueriesSchemes</code>项中。</li>
+</ul>
+<h4 id="参考："><a href="#参考：" class="headerlink" title="参考："></a>参考：</h4><p><a href="http://stackoverflow.com/a/39102075/6380485" target="_blank" rel="external">http://stackoverflow.com/a/39102075/6380485</a><br><a href="https://www.zhihu.com/question/50635906/answer/125195317" target="_blank" rel="external">https://www.zhihu.com/question/50635906/answer/125195317</a><br><a href="https://github.com/cyanzhong/app-tutorials/blob/master/schemes.md" target="_blank" rel="external">iOS10系统URLScheme</a></p>
+
+          
+        
+      
     </div>
 
-    
+    <div>
+      
+    </div>
+
+    <div>
+      
+    </div>
+
+    <footer class="post-footer">
       
 
-  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
-    <header class="post-header">
-
-      <h1 class="post-title">
-        
-            <a class="post-title-link" href="/2017/09/27/iOS VIPER架构实践(三)：基于接口的路由设计/" itemprop="url">
-              
-                <span itemprop="name">iOS VIPER架构实践(三)：面向接口的路由设计</span>
-              
-            </a>
-        
-      </h1>
-
-      <div class="post-meta">
-        <time class="post-time" itemprop="dateCreated"
-              datetime="2017-09-27T23:36:00+08:00"
-              content="2017-09-27" >
-          09-27
-        </time>
-      </div>
-
-    </header>
-  </article>
-
-
-    
       
 
-  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
-    <header class="post-header">
-
-      <h1 class="post-title">
-        
-            <a class="post-title-link" href="/2017/08/11/iOS VIPER架构实践(二)：VIPER详解与实现/" itemprop="url">
-              
-                <span itemprop="name">iOS VIPER架构实践(二)：VIPER详解与实现</span>
-              
-            </a>
-        
-      </h1>
-
-      <div class="post-meta">
-        <time class="post-time" itemprop="dateCreated"
-              datetime="2017-08-11T16:55:29+08:00"
-              content="2017-08-11" >
-          08-11
-        </time>
-      </div>
-
-    </header>
-  </article>
-
-
-    
       
-
-  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
-    <header class="post-header">
-
-      <h1 class="post-title">
-        
-            <a class="post-title-link" href="/2017/07/21/iOS VIPER架构实践(一)：从MVC到MVVM到VIPER/" itemprop="url">
-              
-                <span itemprop="name">iOS VIPER架构实践(一)：从MVC到MVVM到VIPER</span>
-              
-            </a>
-        
-      </h1>
-
-      <div class="post-meta">
-        <time class="post-time" itemprop="dateCreated"
-              datetime="2017-07-21T20:58:29+08:00"
-              content="2017-07-21" >
-          07-21
-        </time>
-      </div>
-
-    </header>
+      
+        <div class="post-eof"></div>
+      
+    </footer>
   </article>
 
 
@@ -322,6 +368,9 @@
   </section>
 
   
+  <nav class="pagination">
+    <a class="extend prev" rel="prev" href="/"><i class="fa fa-angle-left"></i></a><a class="page-number" href="/">1</a><span class="page-number current">2</span>
+  </nav>
 
 
 
@@ -527,7 +576,7 @@ s.parentNode.insertBefore(bp, s);
 
     <script type="text/javascript">
       var disqus_shortname = 'zuikyo';
-      var disqus_identifier = 'categories/代码架构/index.html';
+      var disqus_identifier = 'page/2/index.html';
       var disqus_title = "";
       var disqus_url = '';
 
