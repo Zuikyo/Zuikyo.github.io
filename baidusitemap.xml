@@ -5,11 +5,31 @@
     
   <url>
     <loc>http://yoursite.com/2017/09/27/iOS%20VIPER%E6%9E%B6%E6%9E%84%E5%AE%9E%E8%B7%B5(%E4%B8%89)%EF%BC%9A%E5%9F%BA%E4%BA%8E%E6%8E%A5%E5%8F%A3%E7%9A%84%E8%B7%AF%E7%94%B1%E8%AE%BE%E8%AE%A1/</loc>
-    <lastmod>2017-12-06T02:23:08.600Z</lastmod>
+    <lastmod>2018-01-24T01:47:46.110Z</lastmod>
     <data>
         <display>
         <title>iOS VIPER架构实践(三)：面向接口的路由设计</title>
         <pubTime>2017-09-27T15:36:00.000Z</pubTime>
+        
+        <tag>iOS</tag>
+         
+         
+           
+             
+              <breadCrumb title="代码架构" url="http://yoursite.com/categories/%E4%BB%A3%E7%A0%81%E6%9E%B6%E6%9E%84/"/>
+          
+        </display>
+    </data>
+    </url>
+
+    
+  <url>
+    <loc>http://yoursite.com/2017/08/11/iOS%20VIPER%E6%9E%B6%E6%9E%84%E5%AE%9E%E8%B7%B5(%E4%BA%8C)%EF%BC%9AVIPER%E8%AF%A6%E8%A7%A3%E4%B8%8E%E5%AE%9E%E7%8E%B0/</loc>
+    <lastmod>2018-01-24T01:45:41.320Z</lastmod>
+    <data>
+        <display>
+        <title>iOS VIPER架构实践(二)：VIPER详解与实现</title>
+        <pubTime>2017-08-11T08:55:29.000Z</pubTime>
         
         <tag>iOS</tag>
          
@@ -50,26 +70,6 @@
         <display>
         <title>iOS VIPER架构实践(一)：从MVC到MVVM到VIPER</title>
         <pubTime>2017-07-21T12:58:29.000Z</pubTime>
-        
-        <tag>iOS</tag>
-         
-         
-           
-             
-              <breadCrumb title="代码架构" url="http://yoursite.com/categories/%E4%BB%A3%E7%A0%81%E6%9E%B6%E6%9E%84/"/>
-          
-        </display>
-    </data>
-    </url>
-
-    
-  <url>
-    <loc>http://yoursite.com/2017/08/11/iOS%20VIPER%E6%9E%B6%E6%9E%84%E5%AE%9E%E8%B7%B5(%E4%BA%8C)%EF%BC%9AVIPER%E8%AF%A6%E8%A7%A3%E4%B8%8E%E5%AE%9E%E7%8E%B0/</loc>
-    <lastmod>2017-08-21T07:01:52.000Z</lastmod>
-    <data>
-        <display>
-        <title>iOS VIPER架构实践(二)：VIPER详解与实现</title>
-        <pubTime>2017-08-11T08:55:29.000Z</pubTime>
         
         <tag>iOS</tag>
          
