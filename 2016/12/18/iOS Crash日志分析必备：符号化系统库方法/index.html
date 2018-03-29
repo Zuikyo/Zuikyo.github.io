@@ -87,21 +87,21 @@
 
 
 <meta name="description" content="如果你有过分析iOS崩溃日志的经验，一定经常看到日志里出现很多&amp;lt;redacted&amp;gt;的字段。这篇文章就是帮助开发者将这些字段符号化为对应的系统库方法名。
-如果你已经掌握了这方面的知识，就直接去下面的网盘下载地址目录，下载我整理好的系统库符号文件吧。
-符号化的作用当获取到app的crash日志时，第一步就是将其符号化。作用是把日志堆栈中的方法调用显示出来，对于来自app内部的方法，还能直接">
+如果你已经掌握了这方面的知识，就直接去这里iOS-System-Symbols，下载我整理好的系统库符号文件吧。
+符号化的作用当获取到app的crash日志时，第一步就是将其符号化。作用是把日志堆栈中的方法调用显示出来，对于来自app内">
 <meta property="og:type" content="article">
 <meta property="og:title" content="iOS Crash分析必备：符号化系统库方法">
 <meta property="og:url" content="http://yoursite.com/2016/12/18/iOS Crash日志分析必备：符号化系统库方法/index.html">
 <meta property="og:site_name" content="zuik's blog">
 <meta property="og:description" content="如果你有过分析iOS崩溃日志的经验，一定经常看到日志里出现很多&amp;lt;redacted&amp;gt;的字段。这篇文章就是帮助开发者将这些字段符号化为对应的系统库方法名。
-如果你已经掌握了这方面的知识，就直接去下面的网盘下载地址目录，下载我整理好的系统库符号文件吧。
-符号化的作用当获取到app的crash日志时，第一步就是将其符号化。作用是把日志堆栈中的方法调用显示出来，对于来自app内部的方法，还能直接">
-<meta property="og:updated_time" content="2018-03-25T17:40:36.230Z">
+如果你已经掌握了这方面的知识，就直接去这里iOS-System-Symbols，下载我整理好的系统库符号文件吧。
+符号化的作用当获取到app的crash日志时，第一步就是将其符号化。作用是把日志堆栈中的方法调用显示出来，对于来自app内">
+<meta property="og:updated_time" content="2018-03-29T02:59:04.130Z">
 <meta name="twitter:card" content="summary">
 <meta name="twitter:title" content="iOS Crash分析必备：符号化系统库方法">
 <meta name="twitter:description" content="如果你有过分析iOS崩溃日志的经验，一定经常看到日志里出现很多&amp;lt;redacted&amp;gt;的字段。这篇文章就是帮助开发者将这些字段符号化为对应的系统库方法名。
-如果你已经掌握了这方面的知识，就直接去下面的网盘下载地址目录，下载我整理好的系统库符号文件吧。
-符号化的作用当获取到app的crash日志时，第一步就是将其符号化。作用是把日志堆栈中的方法调用显示出来，对于来自app内部的方法，还能直接">
+如果你已经掌握了这方面的知识，就直接去这里iOS-System-Symbols，下载我整理好的系统库符号文件吧。
+符号化的作用当获取到app的crash日志时，第一步就是将其符号化。作用是把日志堆栈中的方法调用显示出来，对于来自app内">
 
 
 
@@ -334,7 +334,7 @@
 
       
         <p>如果你有过分析iOS崩溃日志的经验，一定经常看到日志里出现很多<code>&lt;redacted&gt;</code>的字段。这篇文章就是帮助开发者将这些字段符号化为对应的系统库方法名。</p>
-<p>如果你已经掌握了这方面的知识，就直接去下面的<a href="#wang-pan">网盘下载地址</a>目录，下载我整理好的系统库符号文件吧。</p>
+<p>如果你已经掌握了这方面的知识，就直接去这里<a href="https://github.com/Zuikyo/iOS-System-Symbols" target="_blank" rel="external">iOS-System-Symbols</a>，下载我整理好的系统库符号文件吧。</p>
 <h2 id="符号化的作用"><a href="#符号化的作用" class="headerlink" title="符号化的作用"></a>符号化的作用</h2><p>当获取到app的crash日志时，第一步就是将其符号化。作用是把日志堆栈中的方法调用显示出来，对于来自app内部的方法，还能直接给出方法对应.m文件的所在行。</p>
 <p>符号化前（这里项目的<code>Build Settings</code>里的<code>Strip Style</code>设为了<code>Debugging Symbols</code>，所以这里能直接看到<code>MyApp</code>的方法名。更多和symbol相关的设置，请看<a href="http://www.jianshu.com/p/11710e7ab661" target="_blank" rel="external">这里</a>）：</p>
 <figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div></pre></td><td class="code"><pre><div class="line">Thread 7:</div><div class="line">0   libsystem_kernel.dylib          0x000000018efb416c 0x18efb3000 + 4460 (mach_msg_trap + 8)</div><div class="line">1   libsystem_kernel.dylib          0x000000018efb3fdc 0x18efb3000 + 4060 (mach_msg + 72)</div><div class="line">2   MyApp                           0x000000010091e558 0x1000bc000 + 8791384 (ksmachexc_i_handleExceptions + 148)</div><div class="line">3   libsystem_pthread.dylib         0x000000018f097860 0x18f094000 + 14432 (&lt;redacted&gt; + 240)</div><div class="line">4   libsystem_pthread.dylib         0x000000018f097770 0x18f094000 + 14192 (_pthread_start + 284)</div></pre></td></tr></table></figure>
@@ -348,7 +348,8 @@
 <figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div></pre></td><td class="code"><pre><div class="line">Thread 0 name:  Dispatch queue: com.apple.main-thread</div><div class="line">Thread 0 Crashed:</div><div class="line">0   libobjc.A.dylib                 0x000000018b816f30 objc_msgSend + 16</div><div class="line">1   UIKit                           0x0000000192e0a79c -[UISearchDisplayController _sendDelegateDidBeginDidEndSearch] + 72</div><div class="line">2   UIKit                           0x0000000192c4db48 -[UIViewAnimationState sendDelegateAnimationDidStop:finished:] + 312</div><div class="line">3   UIKit                           0x0000000192c4d988 -[UIViewAnimationState animationDidStop:finished:] + 160</div><div class="line">4   QuartzCore                      0x00000001900d6404 CA::Layer::run_animation_callbacks(void*) + 260</div><div class="line">5   libdispatch.dylib               0x000000018bc551c0 _dispatch_client_callout + 16</div><div class="line">6   libdispatch.dylib               0x000000018bc59d6c _dispatch_main_queue_callback_4CF + 1000</div><div class="line">7   CoreFoundation                  0x000000018cd79f2c __CFRUNLOOP_IS_SERVICING_THE_MAIN_DISPATCH_QUEUE__ + 12</div><div class="line">8   CoreFoundation                  0x000000018cd77b18 __CFRunLoopRun + 1660</div><div class="line">9   CoreFoundation                  0x000000018cca6048 CFRunLoopRunSpecific + 444</div><div class="line">10  GraphicsServices                0x000000018e729198 GSEventRunModal + 180</div><div class="line">11  UIKit                           0x0000000192c80628 -[UIApplication _run] + 684</div><div class="line">12  UIKit                           0x0000000192c7b360 UIApplicationMain + 208</div><div class="line">13  MyApp                           0x0000000100016e54 main (main.m:15)</div><div class="line">14  libdyld.dylib                   0x000000018bc885b8 start + 4</div></pre></td></tr></table></figure>
 <p>可以看出是<code>UISearchController</code>的<code>delegate</code>导致的问题，检查一下就发现<code>UISearchDisplayController</code>的<code>delegate</code>是<code>assign</code>的，是由于点击搜索条的同时pop了界面导致的crash。</p>
 <p>从这里可以发现，符号化系统库是很有必要的。</p>
-<h2 id="如何符号化系统库"><a href="#如何符号化系统库" class="headerlink" title="如何符号化系统库"></a>如何符号化系统库</h2><p>符号化自己app的方法名，需要编译ipa时生成的dySYM文件。而要将系统库的<code>&lt;redacted&gt;</code>符号化为完整的方法名，也需要系统库的符号文件。</p>
+<p>##如何符号化系统库</p>
+<p>符号化自己app的方法名，需要编译ipa时生成的dySYM文件。而要将系统库的<code>&lt;redacted&gt;</code>符号化为完整的方法名，也需要系统库的符号文件。</p>
 <h3 id="1-匹配对应的符号文件版本"><a href="#1-匹配对应的符号文件版本" class="headerlink" title="1. 匹配对应的符号文件版本"></a>1. 匹配对应的符号文件版本</h3><p>系统库符号文件不是通用的，而是对应crash所在设备的系统版本和CPU型号的。</p>
 <p>crash日志中有这样两个信息：</p>
 <figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div></pre></td><td class="code"><pre><div class="line">Code Type:       ARM-64</div><div class="line">OS Version:      iOS 10.2 (14C82)</div></pre></td></tr></table></figure>
@@ -362,6 +363,7 @@
 <p>固件解密步骤：</p>
 <p>1.下载对应版本的.ipsw固件，直接解压，解压后里面有几个<code>.dmg</code>格式的镜像文件，最大的<code>.dmg</code>文件就是系统镜像。<br>2.从<a href="https://www.theiphonewiki.com/wiki/Firmware_Keys" target="_blank" rel="external">Firmware_Keys</a>找到对应固件的解密key（页面上<code>Root Filesystem</code>字段的key）。<br>3.用一个<code>dmg</code>工具进行解密，<a href="http://modmyi.com/attachments/forums/general-verizon-sprint-cdma-iphone-chat/643832d1372672304-cant-decrypt-ios-7-beta-help-dmg.zip" target="_blank" rel="external">下载地址</a>。使用方式：<code>cd</code>到解压后的ipsw文件夹，执行<code>./dmg extract xxx-xxxx-xxx.dmg dec.dmg -k &lt;key&gt;</code>。<code>extract</code>后面跟两个参数，分别是系统镜像dmg的名字和解密后的文件名，-k 后面填写第2步获取到的key，如果key不对，解密会失败。<br>4.等待。最终会生成一个<code>dec.dmg</code>文件，双击打开即可加载系统镜像。</p>
 <p>提取符号文件方法：<br>参考<a href="http://crash.163.com/#news/!newsId=31" target="_blank" rel="external">聊聊从iOS固件提取系统库符号</a>中的<code>二、系统库符号提取</code>部分。</p>
+<p><strong>update</strong>:目前大多数固件都能解密了，而且iOS 10之后苹果不再进行加密，因此之后都可以用这个方式获取符号文件。</p>
 <h3 id="下载旧版本Xcode，提取SDK"><a href="#下载旧版本Xcode，提取SDK" class="headerlink" title="下载旧版本Xcode，提取SDK"></a>下载旧版本Xcode，提取SDK</h3><p>旧版本的Xcode里包含了对应的iPhoneSDK，可以从中获得符号文件。<br>路径是<code>/Applications/Xcode.app/Contents/Developer/Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS.sdk/</code>。里面的<code>System/Library</code>里就可以看到framework，而且同时包含了<code>armv7</code>,<code>armv7s</code>,<code>arm64</code>3个平台的版本。</p>
 <p><code>/Applications/Xcode.app/Contents/Developer/Platforms/iPhoneOS.platform/version.plist</code>可以查看是哪个版本。把<code>iPhoneOS.sdk</code>文件夹的名字改成对应的<code>CFBundleVersion (ProductBuildVersion)</code>格式，然后在里面加一层<code>Symbols</code>子文件夹，把<code>System</code>,<code>Library</code>,<code>usr</code>都放进<code>Symbols</code>里，就可以和其他符号文件一样使用了。</p>
 <p>但是当iOS版本只包含了bug修复，而没有改变API，Xcode就不会有附带对应的SDK，还是需要从真机上获取。而且从Xcode7开始，苹果用<code>tbd</code>文件代替了真机符号文件，所以这个方法也失效了。<br>参考：<a href="http://stackoverflow.com/questions/14941773/xcode-software-image-for-user-ios-in-order-to-symbolicate-ios-calls" target="_blank" rel="external">Xcode software image for user iOS in order to symbolicate iOS calls</a>, <a href="http://stackoverflow.com/a/28408052/6380485" target="_blank" rel="external">Missing iOS symbols at “~/Library/Developer/Xcode/iOS DeviceSupport”</a>。</p>
@@ -389,7 +391,7 @@
 <p>心情总算愉悦了。</p>
 <p>其中大部分都是拷贝自<code>arm64</code>设备的，<code>armv7</code>的符号文件收集我是放弃了。有哪位大侠有兴趣把这个游戏玩通关的吗？还有 tvOS 和 watchOS的符号，我也放弃了。<br>(update:又花了些时间从Xcode的SDK和固件里提取了<code>armv7s</code>和<code>armv7</code>的固件，现在只剩下几个<code>arm64</code>的版本了)。</p>
 <p>整理了一下传到了网盘，地址见下方，有需要的去下载吧。</p>
-<h3 id="目前还缺少的符号文件"><a href="#目前还缺少的符号文件" class="headerlink" title="目前还缺少的符号文件"></a>目前还缺少的符号文件</h3><p>如果有人有这几个符号文件的，恳请你分享！</p>
+<h3 id="目前还缺少的符号文件"><a href="#目前还缺少的符号文件" class="headerlink" title="目前还缺少的符号文件"></a>目前还缺少的符号文件</h3><p>通过各种方式，目前已经收集得差不多了，只剩下最后一个<code>10.0(14A346)</code>版本没有得到。如果哪位小伙伴有这个版本，可以分享一下。</p>
 <p>分享可以直接贴下载地址，也可以提交到这个github项目<a href="https://github.com/Zuikyo/iOS-System-Symbols" target="_blank" rel="external">iOS-System-Symbols</a>。如果我得到了新的符号文件，也会在这个项目里更新。</p>
 <table>
 <thead>
@@ -405,54 +407,11 @@
 <td>arm64</td>
 <td>iPhone 7 和 7 Plus独占，出厂自带系统</td>
 </tr>
-<tr>
-<td>9.3.2(13F72)</td>
-<td>arm64</td>
-<td>iPad Pro 9.7寸独占，修复了变砖的问题</td>
-</tr>
-<tr>
-<td>9.3(13E237)</td>
-<td>arm64</td>
-<td>5s, iPad Air 和 iPad mini2独占，修复了不能激活的问题</td>
-</tr>
-<tr>
-<td>9.3(13E234)</td>
-<td>arm64</td>
-<td>6s, 6s Plus 和 iPad Pro 9.7寸 独占</td>
-</tr>
-<tr>
-<td>8.1.1 (12B435)</td>
-<td>arm64</td>
-<td>5s, iPad Air 和 iPad mini2 独占</td>
-</tr>
-<tr>
-<td>8.0.1(12A402)</td>
-<td>arm64</td>
-<td><code>8.0.1</code>有导致变砖的bug，发布后很快就停止推送了</td>
-</tr>
-<tr>
-<td>7.1.2 (11D257)</td>
-<td>arm64</td>
-<td></td>
-</tr>
-<tr>
-<td>7.0.2(11A501)</td>
-<td>arm64</td>
-<td></td>
-</tr>
-<tr>
-<td>7.0.1(11A470a)</td>
-<td>arm64</td>
-<td>5s 独占</td>
-</tr>
 </tbody>
 </table>
-<p>注意，arm64，armv7s，armv7版本的文件都是在同一个文件里的（例如<code>/Symbols/System/Library/Frameworks/UIKit.framework/UIKit</code>），Xcode在拷贝armv7的符号文件时，如果<code>iOS DeviceSupport</code>目录里已经有<code>arm64</code>或<code>armv7s</code>的符号文件，则会自动进行合并。因此如果你要分享一个<code>armv7</code>版本的符号文件，请先把arm64等其他版本的拷贝到<code>/Users/zhangweike/Library/Developer/Xcode/iOS DeviceSupport/</code>里，然后再用Xcode进行合并后再压缩分享。</p>
-<h3 id="网盘下载地址"><a href="#网盘下载地址" class="headerlink" title="网盘下载地址"></a><a name="wang-pan"></a>网盘下载地址</h3><p><strong>网盘链接: <a href="https://pan.baidu.com/s/1nvfi4g5" target="_blank" rel="external">https://pan.baidu.com/s/1nvfi4g5</a> 密码: <code>79m8</code></strong></p>
-<p>如果是在国外，可以用Google Driver：<br><a href="https://drive.google.com/drive/folders/0B-0LZDbSzubRaUdMdTJQc1ZzMUU?usp=sharing" target="_blank" rel="external">google drive分享(7.0.3-9.2)</a><br>,<br><a href="https://drive.google.com/drive/folders/0B5oBYvBG2NS7aDVTR1JzX2JXaFE?usp=sharing" target="_blank" rel="external">google drive分享(9.2.1-10.2)</a></p>
-<p>如果我得到了新的符号文件，会在这个项目里更新：<a href="https://github.com/Zuikyo/iOS-System-Symbols" target="_blank" rel="external">iOS-System-Symbols</a>。</p>
+<h3 id="网盘下载地址"><a href="#网盘下载地址" class="headerlink" title="网盘下载地址"></a>网盘下载地址</h3><p>下载地址请见这个项目：<a href="https://github.com/Zuikyo/iOS-System-Symbols" target="_blank" rel="external">iOS-System-Symbols</a>。如果我得到了新的符号文件，会在这个项目里更新。</p>
 <p>我把里面的那几个<code>dyld_shared_cache_xxxx</code>大文件单独拿出来了，目的是减小压缩包大小。如果只是符号化的话，用不到这几个文件，只是在真机调试的时候才需要。</p>
-<h3 id="符号文件版本列表"><a href="#符号文件版本列表" class="headerlink" title="符号文件版本列表"></a>符号文件版本列表</h3><p>这些是我已经收集到的符号文件，包括了对应的CPU信息。iOS10系统开始不支持<code>armv7</code>的机器。但是iOS9以下还是支持<code>armv7</code>的，这里很多都缺失了<code>armv7</code>。</p>
+<h3 id="符号文件版本列表"><a href="#符号文件版本列表" class="headerlink" title="符号文件版本列表"></a>符号文件版本列表</h3><p>这些是我已经收集到的符号文件，包括了对应的CPU信息。iOS10系统开始不支持<code>armv7</code>的机器。但是iOS9以下还是支持<code>armv7</code>的。</p>
 <p>查看是否带有对应CPU架构的符号文件的方式：到<code>10.2 (14C92)/Symbols/System/Library/Caches/com.apple.dyld</code>这样的目录下，会有对应的<code>dyld_shared_cache_arm64</code>，<code>dyld_shared_cache_armv7s</code>，<code>dyld_shared_cache_armv7</code>文件，如果缺失了，就说明对应的CPU架构符号文件还不存在。（经过试验，这几个大文件并不影响符号化，只是在真机调试的时候才有用，因此如果嫌太占用空间，可以删去）。</p>
 <table>
 <thead>
@@ -463,6 +422,116 @@
 </tr>
 </thead>
 <tbody>
+<tr>
+<td>11.2.6 (15D100)</td>
+<td>arm64</td>
+<td></td>
+</tr>
+<tr>
+<td>11.2.5 (15D60)</td>
+<td>arm64</td>
+<td></td>
+</tr>
+<tr>
+<td>11.2.2 (15C202)</td>
+<td>arm64</td>
+<td></td>
+</tr>
+<tr>
+<td>11.2.1 (15C153)</td>
+<td>arm64</td>
+<td></td>
+</tr>
+<tr>
+<td>11.2 (15C114)</td>
+<td>arm64</td>
+<td></td>
+</tr>
+<tr>
+<td><strong>11.2 (15C113)</strong></td>
+<td><strong>none</strong></td>
+<td>苹果在发布了15C114之后，又发布了一个低版本的15C113，之后又移除了15C113的下载地址，因此这个固件目前无法下载。应该只是误发布，可以忽略这个版本</td>
+</tr>
+<tr>
+<td>11.1.2 (15B202)</td>
+<td>arm64</td>
+<td></td>
+</tr>
+<tr>
+<td>11.1.1 (15B150)</td>
+<td>arm64</td>
+<td></td>
+</tr>
+<tr>
+<td>11.1 (15B101)</td>
+<td>arm64</td>
+<td>iPad Pro2 12.9-inch and iPad Pro 10.5-inch only</td>
+</tr>
+<tr>
+<td>11.1 (15B93)</td>
+<td>arm64</td>
+<td></td>
+</tr>
+<tr>
+<td>11.0.3 (15A432)</td>
+<td>arm64</td>
+<td></td>
+</tr>
+<tr>
+<td>11.0.2 (15A421)</td>
+<td>arm64</td>
+<td></td>
+</tr>
+<tr>
+<td>11.0.1 (15A403)</td>
+<td>arm64</td>
+<td>iPhone 8 and 8 Plus only</td>
+</tr>
+<tr>
+<td>11.0.1 (15A402)</td>
+<td>arm64</td>
+<td></td>
+</tr>
+<tr>
+<td>11.0 (15A372)</td>
+<td>arm64</td>
+<td></td>
+</tr>
+<tr>
+<td>10.3.3 (14G60)</td>
+<td>arm64,armv7s</td>
+<td></td>
+</tr>
+<tr>
+<td>10.3.2 (14F91)</td>
+<td>arm64,armv7s</td>
+<td>iPad mini4(Cellular) only</td>
+</tr>
+<tr>
+<td>10.3.2 (14F90)</td>
+<td>arm64,armv7s</td>
+<td>iPad (5th gen) only</td>
+</tr>
+<tr>
+<td>10.3.2 (14F89)</td>
+<td>arm64,armv7s</td>
+<td></td>
+</tr>
+<tr>
+<td>10.3.1 (14E304)</td>
+<td>arm64,armv7s</td>
+<td></td>
+</tr>
+<tr>
+<td>10.3 (14E277)</td>
+<td>arm64,armv7s</td>
+<td></td>
+</tr>
+<tr>
+<td>10.2.1 (14D27)</td>
+<td>arm64,armv7s</td>
+<td></td>
+</tr>
 <tr>
 <td>10.2 (14C92)</td>
 <td>arm64,armv7s</td>
@@ -524,8 +593,8 @@
 <td></td>
 </tr>
 <tr>
-<td><strong>9.3.2(13F72)</strong></td>
-<td><strong>none</strong></td>
+<td>9.3.2(13F72)</td>
+<td>arm64,armv7s</td>
 <td>iPad Pro 9.7寸独占，修复了变砖的问题</td>
 </tr>
 <tr>
@@ -549,8 +618,8 @@
 <td>iPad2独占，修复了不能激活的问题</td>
 </tr>
 <tr>
-<td><strong>9.3(13E234)</strong></td>
-<td><strong>none</strong></td>
+<td>9.3(13E234)</td>
+<td>arm64,armv7s</td>
 <td>6s, 6s Plus and iPad Pro 9.7寸独占</td>
 </tr>
 <tr>
@@ -743,6 +812,7 @@
 </table>
 <h2 id="结束语"><a href="#结束语" class="headerlink" title="结束语"></a>结束语</h2><p>最后再次呼吁一下，如果谁有上面缺失的符号文件，就请共享一下吧。虽然只是做一点微小的工作，但是能够有很大帮助。</p>
 <p>不觉得填满上面那个列表会很爽吗？</p>
+<p><strong>update</strong>：现在基本上已经收集完了。</p>
 <h3 id="额外提示"><a href="#额外提示" class="headerlink" title="额外提示"></a>额外提示</h3><p>其实这些符号文件就是真机上的系统库，包括了完整的系统库二进制文件。有时候要反编译某些系统framework，但是模拟器SDK里没有对应的framework（比如只有真机上才有的<code>CoreMotion.framework</code>），就可以在这些真机上的系统库里找到了。</p>
 <h2 id="参考"><a href="#参考" class="headerlink" title="参考"></a>参考</h2><ul>
 <li><a href="http://www.jianshu.com/p/11710e7ab661" target="_blank" rel="external">http://www.jianshu.com/p/11710e7ab661</a></li>
@@ -928,7 +998,7 @@
               
             
             
-              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#符号化的作用"><span class="nav-number">1.</span> <span class="nav-text">符号化的作用</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#如何符号化系统库"><span class="nav-number">2.</span> <span class="nav-text">如何符号化系统库</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#1-匹配对应的符号文件版本"><span class="nav-number">2.1.</span> <span class="nav-text">1. 匹配对应的符号文件版本</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-将对应版本的符号文件放到指定目录"><span class="nav-number">2.2.</span> <span class="nav-text">2. 将对应版本的符号文件放到指定目录</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#获取系统符号文件的4个方法"><span class="nav-number">3.</span> <span class="nav-text">获取系统符号文件的4个方法</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#从真机上获取"><span class="nav-number">3.1.</span> <span class="nav-text">从真机上获取</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#寻找苹果官方的下载地址"><span class="nav-number">3.2.</span> <span class="nav-text">寻找苹果官方的下载地址</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#从已解密的固件中提取符号文件"><span class="nav-number">3.3.</span> <span class="nav-text">从已解密的固件中提取符号文件</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#下载旧版本Xcode，提取SDK"><span class="nav-number">3.4.</span> <span class="nav-text">下载旧版本Xcode，提取SDK</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#获取符号文件的难题"><span class="nav-number">4.</span> <span class="nav-text">获取符号文件的难题</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#系统符号文件下载地址"><span class="nav-number">5.</span> <span class="nav-text">系统符号文件下载地址</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#暴力收集"><span class="nav-number">5.1.</span> <span class="nav-text">暴力收集</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#目前还缺少的符号文件"><span class="nav-number">5.2.</span> <span class="nav-text">目前还缺少的符号文件</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#网盘下载地址"><span class="nav-number">5.3.</span> <span class="nav-text">网盘下载地址</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#符号文件版本列表"><span class="nav-number">5.4.</span> <span class="nav-text">符号文件版本列表</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#机型对应CPU架构"><span class="nav-number">5.5.</span> <span class="nav-text">机型对应CPU架构</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#结束语"><span class="nav-number">6.</span> <span class="nav-text">结束语</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#额外提示"><span class="nav-number">6.1.</span> <span class="nav-text">额外提示</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#参考"><span class="nav-number">7.</span> <span class="nav-text">参考</span></a></li></ol></div>
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#符号化的作用"><span class="nav-number">1.</span> <span class="nav-text">符号化的作用</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#1-匹配对应的符号文件版本"><span class="nav-number">1.1.</span> <span class="nav-text">1. 匹配对应的符号文件版本</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-将对应版本的符号文件放到指定目录"><span class="nav-number">1.2.</span> <span class="nav-text">2. 将对应版本的符号文件放到指定目录</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#获取系统符号文件的4个方法"><span class="nav-number">2.</span> <span class="nav-text">获取系统符号文件的4个方法</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#从真机上获取"><span class="nav-number">2.1.</span> <span class="nav-text">从真机上获取</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#寻找苹果官方的下载地址"><span class="nav-number">2.2.</span> <span class="nav-text">寻找苹果官方的下载地址</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#从已解密的固件中提取符号文件"><span class="nav-number">2.3.</span> <span class="nav-text">从已解密的固件中提取符号文件</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#下载旧版本Xcode，提取SDK"><span class="nav-number">2.4.</span> <span class="nav-text">下载旧版本Xcode，提取SDK</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#获取符号文件的难题"><span class="nav-number">3.</span> <span class="nav-text">获取符号文件的难题</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#系统符号文件下载地址"><span class="nav-number">4.</span> <span class="nav-text">系统符号文件下载地址</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#暴力收集"><span class="nav-number">4.1.</span> <span class="nav-text">暴力收集</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#目前还缺少的符号文件"><span class="nav-number">4.2.</span> <span class="nav-text">目前还缺少的符号文件</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#网盘下载地址"><span class="nav-number">4.3.</span> <span class="nav-text">网盘下载地址</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#符号文件版本列表"><span class="nav-number">4.4.</span> <span class="nav-text">符号文件版本列表</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#机型对应CPU架构"><span class="nav-number">4.5.</span> <span class="nav-text">机型对应CPU架构</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#结束语"><span class="nav-number">5.</span> <span class="nav-text">结束语</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#额外提示"><span class="nav-number">5.1.</span> <span class="nav-text">额外提示</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#参考"><span class="nav-number">6.</span> <span class="nav-text">参考</span></a></li></ol></div>
             
           </div>
         </section>
