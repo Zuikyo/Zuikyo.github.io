@@ -1,0 +1,721 @@
+<!doctype html>
+
+
+
+  
+
+
+<html class="theme-next muse use-motion">
+<head>
+  <meta charset="UTF-8"/>
+<meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1"/>
+
+
+
+<meta http-equiv="Cache-Control" content="no-transform" />
+<meta http-equiv="Cache-Control" content="no-siteapp" />
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+  <link href="/vendors/fancybox/source/jquery.fancybox.css?v=2.1.5" rel="stylesheet" type="text/css" />
+
+
+
+
+  
+  
+  
+  
+
+  
+    
+    
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+    
+    
+    <link href="//fonts.googleapis.com/css?family=Lato:300,300italic,400,400italic,700,700italic&subset=latin,latin-ext" rel="stylesheet" type="text/css">
+  
+
+
+
+
+
+
+<link href="/vendors/font-awesome/css/font-awesome.min.css?v=4.4.0" rel="stylesheet" type="text/css" />
+
+<link href="/css/main.css?v=5.0.1" rel="stylesheet" type="text/css" />
+
+
+  <meta name="keywords" content="iOS," />
+
+
+
+
+
+  <link rel="alternate" href="/atom.xml" title="zuik's blog" type="application/atom+xml" />
+
+
+
+
+  <link rel="shortcut icon" type="image/x-icon" href="/favicon.ico?v=5.0.1" />
+
+
+
+
+
+
+<meta name="description" content="写几篇文章总结一下 iOS 逆向的整个流程，逆向初学者可以作为入门指南。内容包括逆向工具和环境配置、踩坑点、界面分析、砸壳、静态分析、动态分析、lldb 调试、推荐 hopper 和 IDA 插件、IDA 插件的编写、各种分析技巧。
+逆向的作用对于 iOS 开发工程师：
+
+通过查看界面、阅读汇编代码，研究参考其他 app 的实现方案
+研究系统库的实现逻辑，用于修复 bug
+查找使用私有 API，实">
+<meta property="og:type" content="article">
+<meta property="og:title" content="iOS 逆向指南：界面分析">
+<meta property="og:url" content="http://yoursite.com/2018/01/06/iOS_reverse_engineering_guide-view_analyzing/index.html">
+<meta property="og:site_name" content="zuik's blog">
+<meta property="og:description" content="写几篇文章总结一下 iOS 逆向的整个流程，逆向初学者可以作为入门指南。内容包括逆向工具和环境配置、踩坑点、界面分析、砸壳、静态分析、动态分析、lldb 调试、推荐 hopper 和 IDA 插件、IDA 插件的编写、各种分析技巧。
+逆向的作用对于 iOS 开发工程师：
+
+通过查看界面、阅读汇编代码，研究参考其他 app 的实现方案
+研究系统库的实现逻辑，用于修复 bug
+查找使用私有 API，实">
+<meta property="og:image" content="https://upload-images.jianshu.io/upload_images/1865432-06dbc695d6722c02.jpg?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240">
+<meta property="og:image" content="https://upload-images.jianshu.io/upload_images/1865432-771461969a9f80fd.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240">
+<meta property="og:updated_time" content="2018-11-01T20:14:08.230Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="iOS 逆向指南：界面分析">
+<meta name="twitter:description" content="写几篇文章总结一下 iOS 逆向的整个流程，逆向初学者可以作为入门指南。内容包括逆向工具和环境配置、踩坑点、界面分析、砸壳、静态分析、动态分析、lldb 调试、推荐 hopper 和 IDA 插件、IDA 插件的编写、各种分析技巧。
+逆向的作用对于 iOS 开发工程师：
+
+通过查看界面、阅读汇编代码，研究参考其他 app 的实现方案
+研究系统库的实现逻辑，用于修复 bug
+查找使用私有 API，实">
+<meta name="twitter:image" content="https://upload-images.jianshu.io/upload_images/1865432-06dbc695d6722c02.jpg?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240">
+
+
+
+<script type="text/javascript" id="hexo.configuration">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    scheme: 'Muse',
+    sidebar: {"position":"left","display":"post"},
+    fancybox: true,
+    motion: true,
+    duoshuo: {
+      userId: 0,
+      author: '博主'
+    }
+  };
+</script>
+
+
+
+
+  <link rel="canonical" href="http://yoursite.com/2018/01/06/iOS_reverse_engineering_guide-view_analyzing/"/>
+
+  <title> iOS 逆向指南：界面分析 | zuik's blog </title>
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" lang="zh-Hans">
+
+  
+
+
+
+
+
+
+
+
+
+
+  
+  
+    
+  
+
+  <div class="container one-collumn sidebar-position-left page-post-detail ">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-meta ">
+  
+
+  <div class="custom-logo-site-title">
+    <a href="/"  class="brand" rel="start">
+      <span class="logo-line-before"><i></i></span>
+      <span class="site-title">zuik's blog</span>
+      <span class="logo-line-after"><i></i></span>
+    </a>
+  </div>
+  <p class="site-subtitle">写点别人没写过的</p>
+</div>
+
+<div class="site-nav-toggle">
+  <button>
+    <span class="btn-bar"></span>
+    <span class="btn-bar"></span>
+    <span class="btn-bar"></span>
+  </button>
+</div>
+
+<nav class="site-nav">
+  
+
+  
+    <ul id="menu" class="menu">
+      
+        
+        <li class="menu-item menu-item-home">
+          <a href="/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-home"></i> <br />
+            
+            首页
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-categories">
+          <a href="/categories" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-th"></i> <br />
+            
+            分类
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-archives">
+          <a href="/archives" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-archive"></i> <br />
+            
+            归档
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-tags">
+          <a href="/tags" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-tags"></i> <br />
+            
+            标签
+          </a>
+        </li>
+      
+
+      
+    </ul>
+  
+
+  
+</nav>
+
+ </div>
+    </header>
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          <div id="content" class="content">
+            
+
+  <div id="posts" class="posts-expand">
+    
+
+  
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal " itemscope itemtype="http://schema.org/Article">
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">
+            
+            
+              
+                iOS 逆向指南：界面分析
+              
+            
+          </h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            <span class="post-meta-item-icon">
+              <i class="fa fa-calendar-o"></i>
+            </span>
+            <span class="post-meta-item-text">发表于</span>
+            <time itemprop="dateCreated" datetime="2018-01-06T04:14:00+08:00" content="2018-01-06">
+              2018-01-06
+            </time>
+          </span>
+
+          
+            <span class="post-category" >
+              &nbsp; | &nbsp;
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+              
+                <span itemprop="about" itemscope itemtype="https://schema.org/Thing">
+                  <a href="/categories/逆向工程/" itemprop="url" rel="index">
+                    <span itemprop="name">逆向工程</span>
+                  </a>
+                </span>
+
+                
+                
+
+              
+            </span>
+          
+
+          
+            
+              <span class="post-comments-count">
+                &nbsp; | &nbsp;
+                <a href="/2018/01/06/iOS_reverse_engineering_guide-view_analyzing/#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count disqus-comment-count" data-disqus-identifier="2018/01/06/iOS_reverse_engineering_guide-view_analyzing/" itemprop="commentsCount"></span>
+                </a>
+              </span>
+            
+          
+
+          
+
+          
+          
+
+          
+
+        </div>
+      </header>
+    
+
+
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        <p>写几篇文章总结一下 iOS 逆向的整个流程，逆向初学者可以作为入门指南。内容包括逆向工具和环境配置、踩坑点、界面分析、砸壳、静态分析、动态分析、lldb 调试、推荐 hopper 和 IDA 插件、IDA 插件的编写、各种分析技巧。</p>
+<h2 id="逆向的作用"><a href="#逆向的作用" class="headerlink" title="逆向的作用"></a>逆向的作用</h2><p>对于 iOS 开发工程师：</p>
+<ul>
+<li>通过查看界面、阅读汇编代码，研究参考其他 app 的实现方案</li>
+<li>研究系统库的实现逻辑，用于修复 bug</li>
+<li>查找使用私有 API，实现一些黑科技功能</li>
+<li>接触底层原理，对 iOS 安全防护有更深入的掌握</li>
+<li>获取其他 app 中的资源，例如游戏贴图</li>
+<li>对第三方 app 进行一些自定义”改造”</li>
+</ul>
+<p>我个人觉得逆向对我最大的帮助就是能够查看各种闭源代码的实现，满足好奇心的同时也拓展了思路，能够学到很多。</p>
+<h2 id="工具"><a href="#工具" class="headerlink" title="工具"></a>工具</h2><p>逆向中常用的工具有：</p>
+<ul>
+<li>越狱 iOS 设备一台（越狱后需要安装 openSSH 和一系列开发工具，建议使用 32 位的 armv7、armv7s 设备，因为旧版 Hopper Disassembler 不支持为 arm64 架构的汇编生成伪代码，最新版虽然支持，但是仍然不如 32 位的易读）</li>
+<li>reveal：查看任意 app 界面</li>
+<li>dumpdecrypted：对 app store 上下载的 app 进行砸壳解密的工具</li>
+<li>clutch：和 dumpdecrypted 功能相同，也是 app 砸壳工具，用法更简单</li>
+<li>class-dump, class-dump-z：分析 Mach-O 文件的类，导出 Objective-C 头文件</li>
+<li>Hopper Disassembler：反编译 iOS app 工具</li>
+<li>IDA：更强大的反编译工具， 缺点是价格贵</li>
+</ul>
+<p>通过这些工具的作用，也差不多能一窥 iOS 逆向的面貌。</p>
+<h2 id="界面分析"><a href="#界面分析" class="headerlink" title="界面分析"></a>界面分析</h2><p>这篇文章首先讲讲对普通开发者最有用的界面分析：如何查看任意 app 的界面结构。</p>
+<p>有时候我们对某个 app 的界面实现方式感兴趣，直接查看它的界面层级就能明白大致的思路。</p>
+<h3 id="使用-reveal-查看-app-界面"><a href="#使用-reveal-查看-app-界面" class="headerlink" title="使用 reveal 查看 app 界面"></a>使用 reveal 查看 app 界面</h3><p>Reveal 是一个 Mac 端的商业软件，可以查看任意 app 的界面构成，以及所属的类名、约束等信息。找到对应的功能的类名后，就可以使用后面的工具找对应的头文件查看方法。Reveal 有试用版，试用期30天，官方和淘宝店铺有正版合作，有国区优惠。使用方法如下。</p>
+<h4 id="1-客户端安装reveal插件"><a href="#1-客户端安装reveal插件" class="headerlink" title="1.客户端安装reveal插件"></a>1.客户端安装reveal插件</h4><p>Reveal 的环境配置有一些坑，并且在不同的系统版本上配置方式不一样。</p>
+<h5 id="配置"><a href="#配置" class="headerlink" title="配置"></a>配置</h5><p>iPhone 越狱后在 Cydia 里搜索<code>RevealLoader</code>安装插件。Reveal 有多个版本，reveal 1.6.3支持 iOS 7，reveal 2（版本号从2一直增加到了最近的13）最低支持 iOS 8。如果用的是 reveal 2，则在 iOS 9 及以下系统仍然使用<code>RevealLoader</code>，iOS 10 越狱机上则安装<code>Reveal2Loader</code>。安装后在设置里会出现 reveal 工具栏（可能需要重启设备），找到需要查看的 app，打开开关，然后重启 app。</p>
+<p>如果使用 reveal 2，还需要手动添加一个动态库到设备上，原因是客户端的库需要和 Mac 端的库版本一致。在 Mac 端的 reveal 中打开 <code>Help -&gt; Show Reveal Library in Finder</code> (根据目标机器的类型选择 iOS Library 或者 TvOS Library)，将<code>RevealServer.framework</code>拷贝出来。</p>
+<p>如果是 iOS 9，使用<code>RevealLoader</code>插件时，需要把<code>RevealServer.framework/RevealServer</code>二进制文件重命名为<code>libReveal.dylib</code>，拷贝到设备的<code>/Library/RHRevealLoader</code>文件夹下，没有文件夹则手动创建一个。</p>
+<p>如果是 iOS 10，使用<code>Reveal2Loader</code>插件时，则将<code>RevealServer.framework</code>拷贝到目标设备上的<code>/Library/Frameworks/</code>目录下，如果已经存在同名文件，则替换。</p>
+<p>最后，终端 SSH 到 iOS 设备，执行<code>killall SpringBoard</code>，重启 SpringBoard 即可。</p>
+<p><img src="https://upload-images.jianshu.io/upload_images/1865432-06dbc695d6722c02.jpg?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240" alt="reveal1.jpg"></p>
+<h5 id="原理"><a href="#原理" class="headerlink" title="原理"></a>原理</h5><p>这个工具是把 reveal 的库添加到了<code>/Library/MobileSubstrate/DynamicLibraries</code>，并且提供了一个管理界面，并不是必须安装。当 app 启动时，MobileSubstrate 会自动把 reveal 的动态库注入到 app 中，然后和 Mac 端的软件进行通信。</p>
+<p>如果选择不安装此工具，配置方法请参考<a href="https://zhuanlan.zhihu.com/p/19646016?columnSlug=iOSRe" target="_blank" rel="external">https://zhuanlan.zhihu.com/p/19646016?columnSlug=iOSRe</a>。</p>
+<h4 id="2-Mac-端打开-reveal-软件"><a href="#2-Mac-端打开-reveal-软件" class="headerlink" title="2.Mac 端打开 reveal 软件"></a>2.Mac 端打开 reveal 软件</h4><p>Mac 端安装 reveal 软件，把 iOS 设备和 Mac 连接到同一 wifi 下。<br>开启需要查看的 app，进入需要查看的界面，在 Mac 端 reveal 里选中，即可开启。</p>
+<h4 id="3-查看页面信息"><a href="#3-查看页面信息" class="headerlink" title="3.查看页面信息"></a>3.查看页面信息</h4><p>你可以拖动界面，立体地查看界面结构。这个查看方式是 reveal 首先发布的，后来苹果官方把它集成到了 Xcode 中。</p>
+<p>页面的右边，可以找到此页面对应的类名，以及尺寸、约束等信息。<br>下面是微信的扫一扫界面，可以看到界面的类名为 CameraScannerView 和 CameraScannerViewController。reveal2 开始，也可以查看 extension 的界面，比如通知中心插件。</p>
+<p><img src="https://upload-images.jianshu.io/upload_images/1865432-771461969a9f80fd.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240" alt="reveal查看界面"></p>
+<h3 id="其他界面查看方式"><a href="#其他界面查看方式" class="headerlink" title="其他界面查看方式"></a>其他界面查看方式</h3><p>不用 reveal 也可以查看 app 的界面。</p>
+<h4 id="1-lldb-打印界面层级"><a href="#1-lldb-打印界面层级" class="headerlink" title="1. lldb 打印界面层级"></a>1. lldb 打印界面层级</h4><p>可以在动态分析 app 时，用 lldb 打印出 app 的界面层级。命令是：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line">po [[UIApp keyWindow] recursiveDescription]</div></pre></td></tr></table></figure>
+<p>打印出来的结果类似于：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div><div class="line">27</div><div class="line">28</div><div class="line">29</div><div class="line">30</div><div class="line">31</div></pre></td><td class="code"><pre><div class="line">&lt;UIWindow: 0x7fbb91511d50; frame = (0 0; 375 667); gestureRecognizers = &lt;NSArray: 0x60400025bc90&gt;; layer = &lt;UIWindowLayer: 0x604000235820&gt;&gt;</div><div class="line">   | &lt;UILayoutContainerView: 0x7fbb91513e00; frame = (0 0; 375 667); autoresize = W+H; layer = &lt;CALayer: 0x604000235fe0&gt;&gt;</div><div class="line">   |    | &lt;UIView: 0x7fbb9151a440; frame = (0 0; 375 0); layer = &lt;CALayer: 0x604000237420&gt;&gt;</div><div class="line">   |    | &lt;UILayoutContainerView: 0x7fbb91514420; frame = (0 0; 375 667); clipsToBounds = YES; gestureRecognizers = &lt;NSArray: 0x60400025d9d0&gt;; layer = &lt;CALayer: 0x604000235e60&gt;&gt;</div><div class="line">   |    |    | &lt;UINavigationTransitionView: 0x7fbb91516070; frame = (0 0; 375 667); clipsToBounds = YES; autoresize = W+H; layer = &lt;CALayer: 0x604000236920&gt;&gt;</div><div class="line">   |    |    |    | &lt;UIViewControllerWrapperView: 0x7fbb9151aa20; frame = (0 0; 375 667); autoresize = W+H; layer = &lt;CALayer: 0x6040000379e0&gt;&gt;</div><div class="line">   |    |    |    |    | &lt;UIView: 0x7fbb9160d7b0; frame = (0 0; 375 667); autoresize = W+H; layer = &lt;CALayer: 0x60400023e4c0&gt;&gt;</div><div class="line">   |    |    |    |    |    | &lt;UIButton: 0x7fbb917190d0; frame = (170 90; 34 30); opaque = NO; autoresize = RM+BM; layer = &lt;CALayer: 0x60000022bf20&gt;&gt;</div><div class="line">   |    |    |    |    |    |    | &lt;UIButtonLabel: 0x7fbb91611210; frame = (0 6; 34 18); text = &apos;push&apos;; opaque = NO; userInteractionEnabled = NO; layer = &lt;_UILabelLayer: 0x604000292fc0&gt;&gt;</div><div class="line">   |    |    |    |    |    | &lt;UIButton: 0x7fbb91606c30; frame = (123 207; 128 30); opaque = NO; autoresize = RM+BM; layer = &lt;CALayer: 0x60400023a820&gt;&gt;</div><div class="line">   |    |    |    |    |    |    | &lt;UIButtonLabel: 0x7fbb91418310; frame = (0 6; 128 18); text = &apos;push and auto pop&apos;; opaque = NO; userInteractionEnabled = NO; layer = &lt;_UILabelLayer: 0x600000299cd0&gt;&gt;</div><div class="line">   |    |    |    |    |    | &lt;_UILayoutGuide: 0x7fbb9160db40; frame = (0 0; 0 64); hidden = YES; layer = &lt;CALayer: 0x60400023e920&gt;&gt;</div><div class="line">   |    |    |    |    |    | &lt;_UILayoutGuide: 0x7fbb9160df50; frame = (0 667; 0 0); hidden = YES; layer = &lt;CALayer: 0x60400023e700&gt;&gt;</div><div class="line">   |    |    | &lt;UINavigationBar: 0x7fbb9150b170; frame = (0 20; 375 44); opaque = NO; autoresize = W; layer = &lt;CALayer: 0x604000039660&gt;&gt;</div><div class="line">   |    |    |    | &lt;_UIBarBackground: 0x7fbb9150e540; frame = (0 -20; 375 64); userInteractionEnabled = NO; layer = &lt;CALayer: 0x6040000395e0&gt;&gt;</div><div class="line">   |    |    |    |    | &lt;UIImageView: 0x7fbb9150e9d0; frame = (0 64; 375 0.5); userInteractionEnabled = NO; layer = &lt;CALayer: 0x604000039500&gt;&gt;</div><div class="line">   |    |    |    |    | &lt;UIVisualEffectView: 0x7fbb9150ec00; frame = (0 0; 375 64); layer = &lt;CALayer: 0x6040000394e0&gt;&gt;</div><div class="line">   |    |    |    |    |    | &lt;_UIVisualEffectBackdropView: 0x7fbb91710df0; frame = (0 0; 375 64); autoresize = W+H; userInteractionEnabled = NO; layer = &lt;UICABackdropLayer: 0x600000228da0&gt;&gt;</div><div class="line">   |    |    |    |    |    | &lt;_UIVisualEffectSubview: 0x7fbb917119a0; frame = (0 0; 375 64); autoresize = W+H; userInteractionEnabled = NO; layer = &lt;CALayer: 0x600000228f40&gt;&gt;</div><div class="line">   |    |    |    | &lt;_UINavigationBarLargeTitleView: 0x7fbb91511290; frame = (0 0; 0 44); clipsToBounds = YES; alpha = 0; hidden = YES; layer = &lt;CALayer: 0x604000039720&gt;&gt;</div><div class="line">   |    |    |    |    | &lt;UILabel: 0x7fbb9171bae0; frame = (0 0; 0 0); userInteractionEnabled = NO; layer = &lt;_UILabelLayer: 0x6000002972f0&gt;&gt;</div><div class="line">   |    |    |    | &lt;_UINavigationBarContentView: 0x7fbb9150f560; frame = (0 0; 375 44); clipsToBounds = YES; layer = &lt;CALayer: 0x604000039400&gt;&gt;</div><div class="line">   |    |    |    |    | &lt;_UIButtonBarButton: 0x7fbb9171c570; frame = (0 0; 80 44); layer = &lt;CALayer: 0x60400023d6c0&gt;&gt;</div><div class="line">   |    |    |    |    |    | &lt;_UIModernBarButton: 0x7fbb915178e0; frame = (8 11.5; 13 21); opaque = NO; userInteractionEnabled = NO; layer = &lt;CALayer: 0x60400023f200&gt;&gt;</div><div class="line">   |    |    |    |    |    |    | &lt;UIImageView: 0x7fbb9141caf0; frame = (0 0; 13 21); clipsToBounds = YES; opaque = NO; userInteractionEnabled = NO; layer = &lt;CALayer: 0x600000230300&gt;&gt;</div><div class="line">   |    |    |    |    |    | &lt;_UIBackButtonContainerView: 0x7fbb91419ef0; frame = (0 0; 80 44); autoresize = W+H; userInteractionEnabled = NO; layer = &lt;CALayer: 0x60000022ec20&gt;&gt;</div><div class="line">   |    |    |    |    |    |    | &lt;_UIModernBarButton: 0x7fbb9150c480; frame = (27 9; 53 23.5); opaque = NO; userInteractionEnabled = NO; layer = &lt;CALayer: 0x60400023e900&gt;&gt;</div><div class="line">   |    |    |    |    |    |    |    | &lt;UIButtonLabel: 0x7fbb91511700; frame = (-1.5 3; 53 20.5); text = &apos;Master&apos;; opaque = NO; userInteractionEnabled = NO; layer = &lt;_UILabelLayer: 0x604000291b70&gt;&gt;</div><div class="line">   |    |    |    |    | &lt;UILabel: 0x7fbb9171c290; frame = (148.5 12; 78.5 20.5); text = &apos;Test Push&apos;; userInteractionEnabled = NO; layer = &lt;_UILabelLayer: 0x600000297ca0&gt;&gt;</div><div class="line">   |    |    |    | &lt;_UINavigationBarModernPromptView: 0x7fbb9170cf10; frame = (0 0; 0 44); alpha = 0; hidden = YES; layer = &lt;CALayer: 0x6000002270c0&gt;&gt;</div><div class="line">   |    |    |    |    | &lt;UILabel: 0x7fbb9170d430; frame = (0 25.5; 0 0); text = &apos;&apos;; userInteractionEnabled = NO; layer = &lt;_UILabelLayer: 0x600000290400&gt;&gt;</div></pre></td></tr></table></figure>
+<p><code>recursiveDescription</code>是<code>UIView</code>的私有API，注意不是所有的<code>UIView</code>都能使用，在有些视图上会crash。</p>
+<p>可以再用<code>nextResponder</code>获取<code>UIView</code>对应的 view controller。</p>
+<p>由于看得眼花，所以这个方式我很少用。</p>
+<h4 id="2-直接使用-Xcode-的Debug-View-Hierarchy"><a href="#2-直接使用-Xcode-的Debug-View-Hierarchy" class="headerlink" title="2. 直接使用 Xcode 的Debug View Hierarchy"></a>2. 直接使用 Xcode 的<code>Debug View Hierarchy</code></h4><p>可以用 Xcode 直接调试重签名后的 app，然后就可以用<code>Debug View Hierarchy</code>查看界面层级了。</p>
+<p>参考：<a href="https://zuikyo.github.io/2017/05/04/iOS逆向：用Xcode直接调试第三方app/" target="_blank" rel="external">iOS逆向：用Xcode直接调试第三方app</a></p>
+<h4 id="3-越狱插件：FLEX"><a href="#3-越狱插件：FLEX" class="headerlink" title="3. 越狱插件：FLEX"></a>3. 越狱插件：FLEX</h4><p>可以安装越狱插件，直接注入到 app 中，打印出界面信息。可以去 Cydia 中直接下载安装，也可以去这里编译源码使用：<a href="https://github.com/Flipboard/FLEX" target="_blank" rel="external">FLEX</a>。</p>
+<h2 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h2><p>界面分析对于猜想某个界面的实现方式有很大帮助。想要分析其它功能时，也可以通过界面分析先找到对应的类，再进一步进行静态分析和动态分析。下一篇文章将会讲解如何进行静态分析。</p>
+
+      
+    </div>
+
+    <div>
+      
+        
+
+      
+    </div>
+
+    <div>
+      
+        
+
+      
+    </div>
+
+    <footer class="post-footer">
+      
+        <div class="post-tags">
+          
+            <a href="/tags/iOS/" rel="tag">#iOS</a>
+          
+        </div>
+      
+
+      
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
+            
+              <a href="/2017/09/27/iOS VIPER架构实践(三)：基于接口的路由设计/" rel="next" title="iOS VIPER架构实践(三)：面向接口的路由设计">
+                <i class="fa fa-chevron-left"></i> iOS VIPER架构实践(三)：面向接口的路由设计
+              </a>
+            
+          </div>
+
+          <div class="post-nav-prev post-nav-item">
+            
+              <a href="/2018/02/16/iOS_reverse_engineering_guide-static_analyzing/" rel="prev" title="iOS逆向指南：静态分析">
+                iOS逆向指南：静态分析 <i class="fa fa-chevron-right"></i>
+              </a>
+            
+          </div>
+        </div>
+      
+
+      
+      
+    </footer>
+  </article>
+
+
+
+    <div class="post-spread">
+      
+    </div>
+  </div>
+
+<script async src="https://dn-lbstatics.qbox.me/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+
+<span id="busuanzi_container_page_pv">
+</br>本文总阅读量<span id="busuanzi_value_page_pv"></span>次
+</span>
+
+
+          </div>
+          
+
+          
+  <div class="comments" id="comments">
+    
+      <div id="disqus_thread">
+        <noscript>
+          Please enable JavaScript to view the
+          <a href="//disqus.com/?ref_noscript">comments powered by Disqus.</a>
+        </noscript>
+      </div>
+    
+  </div>
+
+
+        </div>
+        
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    <div class="sidebar-inner">
+
+      
+
+      
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap" >
+            文章目录
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview">
+            站点概览
+          </li>
+        </ul>
+      
+
+      <section class="site-overview sidebar-panel ">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+          <img class="site-author-image" itemprop="image"
+               src="/images/avatar.png"
+               alt="zuik" />
+          <p class="site-author-name" itemprop="name">zuik</p>
+          <p class="site-description motion-element" itemprop="description">🐼</p>
+        </div>
+        <nav class="site-state motion-element">
+          <div class="site-state-item site-state-posts">
+            <a href="/archives">
+              <span class="site-state-item-count">13</span>
+              <span class="site-state-item-name">日志</span>
+            </a>
+          </div>
+
+          
+            <div class="site-state-item site-state-categories">
+              <a href="/categories">
+                <span class="site-state-item-count">7</span>
+                <span class="site-state-item-name">分类</span>
+              </a>
+            </div>
+          
+
+          
+            <div class="site-state-item site-state-tags">
+              <a href="/tags">
+                <span class="site-state-item-count">1</span>
+                <span class="site-state-item-name">标签</span>
+              </a>
+            </div>
+          
+
+        </nav>
+
+        
+          <div class="feed-link motion-element">
+            <a href="/atom.xml" rel="alternate">
+              <i class="fa fa-rss"></i>
+              RSS
+            </a>
+          </div>
+        
+
+        <div class="links-of-author motion-element">
+          
+        </div>
+
+        
+        
+
+        
+        
+
+      </section>
+
+      
+        <section class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc">
+            
+              
+            
+            
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#逆向的作用"><span class="nav-number">1.</span> <span class="nav-text">逆向的作用</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#工具"><span class="nav-number">2.</span> <span class="nav-text">工具</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#界面分析"><span class="nav-number">3.</span> <span class="nav-text">界面分析</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#使用-reveal-查看-app-界面"><span class="nav-number">3.1.</span> <span class="nav-text">使用 reveal 查看 app 界面</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#1-客户端安装reveal插件"><span class="nav-number">3.1.1.</span> <span class="nav-text">1.客户端安装reveal插件</span></a><ol class="nav-child"><li class="nav-item nav-level-5"><a class="nav-link" href="#配置"><span class="nav-number">3.1.1.1.</span> <span class="nav-text">配置</span></a></li><li class="nav-item nav-level-5"><a class="nav-link" href="#原理"><span class="nav-number">3.1.1.2.</span> <span class="nav-text">原理</span></a></li></ol></li><li class="nav-item nav-level-4"><a class="nav-link" href="#2-Mac-端打开-reveal-软件"><span class="nav-number">3.1.2.</span> <span class="nav-text">2.Mac 端打开 reveal 软件</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#3-查看页面信息"><span class="nav-number">3.1.3.</span> <span class="nav-text">3.查看页面信息</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#其他界面查看方式"><span class="nav-number">3.2.</span> <span class="nav-text">其他界面查看方式</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#1-lldb-打印界面层级"><span class="nav-number">3.2.1.</span> <span class="nav-text">1. lldb 打印界面层级</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#2-直接使用-Xcode-的Debug-View-Hierarchy"><span class="nav-number">3.2.2.</span> <span class="nav-text">2. 直接使用 Xcode 的Debug View Hierarchy</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#3-越狱插件：FLEX"><span class="nav-number">3.2.3.</span> <span class="nav-text">3. 越狱插件：FLEX</span></a></li></ol></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#总结"><span class="nav-number">4.</span> <span class="nav-text">总结</span></a></li></ol></div>
+            
+          </div>
+        </section>
+      
+
+    </div>
+  </aside>
+
+
+        
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright" >
+  
+  &copy; 
+  <span itemprop="copyrightYear">2018</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">zuik</span>
+</div>
+
+<div class="powered-by">
+  由 <a class="theme-link" href="https://hexo.io">Hexo</a> 强力驱动
+</div>
+
+<div class="theme-info">
+  主题 -
+  <a class="theme-link" href="https://github.com/iissnan/hexo-theme-next">
+    NexT.Muse
+  </a>
+</div>
+
+<script>
+(function(){
+var bp = document.createElement('script');
+bp.src = '//push.zhanzhang.baidu.com/push.js';
+var s = document.getElementsByTagName("script")[0];
+s.parentNode.insertBefore(bp, s);
+})();
+</script>
+
+        
+
+        
+      </div>
+    </footer>
+
+    <div class="back-to-top">
+      <i class="fa fa-arrow-up"></i>
+    </div>
+  </div>
+
+  
+
+<script type="text/javascript">
+  if (Object.prototype.toString.call(window.Promise) !== '[object Function]') {
+    window.Promise = null;
+  }
+</script>
+
+
+
+
+
+
+
+
+
+  
+
+
+
+  
+  <script type="text/javascript" src="/vendors/jquery/index.js?v=2.1.3"></script>
+
+  
+  <script type="text/javascript" src="/vendors/fastclick/lib/fastclick.min.js?v=1.0.6"></script>
+
+  
+  <script type="text/javascript" src="/vendors/jquery_lazyload/jquery.lazyload.js?v=1.9.7"></script>
+
+  
+  <script type="text/javascript" src="/vendors/velocity/velocity.min.js?v=1.2.1"></script>
+
+  
+  <script type="text/javascript" src="/vendors/velocity/velocity.ui.min.js?v=1.2.1"></script>
+
+  
+  <script type="text/javascript" src="/vendors/fancybox/source/jquery.fancybox.pack.js?v=2.1.5"></script>
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/utils.js?v=5.0.1"></script>
+
+  <script type="text/javascript" src="/js/src/motion.js?v=5.0.1"></script>
+
+
+
+  
+  
+
+  
+  <script type="text/javascript" src="/js/src/scrollspy.js?v=5.0.1"></script>
+<script type="text/javascript" src="/js/src/post-details.js?v=5.0.1"></script>
+
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/bootstrap.js?v=5.0.1"></script>
+
+
+
+  
+
+
+
+  
+
+    <script type="text/javascript">
+      var disqus_shortname = 'zuikyo';
+      var disqus_identifier = '2018/01/06/iOS_reverse_engineering_guide-view_analyzing/';
+      var disqus_title = "iOS 逆向指南：界面分析";
+      var disqus_url = 'http://yoursite.com/2018/01/06/iOS_reverse_engineering_guide-view_analyzing/';
+
+      function run_disqus_script(disqus_script){
+        var dsq = document.createElement('script');
+        dsq.type = 'text/javascript';
+        dsq.async = true;
+        dsq.src = '//' + disqus_shortname + '.disqus.com/' + disqus_script;
+        (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+      }
+
+      run_disqus_script('count.js');
+      
+        run_disqus_script('embed.js');
+      
+    </script>
+  
+
+
+
+
+  
+  
+
+  
+
+  
+
+  
+
+</body>
+</html>

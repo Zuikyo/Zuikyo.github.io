@@ -5,7 +5,7 @@
   <link href="/atom.xml" rel="self"/>
   
   <link href="http://yoursite.com/"/>
-  <updated>2018-01-24T01:47:46.110Z</updated>
+  <updated>2018-11-01T20:15:15.130Z</updated>
   <id>http://yoursite.com/</id>
   
   <author>
@@ -14,6 +14,327 @@
   </author>
   
   <generator uri="http://hexo.io/">Hexo</generator>
+  
+  <entry>
+    <title>iOS逆向指南：静态分析</title>
+    <link href="http://yoursite.com/2018/02/16/iOS_reverse_engineering_guide-static_analyzing/"/>
+    <id>http://yoursite.com/2018/02/16/iOS_reverse_engineering_guide-static_analyzing/</id>
+    <published>2018-02-15T18:15:00.000Z</published>
+    <updated>2018-11-01T20:15:15.130Z</updated>
+    
+    <content type="html"><![CDATA[<p>静态分析是指对二进制包进行反编译，分析静态的代码逻辑。</p>
+<p>本文内容包括：app 砸壳过程、工具和环境的坑、导出 OC 头文件、使用 hopper 和 IDA 反编译、arm 寄存器功能、静态分析经验、推荐的 IDA 插件、如何分析系统库。</p>
+<h2 id="对-app-砸壳解密"><a href="#对-app-砸壳解密" class="headerlink" title="对 app 砸壳解密"></a><a name="decrypt"></a>对 app 砸壳解密</h2><p>从 App Store 下载的 app 是经过加密的，需要对其进行解密后，才能进行分析。如果你懒得砸壳，可以直接去各种苹果助手下载越狱版 app，那些是已经解密过的。但是如果要找的 app 在助手上没有，就只能自己砸壳了。</p>
+<p>砸壳可以使用 dumpdecrypted，也可以使用更简单的 clutch。这里用 dumpdecrypted 讲解。步骤如下。</p>
+<h3 id="1-下载-dumpdecrypted"><a href="#1-下载-dumpdecrypted" class="headerlink" title="1.下载 dumpdecrypted"></a><a name="decrypt1"></a>1.下载 dumpdecrypted</h3><p>从<a href="https://github.com/AloneMonkey/dumpdecrypted" target="_blank" rel="external">https://github.com/AloneMonkey/dumpdecrypted</a>下载源码，编译出一个 dumpdecrypted.dylib 文件。这个版本的 dumpdecrypted 添加了对 framework 的 dump。</p>
+<h3 id="2-安装-openSSH"><a href="#2-安装-openSSH" class="headerlink" title="2.安装 openSSH"></a><a name="decrypt2"></a>2.安装 openSSH</h3><p> iOS 9及以下系统，在 Cydia 里安装 openSSH 即可。</p>
+<p> iOS 10越狱自带了 openSSH，但是默认是关闭的，需要做一点修改。</p>
+<p>如果是用的 yalu 越狱：</p>
+<ul>
+<li>1.用苹果助手或者其他工具进入 iOS 的<code>/private/var/containers/Bundle/Application/yalu102/yalu102.app/</code>。</li>
+<li>2.用文本编辑器打开 <code>dropbear.plist</code> 文件。</li>
+<li>3.替换 127.0.0.1:22 为 22。</li>
+<li>4.重启设备，重新使用越狱工具恢复越狱。</li>
+</ul>
+<p>参考：<a href="http://bbs.iosre.com/t/make-package-ssh-ios10-2/7564" target="_blank" rel="external">http://bbs.iosre.com/t/make-package-ssh-ios10-2/7564</a></p>
+<p>或者直接去 Cydia 里安装 dropbear 插件。</p>
+<h3 id="3-连接到-iOS-设备"><a href="#3-连接到-iOS-设备" class="headerlink" title="3.连接到 iOS 设备"></a><a name="decrypt3"></a>3.连接到 iOS 设备</h3><p>iOS 设备安装了 openSSH 后，在 Mac 端打开终端，确保 Mac 和 iOS 设备连接到同一网络，在终端里输入命令：ssh root@iOSIP。iOS 设备的 ip 地址：</p>
+<p><img src="https://upload-images.jianshu.io/upload_images/1865432-822e07f9921701cc.jpg?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240" alt="iOS IP"></p>
+<p>在终端中输入命令：<code>ssh root@10.5.53.182</code>，回车，接着输入 ssh 的默认密码<code>alpine</code>后即可连接到 iOS 设备。</p>
+<h3 id="4-找到需要砸壳的-app"><a href="#4-找到需要砸壳的-app" class="headerlink" title="4.找到需要砸壳的 app"></a><a name="decrypt4"></a>4.找到需要砸壳的 app</h3><p>找到 app 所在目录，格式为<code>/var/mobile/Containers/Data/Application/XXXXXXXX-XXXX-XXXX-XXXX-XXXXXXXXXXXX/</code>，可以使用同步助手、itools 等工具查找。</p>
+<p>也可以在 Cydia 里安装 ps 命令行工具后，使用<code>ps –e</code>命令查找，方法是 ssh 成功后，关闭所有 app，打开需要砸壳的 app，输入<code>ps –e</code>命令，即可打印出所有进程，<code>/var/mobile</code>开头的那个目录就是 app 所在的目录。</p>
+<p><img src="https://upload-images.jianshu.io/upload_images/1865432-1aee28ef7177ccd0.PNG?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240" alt="dump path"></p>
+<h3 id="5-进行砸壳"><a href="#5-进行砸壳" class="headerlink" title="5.进行砸壳"></a><a name="decrypt5"></a>5.进行砸壳</h3><p>下面的砸壳是旧版 dumpdecrypted 的方法，比较繁琐。AloneMonkey 的 这个 <a href="https://github.com/AloneMonkey/dumpdecrypted" target="_blank" rel="external">https://github.com/AloneMonkey/dumpdecrypted</a> 更加简单。</p>
+<ul>
+<li>把<code>dumpdecrypted.dylib</code>拷贝到<code>/usr/lib</code>。 iOS 9之前是拷贝到 app 的 Document 目录的， iOS 9 之后出现了权限问题，所以拷贝到<code>/usr/lib</code></li>
+<li>修改 user 为<code>mobile</code>：<code>su mobile</code></li>
+<li>进入到某个具有写权限的目录，例如<code>cd /var/mobile/Documents</code></li>
+<li>使用<code>DYLD_INSERT_LIBRARIES</code>加载动态库到 app 上，格式为<code>DYLD_INSERT_LIBRARIES=&#39;dumpdecrypted.dylib的目录&#39; &#39;需要砸壳的app执行文件的目录&#39;</code>，例如：<code>DYLD_INSERT_LIBRARIES=/usr/lib/dumpdecrypted.dylib /var/mobile/Applications/F7753B03-3F06-4524-A735-5BF5B398C730/WeChat.app/WeChat</code>。这是系统的 dyld 提供的加载动态库的功能，可以在 dyld 源代码中看到这部分逻辑。</li>
+</ul>
+<p>如果出现<code>dyld: could not load inserted library &#39;dumpdecrypted.dylib&#39; because no suitable image found.  Did find:
+dumpdecrypted.dylib: required code signature missing for &#39;dumpdecrypted.dylib&#39;</code><br>，需要对 dumpdecrypted.dylib 进行签名。</p>
+<p>在 Mac 上列出证书：<code>security find-identity -v -p codesigning</code>，用列出的证书签名：<br><code>codesign --force --verify --verbose --sign &quot;iPhone Developer: xxx xxxx (xxxxxxxxxx)&quot; dumpdecrypted.dylib</code>。把签名后的<code>dumpdecrypted.dylib</code>重新拷到 iOS 设备上，重新进行砸壳。</p>
+<p>砸壳完毕后，在当前目录会生成一个<code>.decrypted</code>后缀的文件，这就是砸壳后的文件，将其拷贝到 Mac 上即可导入其头文件、用反编译工具打开分析。可以在 Mac 上使用 scp 命令拷贝越狱机上的文件：<code>scp -P 端口号（默认22） root@iOSIP:/var/mobile/Documents/xxx.decrypted ~/Documents/xxx.decrypted</code>。如果拷贝的是文件夹，加上<code>-r</code>参数。</p>
+<p><code>dumpdecrypted</code>原理是 app 启动后会被系统解密，因此可以把解密后的内存 dump 出来。但是如果要对 app extension 进行砸壳，由于 extension 是依赖于主 app 的，不能独立启动，所以砸壳方法就失效了。可以参考这个改进版对 extension 砸壳的方法:<a href="https://github.com/CarinaTT/dumpdecrypted" target="_blank" rel="external">https://github.com/CarinaTT/dumpdecrypted</a></p>
+<h2 id="使用-class-dump-导出-app-的头文件"><a href="#使用-class-dump-导出-app-的头文件" class="headerlink" title="使用 class-dump 导出 app 的头文件"></a><a name="class-dump"></a>使用 class-dump 导出 app 的头文件</h2><p>Class-dump 是一个可以导出 Objective-C 头文件的工具，官网：<a href="http://stevenygard.com" target="_blank" rel="external">http://stevenygard.com</a>。</p>
+<p>通过分析头文件里的 API，可以简单地分析一个类的实现，或者查找一些私有 API。</p>
+<p>class-dump 官网上的版本不能导出用 swift 编写的工程的头文件，当出现<code>Error: Cannot find offset for address 0x3a546a04 in dataOffsetForAddress:</code>这样的错误时，就说明这个 app 可能是用 swift 编写的。</p>
+<p>建议去 github 上手动编译最新版的 class-dump，或者使用 class-dump-z 代替，下载地址：<a href="https://code.google.com/archive/p/networkpx/downloads" target="_blank" rel="external">https://code.google.com/archive/p/networkpx/downloads</a>。</p>
+<p>把下载到的<code>class-dump-z</code>执行文件放到<code>/usr/local/bin/</code>，赋予执行权限<code>chmod +x /usr/local/bin/class-dump-z</code>。这样就可以在终端使用 class-dump 命令了：<code>class-dump-z –H &#39;需要导出头文件的app目录&#39; –o &#39;导出头文件的存放目录&#39;</code>。</p>
+<p>例如要 dump 系统自带的计算器，导出它的头文件，命令如下：<br><code>class-dump-z -H /Applications/Calculator.app -o ~/Documents/headers</code>。</p>
+<p>拿到砸壳后的 .decrypted 文件后，直接使用<code>class-dump-z</code>即可导出头文件。</p>
+<p>此时，使用之前 reveal 定位到的类名，即可找到对应的文件，查看类里面的方法。</p>
+<p><img src="https://upload-images.jianshu.io/upload_images/1865432-81d1b9aa31908834.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240" alt="class-dump"></p>
+<p>可以看到，在扫一扫界面，微信使用了<code>- (void)captureOutput: didOutputSampleBuffer: fromConnection:</code>这个方法，说明它是截取了视频流的帧图像，再对图像进行二维码分析，而不是用<code>AVFoundiation</code>提供的二维码识别方法。</p>
+<p>如果还想进一步查看方法的逻辑，可以使用<code>Hopper Disassembler</code>对 .decrypted 文件进行反编译。</p>
+<h2 id="使用使用-Hopper-Disassembler-静态分析"><a href="#使用使用-Hopper-Disassembler-静态分析" class="headerlink" title="使用使用 Hopper Disassembler 静态分析"></a><a name="hopper"></a>使用使用 Hopper Disassembler 静态分析</h2><p>一个专门反编译 OC 程序的工具。官网：<a href="http://www.hopperapp.com" target="_blank" rel="external">http://www.hopperapp.com</a>。试用版有功能限制，30分钟退出一次，不能保存和导入反编译后的文件，不能动态调试等。</p>
+<p>打开 Hopper Disassembler，直接将 .decrypted 文件拖入，选择对应的 CPU 架构类型即可，例如这个.decrypted 是从 iPad mini2 上生成的，那么就是 arm64。</p>
+<p>打开后会自动进行分析，列出方法名、字符串等信息，但是大多数都是汇编语言。阅读汇编语言，还需要了解对应架构寄存器功能的知识。</p>
+<p>在左侧可以搜索类名，方法名。</p>
+<p><img src="https://upload-images.jianshu.io/upload_images/1865432-3d25914f69e1555a.PNG?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240" alt="hopper1"></p>
+<p>右侧的 is referenced by 和 have reference to 可以看到方法之间的的交叉引用关系：</p>
+<p><img src="https://upload-images.jianshu.io/upload_images/1865432-67510de930ee742d.PNG?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240" alt="hopper2"></p>
+<p>按空格键可以弹出方法的逻辑跳转图：</p>
+<p><img src="https://upload-images.jianshu.io/upload_images/1865432-11f39ea93115cf37.PNG?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240" alt="hopper3"></p>
+<p>Hopper Disassembler 可以将汇编语言转换为 OC 风格的伪代码，但是旧版的 hopper 不能对 arm64 文件使用这个功能。建议使用 armv7s 以下的 iOS 设备的原因就在这里。以下是使用 iPad2 越狱设备反编译后，生成的汇编代码和对应的伪代码，由于微信的代码比较复杂，这里选用的是另外一个更简单的二维码 app 的代码：</p>
+<p><img src="https://upload-images.jianshu.io/upload_images/1865432-2191087bf3343a25.PNG?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240" alt="hopper4"></p>
+<p><img src="https://upload-images.jianshu.io/upload_images/1865432-c7889490ffd30d55.PNG?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240" alt="hopper5"></p>
+<p>可以看到<code>aptureOutput: didOutputSampleBuffer: fromConnection:</code>里，首先用取到的帧生成了一张图片，再用<code>createRotatedImage:degrees:</code>对图片做了一次处理，最后用<code>decodeImage:cgimg:</code>对图片进行二维码分析。要想查看这些方法，只需要再搜索对应的方法名就可以了。最新版 hopper 也可以双击直接跳转。</p>
+<p>另外一个反编译工具 IDA 也可以反编译 armv7 的 app ，使用方法类似，可以和 Hopper Disassembler 对照着看。需要注意的是 IDA 的 Pro 版才支持 arm64 的 app，而 Pro 版不支持免费试用。</p>
+<h2 id="静态分析经验总结"><a href="#静态分析经验总结" class="headerlink" title="静态分析经验总结"></a><a name="static-analysis"></a>静态分析经验总结</h2><h3 id="追踪调用流程"><a href="#追踪调用流程" class="headerlink" title="追踪调用流程"></a><a name="static-analysis1"></a>追踪调用流程</h3><ul>
+<li>对于静态函数，直接用交叉引用功能<code>is referenced by</code>查看函数在哪里被引用。注意 hopper 面板里列出的引用不是完整的，可以用快捷键<code>x</code>列出完整的引用</li>
+<li>对于 OC 方法，由于 runtime 在调用时不是直接引用方法，而是引用了 selector，所以需要搜索方法名字符串和 selector，然后再用<code>is referenced by</code>查找哪些地址引用了此字符串或者 selector，来查找方法调用</li>
+<li>通过寄存器的赋值操作回溯参数的传递</li>
+<li>通过查找某些关键字符串，回溯到关键函数</li>
+</ul>
+<p>注意，反汇编工具有时候会分析出错误的指令，所以有些函数体是丢失的，需要在反编译时手动 undefined。</p>
+<h3 id="分析汇编代码"><a href="#分析汇编代码" class="headerlink" title="分析汇编代码"></a><a name="static-analysis2"></a>分析汇编代码</h3><ul>
+<li>使用 hopper 的伪代码转换功能，可以将 OC 方法的汇编代码转换为 OC 风格的伪代码。此功能对 arm64 的支持不是很好，建议使用 armv7 或者 armv7s 的越狱机</li>
+<li>在函数的开始，32 位 arm 上前四个参数存放在 r0-r3 中，其他参数存放在栈中，结束后，返回值放在 r0 中；在 arm64 上，前7个参数存放在 x0–x7 中，返回值存在 x0 中</li>
+<li>有些代码是被开发者故意混效过的，例如打乱执行流程、加入冗余代码，可以借助一些 IDA 插件处理后再分析，例如 CrowdDetox、optimice python plugin，不过只是分析 iOS 的话，很少会遇到这种情况</li>
+</ul>
+<h3 id="基本的汇编知识"><a href="#基本的汇编知识" class="headerlink" title="基本的汇编知识"></a><a name="static-analysis3"></a>基本的汇编知识</h3><p>你并不需要花时间理解每一条汇编指令，只需要梳理出关键点就能理清代码的逻辑。</p>
+<p>逆向中关键的指令：</p>
+<ul>
+<li><code>ldr</code>，<code>mov</code>，读取指令，从地址读取数据到寄存器。</li>
+<li><code>str</code>，保存指令，保存数据到寄存器。</li>
+<li><code>b</code>，跳转指令，跳转到某个地址。</li>
+<li><code>cmp</code>，比较指令，说明这里有分支。</li>
+</ul>
+<p>32 位 arm 的调用约定：</p>
+<table>
+<thead>
+<tr>
+<th>寄存器</th>
+<th>描述</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>r0-r3</td>
+<td>传递参数与返回值。如果断点在 OC 方法的第一行，那 r0 就是 self，r1 就是 cmd。如果超过四个参数，或者一些例如结构体的参数超过了32位 bit，那么参数将会通过栈来传递；返回值一般都在 r0 上</td>
+</tr>
+<tr>
+<td>r4-r6, r8, r10-r11</td>
+<td>没有特殊规定，通用寄存器</td>
+</tr>
+<tr>
+<td>r7</td>
+<td>栈帧指针寄存器(Frame Pointer)，指向前一个保存的栈帧(stack frame)和链接寄存器(link register， lr)在栈上的地址</td>
+</tr>
+<tr>
+<td>r9</td>
+<td>操作系统保留</td>
+</tr>
+<tr>
+<td>r12</td>
+<td>IP 寄存器(intra-procedure scratch)</td>
+</tr>
+<tr>
+<td>r13</td>
+<td>SP 寄存器(stack pointer)，是栈顶指针</td>
+</tr>
+<tr>
+<td>r14</td>
+<td>LR 寄存器(link register)，存放函数返回后需要继续执行的指令地址</td>
+</tr>
+<tr>
+<td>r15</td>
+<td>PC 寄存器(program counter)，指向当前指令地址</td>
+</tr>
+<tr>
+<td>CPSR</td>
+<td>当前程序状态寄存器(Current Program State Register)，在用户状态下存放像 condition 标志中断禁用等标志</td>
+</tr>
+</tbody>
+</table>
+<p>arm64 的调用约定：</p>
+<p>arm64有 r0 - r30 是31个通用整形寄存器，PC 不能再作为寄存器直接访问。每个寄存器可以存取一个64位大小的数。 当使用 x0 - x30 访问时，它就是一个64位的数。当使用 w0 - w30 访问时，访问的是这些寄存器的低32位。</p>
+<table>
+<thead>
+<tr>
+<th>寄存器</th>
+<th>描述</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>x0–x7</td>
+<td>传递参数与返回值。如果参数个数超过了8个，多余的参数会存在栈上；返回值一般都在 x0 上</td>
+</tr>
+<tr>
+<td>x29</td>
+<td>栈帧指针寄存器(Frame Pointer)，指向前一个保存的栈帧(stack frame)和链接寄存器(link register， lr)在栈上的地址</td>
+</tr>
+<tr>
+<td>x31</td>
+<td>SP 寄存器(stack pointer)，是栈顶指针；根据不同指令，也有可能是 zero register</td>
+</tr>
+<tr>
+<td>x30</td>
+<td>LR 寄存器(link register)，存放函数的返回地址</td>
+</tr>
+<tr>
+<td>CPSR</td>
+<td>当前程序状态寄存器(Current Program State Register)，在用户状态下存放像 condition 标志中断禁用等标志</td>
+</tr>
+</tbody>
+</table>
+<p>x86-64 的调用约定：</p>
+<p>x86-64 有16个64位寄存器，分别是：</p>
+<p>rax，rbx，rcx，rdx，esi，edi，rbp，rsp，r8，r9，r10，r11，r12，r13，r14，r15</p>
+<table>
+<thead>
+<tr>
+<th>寄存器</th>
+<th>描述</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>rax</td>
+<td>作为函数返回值使用</td>
+</tr>
+<tr>
+<td>rsp</td>
+<td>栈指针寄存器，指向栈顶</td>
+</tr>
+<tr>
+<td>rdi，rsi，rdx，rcx，r8，r9</td>
+<td>依次用作函数参数；如果断点在 OC 方法的第一行，那 rdi 就是 self，rsi 就是 cmd</td>
+</tr>
+<tr>
+<td>rbx，rbp，r10，r11，r12，r13，r14，r15</td>
+<td>通用寄存器</td>
+</tr>
+</tbody>
+</table>
+<p>栈帧相关的知识，可以参考：<a href="https://blog.cnbluebox.com/blog/2017/07/24/arm64-start/" target="_blank" rel="external">iOS开发同学的arm64汇编入门</a></p>
+<h3 id="汇编指令速查插件"><a href="#汇编指令速查插件" class="headerlink" title="汇编指令速查插件"></a><a name="static-analysis4"></a>汇编指令速查插件</h3><p>有许多很有用的插件可以对静态分析提供帮助。</p>
+<p>有时候看到不了解的汇编指令，每次都去 Google 查找，是一件很低效的事。可以安装插件，直接在 hopper 和 IDA 中显示指令的功能。</p>
+<h4 id="Hopper-插件：hopperref"><a href="#Hopper-插件：hopperref" class="headerlink" title="Hopper 插件：hopperref"></a><a name="static-analysis4-1"></a>Hopper 插件：hopperref</h4><p>Hopper 可以使用 Python 编写的扩展插件。安装插件<a href="https://github.com/zbuc/hopperref" target="_blank" rel="external">hopperref</a>，把<code>Show Instruction Reference.py``arm.sql``x86-64.sql</code>拷贝到<code>~/Library/Application Support/Hopper/Scripts/</code>目录下即可。之后就能在 hopper 界面的菜单栏<code>Scripts</code>中找到<code>Show Instruction Reference</code>选项，点击即可输出选中指令的详细文档。</p>
+<p><code>mov</code>指令的文档：</p>
+<p><img src="https://upload-images.jianshu.io/upload_images/1865432-baa81910713a18e8.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240" alt="hopperref"></p>
+<h4 id="IDA-插件：idaref"><a href="#IDA-插件：idaref" class="headerlink" title="IDA 插件：idaref"></a><a name="static-analysis4-2"></a>IDA 插件：idaref</h4><p>hopperref 插件是源自 一个 IDA 的插件 <a href="https://github.com/nologic/idaref" target="_blank" rel="external">idaref</a>。</p>
+<p>把<code>idaref.py</code>拷贝到<code>your_ida_path/ida.app/Contents/MacOS/plugins/</code>下，把<code>archs</code>文件夹拷贝到<code>your_ida_path/ida.app/Contents/MacOS/plugins/archs</code>。<code>archs</code>文件夹里是汇编指令的文档<code>x86-64.sql``x86-64_old.sql``arm.sql``mips32.sql``xtensa.sql</code>。</p>
+<p>之后打开 IDA，就可以在<code>Edit</code>菜单中多出了<code>idaref</code>选项，选择<code>Start Idaref</code>就开启了自动提示，</p>
+<p><img src="https://upload-images.jianshu.io/upload_images/1865432-dd663a1ab9b1e795.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240" alt="idaref"></p>
+<p>当选中汇编指令时，对应的文档就会显示在<code>Instruction Reference</code>窗口中。</p>
+<p><img src="https://upload-images.jianshu.io/upload_images/1865432-be8fb93e66acc3b8.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240" alt="idaref output"></p>
+<h4 id="IDA-插件：FRIEND"><a href="#IDA-插件：FRIEND" class="headerlink" title="IDA 插件：FRIEND"></a><a name="static-analysis4-3"></a>IDA 插件：FRIEND</h4><p>除了 idaref，还有另一个插件 <a href="https://github.com/alexhude/FRIEND" target="_blank" rel="external">FRIEND</a> 也提供了汇编指令和寄存器的文档功能。只要把鼠标停在指令或者寄存器上就会显示文档悬浮窗。</p>
+<p>需要注意的是，编译出来的 IDA dylib 插件是对应 IDA 版本的，如果要使用不同版本的 IDA，就需要重新编译。把对应版本的<code>FRIEND.dylib</code>和<code>FRIEND64.dylib</code>拷贝到<code>your_ida_path/ida.app/Contents/MacOS/plugins/</code>下，再打开 IDA 就会在<code>Edit-&gt;Plugins</code>中多出<code>FRIEND</code>选项。</p>
+<p><img src="https://upload-images.jianshu.io/upload_images/1865432-36d73eb7956d83bf.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240" alt="ida FRIEND"></p>
+<p>点击选项，打开 FRIEND 的设置。需要加载 FRIEND 提供的 XML 配置文件，对应二进制文件的 x86_64 或者 arm 平台。例如<code>x86_64.xml</code>配置中提供了<code>x86_64 instructions</code>项，选中后，勾上下面的四个功能选项，点击 OK 保存。</p>
+<p><img src="https://upload-images.jianshu.io/upload_images/1865432-f1269d0468e9cace.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240" alt="ida FRIEND settings"></p>
+<p>之后，当鼠标停在指令或者寄存器上就会显示文档悬浮窗。</p>
+<p><img src="https://upload-images.jianshu.io/upload_images/1865432-3ad2f930a3046e70.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240" alt="ida FRIEND instructions"></p>
+<h3 id="识别库函数"><a href="#识别库函数" class="headerlink" title=" 识别库函数"></a><a name="static-analysis5"></a> 识别库函数</h3><p>很多时候，二进制文件中的函数都被去掉了符号，因此只能看到很多<code>sub_100017D90</code>这样的函数，难以直观分析。而程序会使用到很多第三方库，例如加密库、压缩库、网络库，这些第三方库一般都是开源的，可以得到函数符号，如果能恢复这部分函数的符号，就能避免浪费时间在分析这些开源代码上，也能通过分析开源库的交叉引用，追踪程序自身的逻辑。</p>
+<p>这部分代码一般都是 C 和 C++ 函数，OC 方法的名字都保存在 Mach-O 文件的符号表中，不会被去除符号。如果你需要分析 C++ 程序，可以使用下面的工具进行辅助。</p>
+<h4 id="FLIRT：库快速识别和鉴定技术"><a href="#FLIRT：库快速识别和鉴定技术" class="headerlink" title="FLIRT：库快速识别和鉴定技术"></a>FLIRT：库快速识别和鉴定技术</h4><p>IDA 提供了<code>FLIRT Signature</code>功能，FLIRT 全称是库快速识别和鉴定技术，可以为带有符号的库文件中的函数生成签名，再把签名文件导入到分析后的 app 中，就会识别出匹配到的函数，重命名为正确的符号。</p>
+<p>但是生成正确的签名并不容易。用于生成签名的库文件，编译时的编译器版本、配置和 app 中用到的库的编译器版本、配置需要相同。这样才能生成相同的代码，从而生成相同的代码签名。</p>
+<p>具体的使用方法，可以在书籍<code>IDA Pro 权威指南</code>中找到。</p>
+<h4 id="识别加密函数"><a href="#识别加密函数" class="headerlink" title="识别加密函数"></a>识别加密函数</h4><p>类似的，有些 IDA 插件可以识别程序中用到的加密常数、加密方法和压缩方法。例如 Find Crypt 可以寻找常用加密算法中的常数，IDA signsrch 可以寻找二进制文件所使用的加密、压缩算法，IDA scope 可以自动识别 windows 函数和压缩、加密算法。</p>
+<p>可以从这些关键函数入手，寻找程序中的关键逻辑。</p>
+<h3 id="如何分析系统库"><a href="#如何分析系统库" class="headerlink" title="如何分析系统库"></a>如何分析系统库</h3><p>有时候在分析某个 crash 时，或者对某个系统功能感兴趣时，会需要分析特定版本的 iOS 系统库的实现，例如<code>UIKit.framework</code> <code>Foundiation.framework</code>。</p>
+<p>绝大部分时候，只需要分析模拟器版本的系统库就可以了。因为模拟器的系统库保留了所有的符号，查找交叉引用更直接。</p>
+<p>不过有些系统库只在真机上才有，或者你需要特定版本的库用于分析 crash 时，可以从这里下载对应的系统库。</p>
+<p>真机的系统库和模拟器的有些差别。系统库在真机上经过了很多编译优化，去除了大部分私有的函数符号，交叉引用也不像模拟器版本的那样直接。真机上的所有系统 framework 都被整合成了一个大文件，名为<code>dyld_shared_cache_arm64</code>或者<code>dyld_shared_cache_armv7</code>。函数在寻址时，是基于整个<code>dyld_shared_cache_xxx</code>文件进行寻址的。</p>
+<p>当你把真机连接到 Xcode，Xcode 会把真机上的系统库拷贝到<code>~/Library/Developer/Xcode/iOS DeviceSupport</code>，从<code>dyld_shared_cache_xxx</code>中切分出每个单独的 framework。但是当你反编译这些 framework 时，会发现代码里会使用很多无效地址的函数指针，难以分析。这是因为在<code>dyld_shared_cache_xxx</code>中，一个 framework 引用另一个 framework 中的函数时，是相当于在一个库中直接引用的，直接跳转到对应的地址，而不是再用函数符号经过 lazy binder 进行调用。当 framework 从<code>dyld_shared_cache_xxx</code>中切分出来后，这些函数调用的地址就会指向 framework 外，无法追踪。</p>
+<p>所以在分析真机的系统库时，最好是配合模拟器版本的系统库辅助分析，可以看到私有的符号，也可以看到更明确的交叉引用。或者用 IDA 直接分析整个 <code>dyld_shared_cache_xxx</code>文件，不过这样做需要反汇编整个文件，耗时很大。</p>
+<h2 id="结尾"><a href="#结尾" class="headerlink" title="结尾"></a>结尾</h2><p>静态分析的整个流程如上，剩下的就是积累经验了。通过静态分析查看一些简单函数的实现，在大部分情况下都足够了。不过静态分析的信息是有限的，有时候很难找到想要的函数，这时候就需要动态分析上场了。下一篇文章将讲解动态分析。</p>
+<h2 id="参考"><a href="#参考" class="headerlink" title="参考"></a>参考</h2><ul>
+<li><a href="http://bbs.iosre.com/t/make-package-ssh-ios10-2/7564" target="_blank" rel="external">http://bbs.iosre.com/t/make-package-ssh-ios10-2/7564</a></li>
+<li><a href="https://blog.cnbluebox.com/blog/2017/07/24/arm64-start/" target="_blank" rel="external">iOS开发同学的arm64汇编入门</a></li>
+</ul>
+]]></content>
+    
+    <summary type="html">
+    
+      &lt;p&gt;静态分析是指对二进制包进行反编译，分析静态的代码逻辑。&lt;/p&gt;
+&lt;p&gt;本文内容包括：app 砸壳过程、工具和环境的坑、导出 OC 头文件、使用 hopper 和 IDA 反编译、arm 寄存器功能、静态分析经验、推荐的 IDA 插件、如何分析系统库。&lt;/p&gt;
+&lt;h2 id=
+    
+    </summary>
+    
+      <category term="逆向工程" scheme="http://yoursite.com/categories/%E9%80%86%E5%90%91%E5%B7%A5%E7%A8%8B/"/>
+    
+    
+      <category term="iOS" scheme="http://yoursite.com/tags/iOS/"/>
+    
+  </entry>
+  
+  <entry>
+    <title>iOS 逆向指南：界面分析</title>
+    <link href="http://yoursite.com/2018/01/06/iOS_reverse_engineering_guide-view_analyzing/"/>
+    <id>http://yoursite.com/2018/01/06/iOS_reverse_engineering_guide-view_analyzing/</id>
+    <published>2018-01-05T20:14:00.000Z</published>
+    <updated>2018-11-01T20:14:08.230Z</updated>
+    
+    <content type="html"><![CDATA[<p>写几篇文章总结一下 iOS 逆向的整个流程，逆向初学者可以作为入门指南。内容包括逆向工具和环境配置、踩坑点、界面分析、砸壳、静态分析、动态分析、lldb 调试、推荐 hopper 和 IDA 插件、IDA 插件的编写、各种分析技巧。</p>
+<h2 id="逆向的作用"><a href="#逆向的作用" class="headerlink" title="逆向的作用"></a>逆向的作用</h2><p>对于 iOS 开发工程师：</p>
+<ul>
+<li>通过查看界面、阅读汇编代码，研究参考其他 app 的实现方案</li>
+<li>研究系统库的实现逻辑，用于修复 bug</li>
+<li>查找使用私有 API，实现一些黑科技功能</li>
+<li>接触底层原理，对 iOS 安全防护有更深入的掌握</li>
+<li>获取其他 app 中的资源，例如游戏贴图</li>
+<li>对第三方 app 进行一些自定义”改造”</li>
+</ul>
+<p>我个人觉得逆向对我最大的帮助就是能够查看各种闭源代码的实现，满足好奇心的同时也拓展了思路，能够学到很多。</p>
+<h2 id="工具"><a href="#工具" class="headerlink" title="工具"></a>工具</h2><p>逆向中常用的工具有：</p>
+<ul>
+<li>越狱 iOS 设备一台（越狱后需要安装 openSSH 和一系列开发工具，建议使用 32 位的 armv7、armv7s 设备，因为旧版 Hopper Disassembler 不支持为 arm64 架构的汇编生成伪代码，最新版虽然支持，但是仍然不如 32 位的易读）</li>
+<li>reveal：查看任意 app 界面</li>
+<li>dumpdecrypted：对 app store 上下载的 app 进行砸壳解密的工具</li>
+<li>clutch：和 dumpdecrypted 功能相同，也是 app 砸壳工具，用法更简单</li>
+<li>class-dump, class-dump-z：分析 Mach-O 文件的类，导出 Objective-C 头文件</li>
+<li>Hopper Disassembler：反编译 iOS app 工具</li>
+<li>IDA：更强大的反编译工具， 缺点是价格贵</li>
+</ul>
+<p>通过这些工具的作用，也差不多能一窥 iOS 逆向的面貌。</p>
+<h2 id="界面分析"><a href="#界面分析" class="headerlink" title="界面分析"></a>界面分析</h2><p>这篇文章首先讲讲对普通开发者最有用的界面分析：如何查看任意 app 的界面结构。</p>
+<p>有时候我们对某个 app 的界面实现方式感兴趣，直接查看它的界面层级就能明白大致的思路。</p>
+<h3 id="使用-reveal-查看-app-界面"><a href="#使用-reveal-查看-app-界面" class="headerlink" title="使用 reveal 查看 app 界面"></a>使用 reveal 查看 app 界面</h3><p>Reveal 是一个 Mac 端的商业软件，可以查看任意 app 的界面构成，以及所属的类名、约束等信息。找到对应的功能的类名后，就可以使用后面的工具找对应的头文件查看方法。Reveal 有试用版，试用期30天，官方和淘宝店铺有正版合作，有国区优惠。使用方法如下。</p>
+<h4 id="1-客户端安装reveal插件"><a href="#1-客户端安装reveal插件" class="headerlink" title="1.客户端安装reveal插件"></a>1.客户端安装reveal插件</h4><p>Reveal 的环境配置有一些坑，并且在不同的系统版本上配置方式不一样。</p>
+<h5 id="配置"><a href="#配置" class="headerlink" title="配置"></a>配置</h5><p>iPhone 越狱后在 Cydia 里搜索<code>RevealLoader</code>安装插件。Reveal 有多个版本，reveal 1.6.3支持 iOS 7，reveal 2（版本号从2一直增加到了最近的13）最低支持 iOS 8。如果用的是 reveal 2，则在 iOS 9 及以下系统仍然使用<code>RevealLoader</code>，iOS 10 越狱机上则安装<code>Reveal2Loader</code>。安装后在设置里会出现 reveal 工具栏（可能需要重启设备），找到需要查看的 app，打开开关，然后重启 app。</p>
+<p>如果使用 reveal 2，还需要手动添加一个动态库到设备上，原因是客户端的库需要和 Mac 端的库版本一致。在 Mac 端的 reveal 中打开 <code>Help -&gt; Show Reveal Library in Finder</code> (根据目标机器的类型选择 iOS Library 或者 TvOS Library)，将<code>RevealServer.framework</code>拷贝出来。</p>
+<p>如果是 iOS 9，使用<code>RevealLoader</code>插件时，需要把<code>RevealServer.framework/RevealServer</code>二进制文件重命名为<code>libReveal.dylib</code>，拷贝到设备的<code>/Library/RHRevealLoader</code>文件夹下，没有文件夹则手动创建一个。</p>
+<p>如果是 iOS 10，使用<code>Reveal2Loader</code>插件时，则将<code>RevealServer.framework</code>拷贝到目标设备上的<code>/Library/Frameworks/</code>目录下，如果已经存在同名文件，则替换。</p>
+<p>最后，终端 SSH 到 iOS 设备，执行<code>killall SpringBoard</code>，重启 SpringBoard 即可。</p>
+<p><img src="https://upload-images.jianshu.io/upload_images/1865432-06dbc695d6722c02.jpg?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240" alt="reveal1.jpg"></p>
+<h5 id="原理"><a href="#原理" class="headerlink" title="原理"></a>原理</h5><p>这个工具是把 reveal 的库添加到了<code>/Library/MobileSubstrate/DynamicLibraries</code>，并且提供了一个管理界面，并不是必须安装。当 app 启动时，MobileSubstrate 会自动把 reveal 的动态库注入到 app 中，然后和 Mac 端的软件进行通信。</p>
+<p>如果选择不安装此工具，配置方法请参考<a href="https://zhuanlan.zhihu.com/p/19646016?columnSlug=iOSRe" target="_blank" rel="external">https://zhuanlan.zhihu.com/p/19646016?columnSlug=iOSRe</a>。</p>
+<h4 id="2-Mac-端打开-reveal-软件"><a href="#2-Mac-端打开-reveal-软件" class="headerlink" title="2.Mac 端打开 reveal 软件"></a>2.Mac 端打开 reveal 软件</h4><p>Mac 端安装 reveal 软件，把 iOS 设备和 Mac 连接到同一 wifi 下。<br>开启需要查看的 app，进入需要查看的界面，在 Mac 端 reveal 里选中，即可开启。</p>
+<h4 id="3-查看页面信息"><a href="#3-查看页面信息" class="headerlink" title="3.查看页面信息"></a>3.查看页面信息</h4><p>你可以拖动界面，立体地查看界面结构。这个查看方式是 reveal 首先发布的，后来苹果官方把它集成到了 Xcode 中。</p>
+<p>页面的右边，可以找到此页面对应的类名，以及尺寸、约束等信息。<br>下面是微信的扫一扫界面，可以看到界面的类名为 CameraScannerView 和 CameraScannerViewController。reveal2 开始，也可以查看 extension 的界面，比如通知中心插件。</p>
+<p><img src="https://upload-images.jianshu.io/upload_images/1865432-771461969a9f80fd.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240" alt="reveal查看界面"></p>
+<h3 id="其他界面查看方式"><a href="#其他界面查看方式" class="headerlink" title="其他界面查看方式"></a>其他界面查看方式</h3><p>不用 reveal 也可以查看 app 的界面。</p>
+<h4 id="1-lldb-打印界面层级"><a href="#1-lldb-打印界面层级" class="headerlink" title="1. lldb 打印界面层级"></a>1. lldb 打印界面层级</h4><p>可以在动态分析 app 时，用 lldb 打印出 app 的界面层级。命令是：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line">po [[UIApp keyWindow] recursiveDescription]</div></pre></td></tr></table></figure>
+<p>打印出来的结果类似于：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div><div class="line">27</div><div class="line">28</div><div class="line">29</div><div class="line">30</div><div class="line">31</div></pre></td><td class="code"><pre><div class="line">&lt;UIWindow: 0x7fbb91511d50; frame = (0 0; 375 667); gestureRecognizers = &lt;NSArray: 0x60400025bc90&gt;; layer = &lt;UIWindowLayer: 0x604000235820&gt;&gt;</div><div class="line">   | &lt;UILayoutContainerView: 0x7fbb91513e00; frame = (0 0; 375 667); autoresize = W+H; layer = &lt;CALayer: 0x604000235fe0&gt;&gt;</div><div class="line">   |    | &lt;UIView: 0x7fbb9151a440; frame = (0 0; 375 0); layer = &lt;CALayer: 0x604000237420&gt;&gt;</div><div class="line">   |    | &lt;UILayoutContainerView: 0x7fbb91514420; frame = (0 0; 375 667); clipsToBounds = YES; gestureRecognizers = &lt;NSArray: 0x60400025d9d0&gt;; layer = &lt;CALayer: 0x604000235e60&gt;&gt;</div><div class="line">   |    |    | &lt;UINavigationTransitionView: 0x7fbb91516070; frame = (0 0; 375 667); clipsToBounds = YES; autoresize = W+H; layer = &lt;CALayer: 0x604000236920&gt;&gt;</div><div class="line">   |    |    |    | &lt;UIViewControllerWrapperView: 0x7fbb9151aa20; frame = (0 0; 375 667); autoresize = W+H; layer = &lt;CALayer: 0x6040000379e0&gt;&gt;</div><div class="line">   |    |    |    |    | &lt;UIView: 0x7fbb9160d7b0; frame = (0 0; 375 667); autoresize = W+H; layer = &lt;CALayer: 0x60400023e4c0&gt;&gt;</div><div class="line">   |    |    |    |    |    | &lt;UIButton: 0x7fbb917190d0; frame = (170 90; 34 30); opaque = NO; autoresize = RM+BM; layer = &lt;CALayer: 0x60000022bf20&gt;&gt;</div><div class="line">   |    |    |    |    |    |    | &lt;UIButtonLabel: 0x7fbb91611210; frame = (0 6; 34 18); text = &apos;push&apos;; opaque = NO; userInteractionEnabled = NO; layer = &lt;_UILabelLayer: 0x604000292fc0&gt;&gt;</div><div class="line">   |    |    |    |    |    | &lt;UIButton: 0x7fbb91606c30; frame = (123 207; 128 30); opaque = NO; autoresize = RM+BM; layer = &lt;CALayer: 0x60400023a820&gt;&gt;</div><div class="line">   |    |    |    |    |    |    | &lt;UIButtonLabel: 0x7fbb91418310; frame = (0 6; 128 18); text = &apos;push and auto pop&apos;; opaque = NO; userInteractionEnabled = NO; layer = &lt;_UILabelLayer: 0x600000299cd0&gt;&gt;</div><div class="line">   |    |    |    |    |    | &lt;_UILayoutGuide: 0x7fbb9160db40; frame = (0 0; 0 64); hidden = YES; layer = &lt;CALayer: 0x60400023e920&gt;&gt;</div><div class="line">   |    |    |    |    |    | &lt;_UILayoutGuide: 0x7fbb9160df50; frame = (0 667; 0 0); hidden = YES; layer = &lt;CALayer: 0x60400023e700&gt;&gt;</div><div class="line">   |    |    | &lt;UINavigationBar: 0x7fbb9150b170; frame = (0 20; 375 44); opaque = NO; autoresize = W; layer = &lt;CALayer: 0x604000039660&gt;&gt;</div><div class="line">   |    |    |    | &lt;_UIBarBackground: 0x7fbb9150e540; frame = (0 -20; 375 64); userInteractionEnabled = NO; layer = &lt;CALayer: 0x6040000395e0&gt;&gt;</div><div class="line">   |    |    |    |    | &lt;UIImageView: 0x7fbb9150e9d0; frame = (0 64; 375 0.5); userInteractionEnabled = NO; layer = &lt;CALayer: 0x604000039500&gt;&gt;</div><div class="line">   |    |    |    |    | &lt;UIVisualEffectView: 0x7fbb9150ec00; frame = (0 0; 375 64); layer = &lt;CALayer: 0x6040000394e0&gt;&gt;</div><div class="line">   |    |    |    |    |    | &lt;_UIVisualEffectBackdropView: 0x7fbb91710df0; frame = (0 0; 375 64); autoresize = W+H; userInteractionEnabled = NO; layer = &lt;UICABackdropLayer: 0x600000228da0&gt;&gt;</div><div class="line">   |    |    |    |    |    | &lt;_UIVisualEffectSubview: 0x7fbb917119a0; frame = (0 0; 375 64); autoresize = W+H; userInteractionEnabled = NO; layer = &lt;CALayer: 0x600000228f40&gt;&gt;</div><div class="line">   |    |    |    | &lt;_UINavigationBarLargeTitleView: 0x7fbb91511290; frame = (0 0; 0 44); clipsToBounds = YES; alpha = 0; hidden = YES; layer = &lt;CALayer: 0x604000039720&gt;&gt;</div><div class="line">   |    |    |    |    | &lt;UILabel: 0x7fbb9171bae0; frame = (0 0; 0 0); userInteractionEnabled = NO; layer = &lt;_UILabelLayer: 0x6000002972f0&gt;&gt;</div><div class="line">   |    |    |    | &lt;_UINavigationBarContentView: 0x7fbb9150f560; frame = (0 0; 375 44); clipsToBounds = YES; layer = &lt;CALayer: 0x604000039400&gt;&gt;</div><div class="line">   |    |    |    |    | &lt;_UIButtonBarButton: 0x7fbb9171c570; frame = (0 0; 80 44); layer = &lt;CALayer: 0x60400023d6c0&gt;&gt;</div><div class="line">   |    |    |    |    |    | &lt;_UIModernBarButton: 0x7fbb915178e0; frame = (8 11.5; 13 21); opaque = NO; userInteractionEnabled = NO; layer = &lt;CALayer: 0x60400023f200&gt;&gt;</div><div class="line">   |    |    |    |    |    |    | &lt;UIImageView: 0x7fbb9141caf0; frame = (0 0; 13 21); clipsToBounds = YES; opaque = NO; userInteractionEnabled = NO; layer = &lt;CALayer: 0x600000230300&gt;&gt;</div><div class="line">   |    |    |    |    |    | &lt;_UIBackButtonContainerView: 0x7fbb91419ef0; frame = (0 0; 80 44); autoresize = W+H; userInteractionEnabled = NO; layer = &lt;CALayer: 0x60000022ec20&gt;&gt;</div><div class="line">   |    |    |    |    |    |    | &lt;_UIModernBarButton: 0x7fbb9150c480; frame = (27 9; 53 23.5); opaque = NO; userInteractionEnabled = NO; layer = &lt;CALayer: 0x60400023e900&gt;&gt;</div><div class="line">   |    |    |    |    |    |    |    | &lt;UIButtonLabel: 0x7fbb91511700; frame = (-1.5 3; 53 20.5); text = &apos;Master&apos;; opaque = NO; userInteractionEnabled = NO; layer = &lt;_UILabelLayer: 0x604000291b70&gt;&gt;</div><div class="line">   |    |    |    |    | &lt;UILabel: 0x7fbb9171c290; frame = (148.5 12; 78.5 20.5); text = &apos;Test Push&apos;; userInteractionEnabled = NO; layer = &lt;_UILabelLayer: 0x600000297ca0&gt;&gt;</div><div class="line">   |    |    |    | &lt;_UINavigationBarModernPromptView: 0x7fbb9170cf10; frame = (0 0; 0 44); alpha = 0; hidden = YES; layer = &lt;CALayer: 0x6000002270c0&gt;&gt;</div><div class="line">   |    |    |    |    | &lt;UILabel: 0x7fbb9170d430; frame = (0 25.5; 0 0); text = &apos;&apos;; userInteractionEnabled = NO; layer = &lt;_UILabelLayer: 0x600000290400&gt;&gt;</div></pre></td></tr></table></figure>
+<p><code>recursiveDescription</code>是<code>UIView</code>的私有API，注意不是所有的<code>UIView</code>都能使用，在有些视图上会crash。</p>
+<p>可以再用<code>nextResponder</code>获取<code>UIView</code>对应的 view controller。</p>
+<p>由于看得眼花，所以这个方式我很少用。</p>
+<h4 id="2-直接使用-Xcode-的Debug-View-Hierarchy"><a href="#2-直接使用-Xcode-的Debug-View-Hierarchy" class="headerlink" title="2. 直接使用 Xcode 的Debug View Hierarchy"></a>2. 直接使用 Xcode 的<code>Debug View Hierarchy</code></h4><p>可以用 Xcode 直接调试重签名后的 app，然后就可以用<code>Debug View Hierarchy</code>查看界面层级了。</p>
+<p>参考：<a href="https://zuikyo.github.io/2017/05/04/iOS逆向：用Xcode直接调试第三方app/" target="_blank" rel="external">iOS逆向：用Xcode直接调试第三方app</a></p>
+<h4 id="3-越狱插件：FLEX"><a href="#3-越狱插件：FLEX" class="headerlink" title="3. 越狱插件：FLEX"></a>3. 越狱插件：FLEX</h4><p>可以安装越狱插件，直接注入到 app 中，打印出界面信息。可以去 Cydia 中直接下载安装，也可以去这里编译源码使用：<a href="https://github.com/Flipboard/FLEX" target="_blank" rel="external">FLEX</a>。</p>
+<h2 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h2><p>界面分析对于猜想某个界面的实现方式有很大帮助。想要分析其它功能时，也可以通过界面分析先找到对应的类，再进一步进行静态分析和动态分析。下一篇文章将会讲解如何进行静态分析。</p>
+]]></content>
+    
+    <summary type="html">
+    
+      &lt;p&gt;写几篇文章总结一下 iOS 逆向的整个流程，逆向初学者可以作为入门指南。内容包括逆向工具和环境配置、踩坑点、界面分析、砸壳、静态分析、动态分析、lldb 调试、推荐 hopper 和 IDA 插件、IDA 插件的编写、各种分析技巧。&lt;/p&gt;
+&lt;h2 id=&quot;逆向的作用&quot;&gt;&lt;
+    
+    </summary>
+    
+      <category term="逆向工程" scheme="http://yoursite.com/categories/%E9%80%86%E5%90%91%E5%B7%A5%E7%A8%8B/"/>
+    
+    
+      <category term="iOS" scheme="http://yoursite.com/tags/iOS/"/>
+    
+  </entry>
   
   <entry>
     <title>iOS VIPER架构实践(三)：面向接口的路由设计</title>

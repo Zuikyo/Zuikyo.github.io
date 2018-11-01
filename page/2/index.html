@@ -250,6 +250,504 @@
             
               
                 
+                <a class="post-title-link" href="/2016/12/13/约束冲突调试工具/" itemprop="url">
+                  约束冲突调试工具：解决iOS7调试难题
+                </a>
+              
+            
+          </h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            <span class="post-meta-item-icon">
+              <i class="fa fa-calendar-o"></i>
+            </span>
+            <span class="post-meta-item-text">发表于</span>
+            <time itemprop="dateCreated" datetime="2016-12-13T21:43:29+08:00" content="2016-12-13">
+              2016-12-13
+            </time>
+          </span>
+
+          
+            <span class="post-category" >
+              &nbsp; | &nbsp;
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+              
+                <span itemprop="about" itemscope itemtype="https://schema.org/Thing">
+                  <a href="/categories/调试技巧/" itemprop="url" rel="index">
+                    <span itemprop="name">调试技巧</span>
+                  </a>
+                </span>
+
+                
+                
+
+              
+            </span>
+          
+
+          
+            
+              <span class="post-comments-count">
+                &nbsp; | &nbsp;
+                <a href="/2016/12/13/约束冲突调试工具/#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count disqus-comment-count" data-disqus-identifier="2016/12/13/约束冲突调试工具/" itemprop="commentsCount"></span>
+                </a>
+              </span>
+            
+          
+
+          
+
+          
+          
+
+          
+
+        </div>
+      </header>
+    
+
+
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        
+          
+            <p><em>功能</em>：</p>
+<ul>
+<li>在非调试模式下，获取出错的具体约束。</li>
+<li>监测约束冲突，并获取出错的view和viewController。</li>
+<li>监测iOS7上layoutSubViews导致的crash问题</li>
+</ul>
+<h2 id="现状"><a href="#现状" class="headerlink" title="现状"></a>现状</h2><h3 id="iOS7对Auto-Layout的支持问题"><a href="#iOS7对Auto-Layout的支持问题" class="headerlink" title="iOS7对Auto Layout的支持问题"></a>iOS7对Auto Layout的支持问题</h3><ul>
+<li>iOS7的约束有一些奇怪的bug，对Auto Layout支持并不完美。</li>
+<li>在出现约束冲突时，系统会尝试修复约束。iOS7和iOS8的修复结果有可能不一样。</li>
+<li>如果view的<code>layoutSubviews</code>里没有调用<code>[super layoutSubviews]</code>，那么在往这个view上添加子view时，在iOS7以下会crash。例如<code>UITableView</code>，<code>UITableViewCell</code>。</li>
+</ul>
+<h3 id="iOS7的调试问题"><a href="#iOS7的调试问题" class="headerlink" title="iOS7的调试问题"></a>iOS7的调试问题</h3><ul>
+<li>Xcode7虽然不能使用iOS7模拟器调试，但是还能使用iOS7真机调试。而Xcode8已经连iOS7的真机调试都不支持了。</li>
+<li>Xcode8中编辑过的xib文件在Xcode7上会有兼容性问题，需要手动删除xib中的<code>&lt;capability name=&quot;documents saved in the Xcode 8 format&quot; minToolsVersion=&quot;8.0&quot;/&gt;</code>这一行才能在Xcode7上编译。如果要继续使用Xcode7调试，就需要修改这些xib，十分麻烦。</li>
+<li>内网开发时，无法进行真机调试，如果要用模拟器调试，需要另一台低版本的Mac OSX系统的机子以安装Xcode6，同时也会遇到Xcode的兼容性问题，因此遇到iOS7的约束问题十分麻烦，如果没有环境的话只能靠猜。</li>
+<li>约束冲突导致的crash往往在堆栈上无法得到有用的信息，因为是在系统库里crash，无法直接看出是哪个界面的约束出错。如果是在Xcode里调试，还能使用llvm的内存命令进行调试，但是在真机上就没办法了。</li>
+</ul>
+<h2 id="解决思路"><a href="#解决思路" class="headerlink" title="解决思路"></a>解决思路</h2><p>如果app能用代码监测到约束冲突，就可以在非调试模式下捕获到有用的信息，帮助快速定位问题。<br>当发生约束冲突时，控制台会输出这样的提示:</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div></pre></td><td class="code"><pre><div class="line">**Unable to simultaneously satisfy constraints.**</div><div class="line">    Probably at least one of the constraints in the following list is one you don&apos;t want. Try this: (1) look at each constraint and try to figure out which you don&apos;t expect; (2) find the code that added the unwanted constraint or constraints and fix it. (Note: If you&apos;re seeing NSAutoresizingMaskLayoutConstraints that you don&apos;t understand, refer to the documentation for the UIView property translatesAutoresizingMaskIntoConstraints)</div><div class="line">(</div><div class="line">    &quot;&lt;NSLayoutConstraint:0x7fc82d3e18a0 H:[UIView:0x7fc82aba1210(768)]&gt;&quot;,</div><div class="line">    &quot;&lt;NSLayoutConstraint:0x7fc82d6369e0 H:[UIView:0x7fc82aba1210]-(0)-|   (Names: &apos;|&apos;:UIView:0x7fc82d6b9f80 )&gt;&quot;,</div><div class="line">    &quot;&lt;NSLayoutConstraint:0x7fc82d636a30 H:|-(0)-[UIView:0x7fc82aba1210]   (Names: &apos;|&apos;:UIView:0x7fc82d6b9f80 )&gt;&quot;,</div><div class="line">    &quot;&lt;NSLayoutConstraint:0x7fc82d3e7fd0 &apos;UIView-Encapsulated-Layout-Width&apos; H:[UIView:0x7fc82d6b9f80(50)]&gt;&quot;</div><div class="line">)</div><div class="line"></div><div class="line">Will attempt to recover by breaking constraint</div><div class="line">&lt;NSLayoutConstraint:0x7fc82d3e18a0 H:[UIView:0x7fc82aba1210(768)]&gt;</div><div class="line"></div><div class="line">Make a symbolic breakpoint at UIViewAlertForUnsatisfiableConstraints to catch this in the debugger.</div><div class="line">The methods in the UIConstraintBasedLayoutDebugging category on UIView listed in &lt;UIKit/UIView.h&gt; may also be helpful.</div></pre></td></tr></table></figure>
+<p>提示我们在<code>UIViewAlertForUnsatisfiableConstraints</code>上打断点调试。<br>这是一个检测到出错约束时，进行处理的C函数。上面那串控制台的log就是在这个函数里输出的。</p>
+<p>于是可以尝试用method swizzling替换系统库的方法，记录出现冲突时的信息。<br>监测iOS7的crash问题也是同理。</p>
+<h2 id="实现方法"><a href="#实现方法" class="headerlink" title="实现方法"></a>实现方法</h2><h3 id="获取UIView"><a href="#获取UIView" class="headerlink" title="获取UIView"></a>获取UIView</h3><p>runtime无法替换私有C函数，而调用栈里<code>NSISEngine</code>的那几个方法都没附带什么有用的信息，于是用hopper反编译<code>UIKit.framework</code>，找到使用<code>UIViewAlertForUnsatisfiableConstraints</code>的地方，是<code>-[UIView engine:willBreakConstraint:dueToMutuallyExclusiveConstraints:]</code>。</p>
+<p>这个方法附带了出错约束的信息，也可以获取到冲突所在的UIView，于是也能通过UIView获取对应的viewController。接下来只要hook这个方法就可以了。</p>
+<h3 id="获取view-controller"><a href="#获取view-controller" class="headerlink" title="获取view controller"></a>获取view controller</h3><p>获取view对应的view controller的方法有两种。</p>
+<ul>
+<li>使用<code>UIView</code>的私有API:<code>_viewDelegate</code>。</li>
+<li>使用<code>UIResponder</code>的<code>nextResponder</code>：</li>
+</ul>
+<p>&gt;<br>The UIResponder class does not store or set the next responder automatically, instead returning nil by default. Subclasses must override this method to set the next responder. <strong>UIView implements this method by returning the UIViewController object that manages it (if it has one) or its superview (if it doesn’t)</strong>; UIViewController implements the method by returning its view’s superview; UIWindow returns the application object, and UIApplication returns nil.<br>&gt;</p>
+<p>参考:<a href="http://stackoverflow.com/questions/1372977/given-a-view-how-do-i-get-its-viewcontroller" target="_blank" rel="external">Given a view, how do I get its viewController?</a></p>
+<p>我选择了第二种方式。</p>
+<h3 id="监测iOS7约束导致的crash"><a href="#监测iOS7约束导致的crash" class="headerlink" title="监测iOS7约束导致的crash"></a>监测iOS7约束导致的crash</h3><p>当你在实现自定义view的<code>layoutSubviews</code>方法时，记住：</p>
+<ul>
+<li>调用<code>[super layoutSubviews]</code></li>
+<li>不要在<code>layoutSubviews</code>里增加约束</li>
+</ul>
+<p>如果不遵守这两条，当你向这个view上增加子view时，在iOS6和iOS7上会crash，控制台会输出提示：<code>&#39;Auto Layout still required after executing - layoutSubviews..&#39;</code> 。iOS8开始则不会crash。</p>
+<p>某些系统控件，例如<code>UITableView</code>，<code>UITableViewCell</code>没有调用<code>[super layoutSubviews]</code>，所以在iOS6和iOS7上不能在它们上面增加子view，除非你用method swizlling修复它们的<code>layoutSubviews</code>方法。</p>
+<p>经过反编译分析，<code>&#39;Auto Layout still required after executing - layoutSubviews..&#39;</code>发生在<code>UIView</code>的<code>layoutSublayersOfLayer:</code>里，发生错误之前会用<code>-[UIView _wantsWarningForMissingSuperLayoutSubviews]</code>来监测是否调用了<code>[super layoutSubviews]</code>，如果没有则抛出异常。<br>因此只需要hook<code>_wantsWarningForMissingSuperLayoutSubviews</code>就可以了。</p>
+<h2 id="最终效果"><a href="#最终效果" class="headerlink" title="最终效果"></a>最终效果</h2><p>设置监听方式如下，返回约束冲突所在的view，viewController，系统尝试打破的约束，目前所有的约束。</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div></pre></td><td class="code"><pre><div class="line">[ZIKConstraintsGuard monitorUnsatisfiableConstraintWithHandler:^(UIView *view, UIViewController *viewController, NSLayoutConstraint *constraintToBreak, NSArray&lt;NSLayoutConstraint *&gt; *currentConstraints) &#123;</div><div class="line">    NSLog(@&quot;检测到约束冲突！&quot;);</div><div class="line">    NSString *className = NSStringFromClass([viewController class]);</div><div class="line">    if ([className hasPrefix:@&quot;UI&quot;] &amp;&amp; ![className isEqualToString:@&quot;UIApplication&quot;]) &#123;</div><div class="line">    	  //使用某些系统控件时会出现约束冲突，例如UIAlertController</div><div class="line">        NSLog(@&quot;ignore conflict in UIKit:%@&quot;,viewController);</div><div class="line">        return;</div><div class="line">    &#125;</div><div class="line">    NSLog(@&quot;冲突所在的viewController:\n%@ \nview:\n%@&quot;,viewController,view);</div><div class="line">    //使用recursiveDescription来打印view的层级，注意这是private API</div><div class="line">    NSLog(@&quot;view hierarchy:\n%@&quot;,[view valueForKeyPath:@&quot;recursiveDescription&quot;]);</div><div class="line">    NSLog(@&quot;目前所有的约束:\n%@&quot;,currentConstraints);</div><div class="line">    NSLog(@&quot;系统尝试打破的约束:\n%@&quot;,constraintToBreak);</div><div class="line">    </div><div class="line">&#125;];</div></pre></td></tr></table></figure>
+<p>打印结果如下:</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div></pre></td><td class="code"><pre><div class="line">检测到约束冲突！</div><div class="line"></div><div class="line">冲突所在的viewController:</div><div class="line">&lt;MyViewController: 0x100201ba0&gt; </div><div class="line">view:</div><div class="line">&lt;UIView: 0x10020cbb0; frame = (0 0; 375 667); autoresize = W+H; gestureRecognizers = &lt;NSArray: 0x170242b50&gt;; layer = &lt;UIWindowLayer: 0x17002b240&gt;&gt;</div><div class="line"></div><div class="line">view hierarchy:</div><div class="line"></div><div class="line">&lt;UIView: 0x10020cbb0; frame = (0 0; 375 667); autoresize = W+H; gestureRecognizers = &lt;NSArray: 0x170242b50&gt;; layer = &lt;UIWindowLayer: 0x17002b240&gt;&gt;</div><div class="line">   | &lt;UIView: 0x10020fd00; frame = (0 0; 375 667); autoresize = W+H; layer = &lt;CALayer: 0x17002b780&gt;&gt;</div><div class="line">   |    | &lt;_UILayoutGuide: 0x1002100a0; frame = (0 0; 0 0); hidden = YES; layer = &lt;CALayer: 0x17002b820&gt;&gt;</div><div class="line">   |    | &lt;_UILayoutGuide: 0x100210650; frame = (0 0; 0 0); hidden = YES; layer = &lt;CALayer: 0x17002b8e0&gt;&gt;</div><div class="line">   |    | &lt;UITableView: 0x10081cc00; frame = (100 100; 100 100); clipsToBounds = YES; gestureRecognizers = &lt;NSArray: 0x170243e70&gt;; layer = &lt;CALayer: 0x17002bf20&gt;; contentOffset: &#123;0, 0&#125;; contentSize: &#123;0, 0&#125;&gt;</div><div class="line">   |    |    | &lt;UITableViewWrapperView: 0x10080fe00; frame = (0 0; 100 100); gestureRecognizers = &lt;NSArray: 0x1702441a0&gt;; layer = &lt;CALayer: 0x17002bf80&gt;; contentOffset: &#123;0, 0&#125;; contentSize: &#123;100, 100&#125;&gt;</div><div class="line"></div><div class="line">目前所有的约束:</div><div class="line">(</div><div class="line">    &quot;&lt;NSLayoutConstraint:0x17008a500 UITableView:0x10081cc00.top == UITableView:0x10081cc00.top + 10   (active)&gt;&quot;</div><div class="line">)</div><div class="line"></div><div class="line">系统尝试打破的约束:</div><div class="line">&lt;NSLayoutConstraint:0x17008a500 UITableView:0x10081cc00.top == UITableView:0x10081cc00.top + 10   (active)&gt;</div></pre></td></tr></table></figure>
+<p>这样就能根据记录到的内存地址，准确地找到是哪个界面的哪个控件的约束出错了，即便在iOS7上crash，也能在crash之前记录到错误信息。</p>
+<h2 id="需要注意的问题"><a href="#需要注意的问题" class="headerlink" title="需要注意的问题"></a>需要注意的问题</h2><ul>
+<li>某些系统控件本身存在约束冲突的问题，例如在使用<code>UIAlertController</code>的时候。目前是在检测到冲突时，再检测viewController的类型前缀，如果是<code>UI</code>前缀则忽略。</li>
+<li>同一个约束冲突有时候会有多次回调。这些回调来自处理auto layout的不同阶段，例如添加重复约束时、<code>addSubview</code>时，<code>layoutSubLayer</code>时等。</li>
+</ul>
+<h2 id="源代码"><a href="#源代码" class="headerlink" title="源代码"></a>源代码</h2><p>工具地址在此：<a href="https://github.com/Zuikyo/ZIKConstraintsGuard" target="_blank" rel="external">ZIKConstraintsGuard</a>。</p>
+
+          
+        
+      
+    </div>
+
+    <div>
+      
+    </div>
+
+    <div>
+      
+    </div>
+
+    <footer class="post-footer">
+      
+
+      
+
+      
+      
+        <div class="post-eof"></div>
+      
+    </footer>
+  </article>
+
+
+    
+      
+
+  
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal " itemscope itemtype="http://schema.org/Article">
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">
+            
+            
+              
+                
+                <a class="post-title-link" href="/2016/12/07/interface的规范写法/" itemprop="url">
+                  @inerface的11条规范写法
+                </a>
+              
+            
+          </h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            <span class="post-meta-item-icon">
+              <i class="fa fa-calendar-o"></i>
+            </span>
+            <span class="post-meta-item-text">发表于</span>
+            <time itemprop="dateCreated" datetime="2016-12-07T08:55:29+08:00" content="2016-12-07">
+              2016-12-07
+            </time>
+          </span>
+
+          
+            <span class="post-category" >
+              &nbsp; | &nbsp;
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+              
+                <span itemprop="about" itemscope itemtype="https://schema.org/Thing">
+                  <a href="/categories/代码规范/" itemprop="url" rel="index">
+                    <span itemprop="name">代码规范</span>
+                  </a>
+                </span>
+
+                
+                
+
+              
+            </span>
+          
+
+          
+            
+              <span class="post-comments-count">
+                &nbsp; | &nbsp;
+                <a href="/2016/12/07/interface的规范写法/#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count disqus-comment-count" data-disqus-identifier="2016/12/07/interface的规范写法/" itemprop="commentsCount"></span>
+                </a>
+              </span>
+            
+          
+
+          
+
+          
+          
+
+          
+
+        </div>
+      </header>
+    
+
+
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        
+          
+            <p>总结一些interface声明时的规范，相关宏的介绍，定义方法时有用的修饰符，编写注释的规范，最终写出一个合格的头文件。</p>
+<ul>
+<li><a href="#readwrite">1.读写权限</a><ul>
+<li><a href="#readwrite-1">1.1实例变量的@public,@protected,@private关键字</a></li>
+<li><a href="#readwrite-2">1.2属性的readonly,readwrite关键字</a></li>
+</ul>
+</li>
+<li><a href="#forward-declaration">2.前向声明</a></li>
+<li><a href="#private">3.只暴露必要的接口和实现</a><ul>
+<li><a href="#private-1">3.1不要暴露任何只在类内部使用的私有方法</a></li>
+<li><a href="#private-2">3.2不要在头文件里声明类内部遵循的protocol</a></li>
+</ul>
+</li>
+<li><a href="#nullability">4.nullability说明</a></li>
+<li><a href="#enum">5.定义枚举</a><ul>
+<li><a href="#enum-1">5.1 NS_ENUM</a></li>
+<li><a href="#enum-2">5.2 NS_OPTIONS</a></li>
+<li><a href="#enum-3">5.3 字符串枚举</a></li>
+</ul>
+</li>
+<li><a href="#extern">6.使用extern向外部提供只读常量</a></li>
+<li><a href="#protected">7.向子类和category提供父类的私有属性</a></li>
+<li><a href="#designated-initializer">8.标明designated initializer</a></li>
+<li><a href="#version-control">9.API版本控制</a><ul>
+<li><a href="#version-control-1">9.1 available</a></li>
+<li><a href="#version-control-2">9.2 unavailable</a></li>
+<li><a href="#version-control-3">9.3 deprecated</a></li>
+</ul>
+</li>
+<li><a href="#keywords">10.额外的修饰符</a><ul>
+<li><a href="#keywords-1">10.1泛型</a></li>
+<li><a href="#keywords-2">10.2 NS_REQUIRES_SUPER</a></li>
+<li><a href="#keywords-3">10.3 NS_NOESCAPE</a></li>
+</ul>
+</li>
+<li><a href="#comment">11.写注释</a><ul>
+<li><a href="#comment-1">11.1单行注释</a></li>
+<li><a href="#comment-2">11.2多行注释</a></li>
+<li><a href="#comment-3">11.3枚举注释</a></li>
+<li><a href="#comment-4">11.4几个注释约定</a></li>
+</ul>
+</li>
+</ul>
+<hr>
+<h2 id="1-读写权限"><a href="#1-读写权限" class="headerlink" title="1.读写权限"></a><a name="readwrite"></a>1.读写权限</h2><p>.h文件里的声明是用于暴露给外部的接口，而类内部的私有方法、私有属性和实例变量，应该放到.m文件的interface extension里。</p>
+<h3 id="1-1-实例变量的-public-protected-private关键字"><a href="#1-1-实例变量的-public-protected-private关键字" class="headerlink" title="1.1 实例变量的@public,@protected,@private关键字"></a><a name="readwrite-1"></a>1.1 实例变量的@public,@protected,@private关键字</h3><p>这3个关键字用于修饰实例变量，不能用于修饰属性。当错误地使用了实例变量时，Xcode会报错提示。</p>
+<table>
+<thead>
+<tr>
+<th>关键字</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>@private</td>
+<td>作用范围只能在自身类</td>
+</tr>
+<tr>
+<td>@protected</td>
+<td>作用范围在自身类和继承自己的子类，什么都不写，默认是此属性。</td>
+</tr>
+<tr>
+<td>@public</td>
+<td>作用范围最大，在任何地方。</td>
+</tr>
+</tbody>
+</table>
+<p>示例代码：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div></pre></td><td class="code"><pre><div class="line">//SearchManager.h</div><div class="line">@interface SearchManager : NSObject &#123;</div><div class="line">    @public    NSInteger *state;</div><div class="line">    @public    NSInteger *timeout;</div><div class="line">    @protected id *searchAPI;</div><div class="line">    @private   id _privateIvar;</div><div class="line">&#125;</div><div class="line">@end</div></pre></td></tr></table></figure>
+<p>由于会暴露私有变量，并且没有@property的一些高级关键字，很少在头文件里声明实例变量。优先使用@property。</p>
+<h3 id="1-2-属性的readonly-readwrite关键字"><a href="#1-2-属性的readonly-readwrite关键字" class="headerlink" title="1.2 属性的readonly,readwrite关键字"></a><a name="readwrite-2"></a>1.2 属性的readonly,readwrite关键字</h3><p>头文件中的属性是用于描述这个对象的一系列特性集合。<br>声明@property时，在.h里使用readonly，让外部只有读的权限，在.m里使用readwrite，使内部拥有读写权限。</p>
+<p>示例代码：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div></pre></td><td class="code"><pre><div class="line">//SearchManager.h</div><div class="line">@interface SearchManager : NSObject</div><div class="line">@property (nonatomic, readonly) NSInteger * state;</div><div class="line">@end</div></pre></td></tr></table></figure>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div></pre></td><td class="code"><pre><div class="line">//SearchManager.m</div><div class="line">@interface SearchManager : NSObject</div><div class="line">@property (nonatomic, readwrite) NSInteger * state;</div><div class="line">@end</div></pre></td></tr></table></figure>
+<h2 id="2-前向声明"><a href="#2-前向声明" class="headerlink" title="2.前向声明"></a><a name="forward-declaration"></a>2.前向声明</h2><p>当在@interface的接口里用到了其他类，不要在.h里直接导入类的头文件，这样会让使用此头文件的地方也导入这些不必要的其他头文件。正确的做法是使用关键字<code>@class</code>进行前向声明。当然，如果是继承了父类，还是需要import父类的头文件。<br>示例代码：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div></pre></td><td class="code"><pre><div class="line">//SearchManager.h</div><div class="line">#import &quot;SearchManagerBase.h&quot;//导入父类的头文件</div><div class="line"></div><div class="line">@class LocationModel;//前向声明LocationModel类</div><div class="line"></div><div class="line">typedef void(^LocationSearchCompletionHandler)(LocationModel *location, NSError *error);</div><div class="line">@interface LocationSearchManager : SearchManagerBase</div><div class="line">- (void)searchLocationWithKeyword:(NSString *)keyword completionHandler:(LocationSearchCompletionHandler)completionHandler;</div><div class="line">@end</div></pre></td></tr></table></figure>
+<p>使用@class会告诉编译器有这么一个类存在，但是现在并不关心这个类的具体实现，等到调用者在.m里使用的时候再import这个类即可。使用@class和@protocol分别声明一个类和一个protocol。<br>使用前向引用的原因有两个：</p>
+<ul>
+<li>提升编译效率。<br>如果import了<code>LocationModel.h</code>，那么当<code>LocationModel.h</code>的内容发生变化时，所有import了<code>LocationModel.h</code>的地方都需要重新编译。如果.m引用了<code>SearchManager.h</code>，但是并没有使用<code>LocationModel</code>，就会增加不必要的编译，降低开发效率。</li>
+<li>解决交叉引用的问题。<br>如果类A的头文件import了B，类B的头文件import了A，这样在编译时会报错：“can not find interface declaration”，这是因为Objective-C不允许交叉引用。</li>
+</ul>
+<h2 id="3-只暴露必要的接口和实现"><a href="#3-只暴露必要的接口和实现" class="headerlink" title="3.只暴露必要的接口和实现"></a><a name="private"></a>3.只暴露必要的接口和实现</h2><h3 id="3-1不要暴露任何只在类内部使用的私有方法"><a href="#3-1不要暴露任何只在类内部使用的私有方法" class="headerlink" title="3.1不要暴露任何只在类内部使用的私有方法"></a><a name="private-1"></a>3.1不要暴露任何只在类内部使用的私有方法</h3><p>头文件里只声明那些给外部使用的公开方法，并且在设计时需要考虑到可测试性，遵循单一职责。<br>私有方法只定义在类内部，并且为了进行区别，建议在私有方法前加上前缀，例如<code>- (void)p_myPrivateMethod</code>。<br>由于Apple在它的编码规范里声明了，Apple公司拥有下划线的方法前缀，就像它拥有<code>NS</code>,<code>UI</code>这些类名前缀一样，因此不建议我们的私有方法直接使用下划线作为前缀。否则，当你在继承Cocoa Touch的类时，有可能会覆盖父类的私有方法，造成难以调试的错误。</p>
+<h3 id="3-2不要在头文件里声明类内部遵循的protocol"><a href="#3-2不要在头文件里声明类内部遵循的protocol" class="headerlink" title="3.2不要在头文件里声明类内部遵循的protocol"></a><a name="private-2"></a>3.2不要在头文件里声明类内部遵循的protocol</h3><p><strong>错误</strong>的示例代码：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div></pre></td><td class="code"><pre><div class="line">//SearchManager.h</div><div class="line">@interface SearchManager : NSObject&lt;NSCoding, UITableViewDelegate&gt;</div><div class="line">@property (nonatomic, readonly) NSInteger * state;</div><div class="line">@end</div></pre></td></tr></table></figure>
+<p><code>UITableViewDelegate</code>是类内部使用时遵循的protocol，没有必要暴露给外部，因此应该放到.m文件里。<br>而<code>NSCoding</code>则描述了类的特性，用于告诉外部本类可以使用归档，因此应该放在头文件里。</p>
+<h2 id="4-nullability说明"><a href="#4-nullability说明" class="headerlink" title="4.nullability说明"></a><a name="nullability"></a>4.nullability说明</h2><p>在声明时，可以使用下列关键字描述对象是否可以为nil。</p>
+<table>
+<thead>
+<tr>
+<th>关键字</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>nullable</td>
+<td>可空，用于描述objc对象</td>
+</tr>
+<tr>
+<td>nonnull</td>
+<td>不可空，用于描述objc对象</td>
+</tr>
+<tr>
+<td>null_unspecified</td>
+<td>不确定，用于描述objc对象</td>
+</tr>
+<tr>
+<td>null_resettable</td>
+<td>set可空，get不为空。仅用于property</td>
+</tr>
+<tr>
+<td>_Nullable</td>
+<td>可空，用于描述C指针和block</td>
+</tr>
+<tr>
+<td>_Nonnull</td>
+<td>不可空，用于描述C指针和block</td>
+</tr>
+<tr>
+<td>_Null_unspecified</td>
+<td>不确定，用于描述C指针和block</td>
+</tr>
+</tbody>
+</table>
+<p>示例代码：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div></pre></td><td class="code"><pre><div class="line">//SearchManager.h</div><div class="line">#import &quot;SearchManagerBase.h&quot;</div><div class="line">@class LocationModel;</div><div class="line"></div><div class="line">typedef void(^LocationSearchCompletionHandler)(LocationModel *_Nullable location, NSError *_Nullable error);</div><div class="line">@interface LocationSearchManager : SearchManagerBase</div><div class="line">- (void)searchLocationWithKeyword:(nonnull NSString *)keyword completionHandler:(LocationSearchCompletionHandler _Nonnull)completionHandler;</div><div class="line">@end</div></pre></td></tr></table></figure>
+<p>如果向一个使用nonnull修饰的值赋空，编译器会给出警告。<br>在开发时，大部分时候使用的都是nonnull，因此Apple提供了一对宏<code>NS_ASSUME_NONNULL_BEGIN</code>和<code>NS_ASSUME_NONNULL_END</code>来进行快速修饰，写在两个宏之间的属性、方法，均会使用<code>nonnull</code>修饰。<br>示例代码：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div></pre></td><td class="code"><pre><div class="line">//LocationSearchManager.h</div><div class="line"></div><div class="line">#import &quot;SearchManagerBase.h&quot;</div><div class="line">@class LocationModel;</div><div class="line"></div><div class="line">NS_ASSUME_NONNULL_BEGIN</div><div class="line">typedef void(^LocationSearchCompletionHandler)(LocationModel *_Nullable location, NSError *_Nullable error);</div><div class="line">@interface LocationSearchManager : SearchManagerBase</div><div class="line">- (void)searchLocationWithKeyword:(NSString *)keyword completionHandler:(LocationSearchCompletionHandler)completionHandler;</div><div class="line">@end</div><div class="line">NS_ASSUME_NONNULL_END</div></pre></td></tr></table></figure>
+<h2 id="5-定义枚举"><a href="#5-定义枚举" class="headerlink" title="5.定义枚举"></a><a name="enum"></a>5.定义枚举</h2><p>关于NS_ENUM和NS_OPTIONS的区别，参考<a href="http://nshipster.cn/ns_enum-ns_options/" target="_blank" rel="external">这里</a>。<br>简单来说，NS_OPTIONS提供了按位掩码的功能。</p>
+<h3 id="5-1-NS-ENUM"><a href="#5-1-NS-ENUM" class="headerlink" title="5.1 NS_ENUM"></a><a name="enum-1"></a>5.1 NS_ENUM</h3><p>示例代码：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div></pre></td><td class="code"><pre><div class="line">typedef NS_ENUM(NSInteger,SearchState) &#123;</div><div class="line">    SearchStateNotSearch,</div><div class="line">    SearchStateSearching,</div><div class="line">    SearchStateSearchFinished,</div><div class="line">    SearchStateSearchFailed</div><div class="line">&#125;;</div></pre></td></tr></table></figure>
+<h3 id="5-2-NS-OPTIONS"><a href="#5-2-NS-OPTIONS" class="headerlink" title="5.2 NS_OPTIONS"></a><a name="enum-2"></a>5.2 NS_OPTIONS</h3><p>示例代码，参考<code>NSKeyValueObserving.h</code>：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div></pre></td><td class="code"><pre><div class="line">typedef NS_OPTIONS(NSUInteger, NSKeyValueObservingOptions) &#123;</div><div class="line">    NSKeyValueObservingOptionNew,</div><div class="line">    NSKeyValueObservingOptionOld,</div><div class="line">    NSKeyValueObservingOptionInitial,</div><div class="line">    NSKeyValueObservingOptionPrior</div><div class="line">&#125;;</div></pre></td></tr></table></figure>
+<p>在使用时就可以用<code>|</code>组合多个option：<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line">[_webView addObserver:self forKeyPath:@&quot;title&quot; options:NSKeyValueObservingOptionInitial | NSKeyValueObservingOptionNew context:NULL];</div></pre></td></tr></table></figure></p>
+<h3 id="5-3-字符串枚举"><a href="#5-3-字符串枚举" class="headerlink" title="5.3 字符串枚举"></a><a name="enum-3"></a>5.3 字符串枚举</h3><p>当使用字典作为参数传递，或者作为返回值时，往往难以直接提供字典的key，现在使用字符串枚举即可解决这个问题。<br>示例代码，参考<code>NSKeyValueObserving.h</code>：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div></pre></td><td class="code"><pre><div class="line">//使用NS_STRING_ENUM宏，定义了一个枚举类型</div><div class="line">typedef NSString * NSKeyValueChangeKey NS_STRING_ENUM;</div><div class="line"></div><div class="line">FOUNDATION_EXPORT NSKeyValueChangeKey const NSKeyValueChangeKindKey;</div><div class="line">FOUNDATION_EXPORT NSKeyValueChangeKey const NSKeyValueChangeNewKey;</div><div class="line">FOUNDATION_EXPORT NSKeyValueChangeKey const NSKeyValueChangeOldKey;</div><div class="line">FOUNDATION_EXPORT NSKeyValueChangeKey const NSKeyValueChangeIndexesKey;</div><div class="line">FOUNDATION_EXPORT NSKeyValueChangeKey const NSKeyValueChangeNotificationIsPriorKey;</div><div class="line"></div><div class="line">//使用泛型，声明了change参数用到的key，是在NSKeyValueChangeKey的枚举范围中</div><div class="line">- (void)observeValueForKeyPath:(nullable NSString *)keyPath ofObject:(nullable id)object change:(nullable NSDictionary&lt;NSKeyValueChangeKey, id&gt; *)change context:(nullable void *)context;</div></pre></td></tr></table></figure>
+<h2 id="6-使用extern向外部提供只读常量"><a href="#6-使用extern向外部提供只读常量" class="headerlink" title="6.使用extern向外部提供只读常量"></a><a name="extern"></a>6.使用extern向外部提供只读常量</h2><p>这不关@interface的事，但是和头文件有关，就放在一起说明了。</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div></pre></td><td class="code"><pre><div class="line">//SearchManager.h</div><div class="line">extern NSString *const SearchErrorDomain;</div><div class="line">extern NSInteger SearchDefaultTimeout;</div><div class="line"></div><div class="line">@interface SearchManager : NSObject</div><div class="line">@end</div></pre></td></tr></table></figure>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div></pre></td><td class="code"><pre><div class="line">//SearchManager.m</div><div class="line">NSString *const SearchErrorDomain = @&quot;SearchErrorDomain&quot;;</div><div class="line">const NSInteger SearchDefaultTimeout = 20;</div><div class="line"></div><div class="line">@interface SearchManager()</div><div class="line">@end</div></pre></td></tr></table></figure>
+<h2 id="7-向子类和category提供父类的私有属性"><a href="#7-向子类和category提供父类的私有属性" class="headerlink" title="7.向子类和category提供父类的私有属性"></a><a name="protected"></a>7.向子类和category提供父类的私有属性</h2><p>由于类的头文件只存放那些暴露给外部的属性和方法，在遇到这些情况时，会遇到障碍：</p>
+<ul>
+<li>在子类里或者category里，想要使用父类定义在.m里的私有属性。</li>
+<li>在类的头文件里属性是readonly，但是在子类或者category里，需要readwrite权限。<br>由于这些属性并没有暴露在头文件里，因此需要另外建立一个私有头文件，用来存放这些需要暴露给子类和category的属性。<br>可以参考Apple官方的<code>UIGestureRecognizerSubclass.h</code>。<br>示例代码：</li>
+</ul>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div></pre></td><td class="code"><pre><div class="line">//SearchManager.h</div><div class="line">@interface SearchManager : NSObject</div><div class="line">///外部访问，只有读权限</div><div class="line">@property (nonatomic, readonly) SearchState state;</div><div class="line">@end</div></pre></td></tr></table></figure>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div></pre></td><td class="code"><pre><div class="line">//SearchManager.m</div><div class="line">@interface SearchManager()</div><div class="line">///内部使用，有读写权限</div><div class="line">@property (nonatomic, assign) SearchState state;</div><div class="line">///只在内部使用的私有属性</div><div class="line">@property (nonatomic, strong) id searchAPI;</div><div class="line">@end</div></pre></td></tr></table></figure>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div></pre></td><td class="code"><pre><div class="line">///暴露给子类和category的私有属性和私有方法</div><div class="line">//SearchManagerInternal.h</div><div class="line">///限制使用此头文件，防止被别的类误用</div><div class="line">#ifdef SEARCHMANAGER_PROTECTED_ACCESS</div><div class="line"></div><div class="line">#import &quot;SearchManager.h&quot;</div><div class="line">@interface SearchManager()</div><div class="line">///在internal.h里，重新声明为readwrite权限</div><div class="line">@property (nonatomic, readwrite, assign) SearchState state;</div><div class="line">///暴露私有属性</div><div class="line">@property (nonatomic, strong) id searchAPI;</div><div class="line">///暴露私有方法</div><div class="line">- (void)p_privateMethod;</div><div class="line">@end</div><div class="line"></div><div class="line">#else</div><div class="line">#error Only be included by SearchManager&apos;s subclass or category!</div><div class="line">#endif</div></pre></td></tr></table></figure>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div></pre></td><td class="code"><pre><div class="line">///category的实现文件</div><div class="line">//SearchManager+Category.m</div><div class="line">///声明私有头文件的使用权限</div><div class="line">#define SEARCHMANAGER_PROTECTED_ACCESS</div><div class="line">///导入私有头文件</div><div class="line">#import &quot;SearchManagerInternal.h&quot;</div><div class="line"></div><div class="line">@implementation SearchManager(Category)</div><div class="line">- (void)categoryMethod &#123;</div><div class="line">    //拥有了读写权限</div><div class="line">    self.state = SearchStateSearching;</div><div class="line">    //可以访问私有属性</div><div class="line">    [self.searchAPI startSearch];</div><div class="line">    //可以使用私有方法</div><div class="line">    [self p_privateMethod];</div><div class="line">&#125;</div><div class="line">@end</div></pre></td></tr></table></figure>
+<p><code>SearchManagerInternal.h</code>其实也是公开的，其他类也能够导入并使用，只能在开发时进行约定。如果想要限制其他类导入，并且提示错误，<code>Internal.h</code>可以使用如下方式:</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div></pre></td><td class="code"><pre><div class="line">#ifdef MYCLASS_PROTECTED_ACCESS</div><div class="line">//声明部分</div><div class="line">#else</div><div class="line">#error Only be included by MYCLASS&apos;s subclass or category!</div><div class="line">#endif</div></pre></td></tr></table></figure>
+<p>这样在别的类内意外地导入了<code>Internal.h</code>时就会产生编译警告，并且无法直接使用。缺点是需要在所有使用到<code>Internal.h</code>的地方都<code>#define MYCLASS_PROTECTED_ACCESS</code>。</p>
+<h2 id="8-标明designated-initializer"><a href="#8-标明designated-initializer" class="headerlink" title="8.标明designated initializer"></a><a name="designated-initializer"></a>8.标明designated initializer</h2><p>指定初始化方法，即接收参数最多的那个初始化方法，其他初始化方法调用它即可，这样设计的目的是为了保证所有初始化方法都正确地初始化实例变量。<br>在方法后面加上<code>NS_DESIGNATED_INITIALIZER</code>宏即可。这样，当你子类化这个类时，在子类的初始化方法里如果没有正确地调用父类的designated initializer，编译器就会给出警告。<br>实例代码：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div></pre></td><td class="code"><pre><div class="line">@interface WKWebView : UIView</div><div class="line">- (instancetype)initWithFrame:(CGRect)frame configuration:(WKWebViewConfiguration *)configuration NS_DESIGNATED_INITIALIZER;</div><div class="line">- (nullable instancetype)initWithCoder:(NSCoder *)coder NS_DESIGNATED_INITIALIZER;</div><div class="line">@end</div></pre></td></tr></table></figure>
+<p>关于designated initializer更详细的说明，参考:</p>
+<ul>
+<li><a href="https://github.com/100mango/zen/blob/master/Objective-C%20拾遗：designated%20initializer/Objective-C%20拾遗：designated%20initializer.md" target="_blank" rel="external">Objective-C 拾遗：designated initializer</a></li>
+<li><a href="http://www.starfelix.com/blog/2014/04/13/zheng-que-bian-xie-designated-initializerde-ji-ge-yuan-ze/" target="_blank" rel="external">正确编写Designated Initializer的几个原则</a></li>
+</ul>
+<h2 id="9-API版本控制"><a href="#9-API版本控制" class="headerlink" title="9.API版本控制"></a><a name="version-control"></a>9.API版本控制</h2><p>在更新接口，或者开发framework时，需要标明版本信息，告诉使用者此接口的平台限制、操作系统版本、是否可用、是否已弃用等。<br>苹果给出了几个自带的宏用于标明版本，Xcode在检测到错误使用时会给出警告。只需要在方法名后面加上对应的宏即可。</p>
+<h3 id="9-1-available"><a href="#9-1-available" class="headerlink" title="9.1 available"></a><a name="version-control-1"></a>9.1 available</h3><p>声明本接口最低支持的操作系统版本。<br>当你的接口使用了新系统的API，例如iOS8以上才有的UIAlertController，但是项目的deployment target却是iOS7时，需要标明此接口的版本信息，让使用者进行兼容。<br>示例:</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div></pre></td><td class="code"><pre><div class="line">//SearchManager.h</div><div class="line"></div><div class="line">typedef NS_ENUM(NSInteger,SearchState) &#123;</div><div class="line">    SearchStateNotSearch,</div><div class="line">    SearchStateSearching,</div><div class="line">    SearchStateSearchFinished,</div><div class="line">    SearchStateSearchFailed</div><div class="line">&#125; NS_ENUM_AVAILABLE_IOS(2_0);//此枚举在iOS2.0以上才能使用</div><div class="line"></div><div class="line">NS_CLASS_AVAILABLE_IOS(2_0) //此类在iOS2.0以上才能使用</div><div class="line">@interface SearchManager : NSObject</div><div class="line">- (void)reSearch NS_AVAILABLE_IOS(5_0);//此方法在iOS5.0以上才能使用</div><div class="line">@end</div></pre></td></tr></table></figure>
+<p>这几个宏有对应平台的版本，例如NS_AVAILABLE_MAC, NS_AVAILABLE_IOS, NS_AVAILABLE_IPHONE。<br>iOS10开始提供了新的available宏<code>API_AVAILABLE</code>，用来统一macOS、iOS、watchOS、tvOS几个平台。</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div></pre></td><td class="code"><pre><div class="line">API_AVAILABLE(macos(10.10))</div><div class="line">API_AVAILABLE(macos(10.9), ios(10.0))</div><div class="line">API_AVAILABLE(macos(10.4), ios(8.0), watchos(2.0), tvos(10.0))</div></pre></td></tr></table></figure>
+<h3 id="9-2-unavailable"><a href="#9-2-unavailable" class="headerlink" title="9.2 unavailable"></a><a name="version-control-2"></a>9.2 unavailable</h3><p>声明此接口不可用，大多数时候是用于声明所在平台限制。<br>示例：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div></pre></td><td class="code"><pre><div class="line">@interface SearchManager : NSObject</div><div class="line">- (void)searchInWatch NS_UNAVAILABLE;//不能用此接口</div><div class="line">- (void)searchInHostApp NS_EXTENSION_UNAVAILABLE_IOS;//extension里不能用此接口</div><div class="line">- (void)search __TVOS_PROHIBITED;//tvOS里不能用此接口，可修饰枚举，类，方法，参数</div><div class="line">@end</div></pre></td></tr></table></figure>
+<p>iOS10开始提供了新的unavailable宏<code>API_UNAVAILABLE</code>:</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div></pre></td><td class="code"><pre><div class="line">API_UNAVAILABLE(macos)</div><div class="line">API_UNAVAILABLE(watchos, tvos)</div></pre></td></tr></table></figure>
+<h3 id="9-3-deprecated"><a href="#9-3-deprecated" class="headerlink" title="9.3 deprecated"></a><a name="version-control-3"></a>9.3 deprecated</h3><p>声明此接口已经被弃用，可以同时加注释注明替代接口。<br>当deployment target版本号设置成大于或等于方法被弃用的版本号时，Xcode会给出警告。<br>示例:</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div></pre></td><td class="code"><pre><div class="line">//注明废弃类</div><div class="line">NS_CLASS_DEPRECATED_IOS(2_0, 9_0, &quot;UIAlertView is deprecated. Use UIAlertController with a preferredStyle of UIAlertControllerStyleAlert instead&quot;)</div><div class="line">@interface UIAlertView : UIView</div><div class="line">@end</div></pre></td></tr></table></figure>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div></pre></td><td class="code"><pre><div class="line">//注明废弃API</div><div class="line">@interface UIViewController : UIResponder</div><div class="line">- (void)viewDidUnload NS_DEPRECATED_IOS(3_0,6_0);</div><div class="line">@end</div></pre></td></tr></table></figure>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div></pre></td><td class="code"><pre><div class="line">//注明废弃枚举</div><div class="line">typedef NS_ENUM(NSInteger, UIStatusBarStyle) &#123;</div><div class="line">    UIStatusBarStyleDefault                                     = 0, // Dark content, for use on light backgrounds</div><div class="line">    UIStatusBarStyleLightContent     NS_ENUM_AVAILABLE_IOS(7_0) = 1, // Light content, for use on dark backgrounds</div><div class="line">    </div><div class="line">    UIStatusBarStyleBlackTranslucent NS_ENUM_DEPRECATED_IOS(2_0, 7_0, &quot;Use UIStatusBarStyleLightContent&quot;) = 1,</div><div class="line">    UIStatusBarStyleBlackOpaque      NS_ENUM_DEPRECATED_IOS(2_0, 7_0, &quot;Use UIStatusBarStyleLightContent&quot;) = 2,</div><div class="line">&#125;</div></pre></td></tr></table></figure>
+<p>iOS10开始提供了新的deprecated宏<code>API_DEPRECATED</code>和<code>API_DEPRECATED_WITH_REPLACEMENT</code>。前者可以注明弃用原因，后者可以注明替代接口。</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div></pre></td><td class="code"><pre><div class="line">API_DEPRECATED(&quot;No longer supported&quot;, macos(10.4, 10.8))</div><div class="line">API_DEPRECATED(&quot;No longer supported&quot;, macos(10.4, 10.8), ios(2.0, 3.0), watchos(2.0, 3.0), tvos(9.0, 10.0))</div><div class="line"></div><div class="line">API_DEPRECATED_WITH_REPLACEMENT(&quot;-setName:&quot;, tvos(10.0, 10.4), ios(9.0, 10.0))</div><div class="line">API_DEPRECATED_WITH_REPLACEMENT(&quot;SomeClassName&quot;, macos(10.4, 10.6), watchos(2.0, 3.0))</div></pre></td></tr></table></figure>
+<h2 id="10-额外的修饰符"><a href="#10-额外的修饰符" class="headerlink" title="10.额外的修饰符"></a><a name="keywords"></a>10.额外的修饰符</h2><h3 id="10-1-泛型"><a href="#10-1-泛型" class="headerlink" title="10.1 泛型"></a><a name="keywords-1"></a>10.1 泛型</h3><p>在声明时，对集合类型的对象增加泛型的修饰，就可以声明集合内存储的数据类型。<br>例如：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line">@property (nonatomic, strong) NSMutableArray&lt;NSString *&gt; *myArray;</div></pre></td></tr></table></figure>
+<p>当你向<code>myArray</code>里放入一个非<code>NSString *</code>类型的对象时，编译器会给出警告。</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line">@property(nonatomic, strong) NSMutableArray&lt;__kindof UIView *&gt; * viewArray;</div></pre></td></tr></table></figure>
+<p><code>_kindof</code>只限定了存储类型为<code>UIView</code>，因此也可以存储<code>UIView</code>的子类，例如<code>UIButton</code>。<br>更详细的介绍，参考:<a href="https://my.oschina.net/u/2340880/blog/514804" target="_blank" rel="external">Objective—C语言的新魅力——Nullability、泛型集合与类型延拓</a></p>
+<h3 id="10-2-NS-REQUIRES-SUPER"><a href="#10-2-NS-REQUIRES-SUPER" class="headerlink" title="10.2 NS_REQUIRES_SUPER"></a><a name="keywords-2"></a>10.2 NS_REQUIRES_SUPER</h3><p><code>NS_REQUIRES_SUPER</code>宏用于声明子类在重载父类的这个方法时，需要调用父类的方法。例如：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line">- (void)viewWillAppear:(BOOL)animated NS_REQUIRES_SUPER;</div></pre></td></tr></table></figure>
+<h3 id="10-3-NS-NOESCAPE"><a href="#10-3-NS-NOESCAPE" class="headerlink" title="10.3 NS_NOESCAPE"></a><a name="keywords-3"></a>10.3 NS_NOESCAPE</h3><p><code>NS_NOESCAPE</code>用于修饰方法中的block类型参数，例如：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div></pre></td><td class="code"><pre><div class="line">@interface NSArray: NSObject</div><div class="line">- (NSArray *)sortedArrayUsingComparator:(NSComparator NS_NOESCAPE)cmptr</div><div class="line">@end</div></pre></td></tr></table></figure>
+<p>作用是告诉编译器，<code>cmptr</code>这个block在<code>sortedArrayUsingComparator:</code>方法返回之前就会执行完毕，而不是被保存起来在之后的某个时候再执行。<br>类似于这样的实现：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div></pre></td><td class="code"><pre><div class="line">- (void)performWithLock:(NS_NOESCAPE void (^)())block &#123;  // exposed as @noescape to Swift</div><div class="line">    [myLock lock];</div><div class="line">    block();</div><div class="line">    [myLock unlock];</div><div class="line">&#125;</div></pre></td></tr></table></figure>
+<p>编译器知道之后，就会相应地做一些优化，例如去掉一些多余的对<code>self</code>的捕获、retain、release操作。因为block的存活范围仅限于本方法内，没有必要再在block内保留<code>self</code>了。<br>更详细的介绍，参考<a href="https://github.com/apple/swift-evolution/blob/master/proposals/0012-add-noescape-to-public-library-api.md" target="_blank" rel="external">这里</a>。</p>
+<h2 id="11-写注释"><a href="#11-写注释" class="headerlink" title="11.写注释"></a><a name="comment"></a>11.写注释</h2><p>头文件就是文档，需要让使用者快速知道这个类的作用。一个好的方法名可以让使用者快速理解，但大部分时候还是需要相应的注释。<br>写好格式化注释后，当光标停留在方法名和属性上时，在Xcode右侧的Quick Help栏里会出现注释内容，按住<code>option</code>并单击，也会弹出注释框。</p>
+<h3 id="11-1单行注释"><a href="#11-1单行注释" class="headerlink" title="11.1单行注释"></a><a name="comment-1"></a>11.1单行注释</h3><p>直接在方法或者属性声明的上一行使用<code>///</code>，后面加注释，同时兼容Xcode和appleDoc。Xcode也支持<code>//!</code>，但是appleDoc不支持。</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div></pre></td><td class="code"><pre><div class="line">//SearchManagerBase.h</div><div class="line"></div><div class="line">///搜索manager的基类</div><div class="line">@interface SearchManagerBase : NSObject</div><div class="line">///搜索状态</div><div class="line">@property (nonatomic, readonly) NSInteger * state;</div><div class="line">@end</div></pre></td></tr></table></figure>
+<h3 id="11-2多行注释"><a href="#11-2多行注释" class="headerlink" title="11.2多行注释"></a><a name="comment-2"></a>11.2多行注释</h3><p>多行注释使用：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div></pre></td><td class="code"><pre><div class="line">/**</div><div class="line"> 注释内容</div><div class="line">*/</div></pre></td></tr></table></figure>
+<p>Xcode8提供了快速生成格式化注释的快捷键：<code>option</code>+<code>command</code>+<code>/</code>。如果方法有参数，会自动添加@param关键字，用于描述对应的参数。<br>Apple提供了官方的headDoc语法，但是很多都已经在Xcode中失效了，而且有些关键字也和appleDoc不兼容。下面几种列举出了在Xcode中仍然有效的一些关键字：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div><div class="line">27</div><div class="line">28</div></pre></td><td class="code"><pre><div class="line">/**</div><div class="line"> 演示苹果headDoc的语法。这里可以写方法简介</div><div class="line"> </div><div class="line"> @brief 方法的简介(appleDoc不支持此关键字)</div><div class="line"> @discussion 方法的详细说明</div><div class="line"> </div><div class="line"> @code //示例代码(这个在Xcode里常用，但是appleDoc不支持此关键字)</div><div class="line"> UIView *view;</div><div class="line"> @endcode</div><div class="line"> </div><div class="line"> @bug       存在的bug的说明</div><div class="line"> @note      需要注意的提示</div><div class="line"> @warning   警告</div><div class="line"> @since     iOS7.0</div><div class="line"> @exception 方法会抛出的异常的说明</div><div class="line"> </div><div class="line"> @attention 注意，从这里开始往下的关键字，appleDoc都不支持</div><div class="line"> @author    编写者</div><div class="line"> @copyright 版权</div><div class="line"> @date      日期</div><div class="line"> @invariant 不变量</div><div class="line"> @post      后置条件</div><div class="line"> @pre       前置条件</div><div class="line"> @remarks   备注</div><div class="line"> @todo      todo text</div><div class="line"> @version   版本</div><div class="line"> */</div><div class="line">- (void)sampleMethod;</div></pre></td></tr></table></figure>
+<p>在Xcode中，就会显示为这样：<br><img src="http://upload-images.jianshu.io/upload_images/1865432-dfc9a9b1de31ec47.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240" alt="comment.png"></p>
+<h3 id="11-3-枚举注释"><a href="#11-3-枚举注释" class="headerlink" title="11.3 枚举注释"></a><a name="comment-3"></a>11.3 枚举注释</h3><p>如果要给枚举注释，需要在每个枚举值前注释，按照如下格式：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div></pre></td><td class="code"><pre><div class="line">///搜索状态</div><div class="line">typedef NS_ENUM(NSInteger,SearchState) &#123;</div><div class="line">    ///没有开始搜索</div><div class="line">    SearchStateNotSearch,</div><div class="line">    ///搜索中</div><div class="line">    SearchStateSearching,</div><div class="line">    ///搜索结束</div><div class="line">    SearchStateSearchFinished,</div><div class="line">    ///搜索失败</div><div class="line">    SearchStateSearchFailed</div><div class="line">&#125;;</div></pre></td></tr></table></figure>
+<h3 id="11-4-几个注释约定"><a href="#11-4-几个注释约定" class="headerlink" title="11.4 几个注释约定"></a><a name="comment-4"></a>11.4 几个注释约定</h3><p>需要注释的内容：</p>
+<ul>
+<li>尽量为类添加描述，即便只有一句话。</li>
+<li>标明某些参数和属性的默认值，比如超时time。</li>
+<li>如果属性是KVO兼容的，即外部可以使用KVO监听此属性，则在属性注释里声明。</li>
+<li>回调block参数需要说明回调所在的线程，避免让使用者在block里进行多余的线程判断。</li>
+<li>如果需要的话，说明使用此API需要的前置条件，防止被错误地调用。</li>
+<li>对使用了method swizzling的API进行统一形式的标注，方便遇到runtime的bug时进行排查。</li>
+</ul>
+<h2 id="参考"><a href="#参考" class="headerlink" title="参考"></a>参考</h2><ul>
+<li><a href="http://blog.sunnyxx.com/2014/04/13/objc_dig_interface/" target="_blank" rel="external">http://blog.sunnyxx.com/2014/04/13/objc_dig_interface/</a></li>
+<li><a href="http://blog.sunnyxx.com/2015/06/12/objc-new-features-in-2015/" target="_blank" rel="external">http://blog.sunnyxx.com/2015/06/12/objc-new-features-in-2015/</a></li>
+</ul>
+
+          
+        
+      
+    </div>
+
+    <div>
+      
+    </div>
+
+    <div>
+      
+    </div>
+
+    <footer class="post-footer">
+      
+
+      
+
+      
+      
+        <div class="post-eof"></div>
+      
+    </footer>
+  </article>
+
+
+    
+      
+
+  
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal " itemscope itemtype="http://schema.org/Article">
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">
+            
+            
+              
+                
                 <a class="post-title-link" href="/2016/10/10/私有API-iOS10 openURL方法跳转到设置界面失效的解决方法/" itemprop="url">
                   私有API-iOS10 openURL方法跳转到设置界面失效的解决方法
                 </a>
@@ -409,7 +907,7 @@
         <nav class="site-state motion-element">
           <div class="site-state-item site-state-posts">
             <a href="/archives">
-              <span class="site-state-item-count">11</span>
+              <span class="site-state-item-count">13</span>
               <span class="site-state-item-name">日志</span>
             </a>
           </div>
