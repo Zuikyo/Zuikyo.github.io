@@ -421,6 +421,9 @@ malloc stack在自己的项目中，要开启malloc st">
           
   <div class="comments" id="comments">
     
+      <div id="gitalk-container"></div>
+      <link rel="stylesheet" href="https://unpkg.com/gitalk/dist/gitalk.css">
+    
   </div>
 
 
@@ -458,7 +461,7 @@ malloc stack在自己的项目中，要开启malloc st">
                src="/images/avatar.jpg"
                alt="zuik" />
           <p class="site-author-name" itemprop="name">zuik</p>
-          <p class="site-description motion-element" itemprop="description">🐼</p>
+          <p class="site-description motion-element" itemprop="description">zuikxyo@gmail.com 🐼 https://github.com/Zuikyo</p>
         </div>
         <nav class="site-state motion-element">
           <div class="site-state-item site-state-posts">
@@ -646,6 +649,24 @@ s.parentNode.insertBefore(bp, s);
 
 
 
+  
+    
+      <script src="https://unpkg.com/gitalk/dist/gitalk.min.js"></script>
+      <script type="text/javascript">
+        const gitalk = new Gitalk({
+          clientID: '348b65b1168d7aa48b08',
+          clientSecret: '6a87660b699abe603eac61c471ab5781fd27fc03',
+          repo: 'Zuikyo.github.io',
+          owner: 'Zuikyo',
+          admin: 'Zuikyo'.split(','),
+          id: '1493902140000',
+          pagerDirection: 'first',
+          // facebook-like distraction free mode
+          distractionFreeMode: false
+        })
+        gitalk.render('gitalk-container')
+      </script>
+    
   
 
   

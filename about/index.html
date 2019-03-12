@@ -60,16 +60,16 @@
 
 
 
-<meta name="description" content="🐼">
+<meta name="description" content="zuikxyo@gmail.com 🐼 https://github.com/Zuikyo">
 <meta property="og:type" content="website">
 <meta property="og:title" content="about">
 <meta property="og:url" content="http://yoursite.com/about/index.html">
 <meta property="og:site_name" content="黑超熊猫zuik's blog">
-<meta property="og:description" content="🐼">
+<meta property="og:description" content="zuikxyo@gmail.com 🐼 https://github.com/Zuikyo">
 <meta property="og:updated_time" content="2016-12-07T03:45:33.520Z">
 <meta name="twitter:card" content="summary">
 <meta name="twitter:title" content="about">
-<meta name="twitter:description" content="🐼">
+<meta name="twitter:description" content="zuikxyo@gmail.com 🐼 https://github.com/Zuikyo">
 
 
 
@@ -221,6 +221,9 @@
           
   <div class="comments" id="comments">
     
+      <div id="gitalk-container"></div>
+      <link rel="stylesheet" href="https://unpkg.com/gitalk/dist/gitalk.css">
+    
   </div>
 
 
@@ -249,7 +252,7 @@
                src="/images/avatar.jpg"
                alt="zuik" />
           <p class="site-author-name" itemprop="name">zuik</p>
-          <p class="site-description motion-element" itemprop="description">🐼</p>
+          <p class="site-description motion-element" itemprop="description">zuikxyo@gmail.com 🐼 https://github.com/Zuikyo</p>
         </div>
         <nav class="site-state motion-element">
           <div class="site-state-item site-state-posts">
@@ -422,6 +425,24 @@ s.parentNode.insertBefore(bp, s);
 
 
 
+  
+    
+      <script src="https://unpkg.com/gitalk/dist/gitalk.min.js"></script>
+      <script type="text/javascript">
+        const gitalk = new Gitalk({
+          clientID: '348b65b1168d7aa48b08',
+          clientSecret: '6a87660b699abe603eac61c471ab5781fd27fc03',
+          repo: 'Zuikyo.github.io',
+          owner: 'Zuikyo',
+          admin: 'Zuikyo'.split(','),
+          id: '1481079671000',
+          pagerDirection: 'first',
+          // facebook-like distraction free mode
+          distractionFreeMode: false
+        })
+        gitalk.render('gitalk-container')
+      </script>
+    
   
 
   
