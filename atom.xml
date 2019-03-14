@@ -1,12 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
 <feed xmlns="http://www.w3.org/2005/Atom">
-  <title>黑超熊猫zuik&#39;s blog</title>
+  <title>🐼黑超熊猫zuik&#39;s blog</title>
   <subtitle>写点别人没写过的</subtitle>
   <link href="/atom.xml" rel="self"/>
   
-  <link href="http://yoursite.com/"/>
+  <link href="http://zuikyo.github.io/"/>
   <updated>2018-11-01T20:15:15.130Z</updated>
-  <id>http://yoursite.com/</id>
+  <id>http://zuikyo.github.io/</id>
   
   <author>
     <name>zuik</name>
@@ -17,8 +17,8 @@
   
   <entry>
     <title>iOS逆向指南：静态分析</title>
-    <link href="http://yoursite.com/2018/02/16/iOS_reverse_engineering_guide-static_analyzing/"/>
-    <id>http://yoursite.com/2018/02/16/iOS_reverse_engineering_guide-static_analyzing/</id>
+    <link href="http://zuikyo.github.io/2018/02/16/iOS_reverse_engineering_guide-static_analyzing/"/>
+    <id>http://zuikyo.github.io/2018/02/16/iOS_reverse_engineering_guide-static_analyzing/</id>
     <published>2018-02-15T18:15:00.000Z</published>
     <updated>2018-11-01T20:15:15.130Z</updated>
     
@@ -256,17 +256,17 @@ dumpdecrypted.dylib: required code signature missing for &#39;dumpdecrypted.dyli
     
     </summary>
     
-      <category term="逆向工程" scheme="http://yoursite.com/categories/%E9%80%86%E5%90%91%E5%B7%A5%E7%A8%8B/"/>
+      <category term="逆向工程" scheme="http://zuikyo.github.io/categories/%E9%80%86%E5%90%91%E5%B7%A5%E7%A8%8B/"/>
     
     
-      <category term="iOS" scheme="http://yoursite.com/tags/iOS/"/>
+      <category term="iOS" scheme="http://zuikyo.github.io/tags/iOS/"/>
     
   </entry>
   
   <entry>
     <title>iOS 逆向指南：界面分析</title>
-    <link href="http://yoursite.com/2018/01/06/iOS_reverse_engineering_guide-view_analyzing/"/>
-    <id>http://yoursite.com/2018/01/06/iOS_reverse_engineering_guide-view_analyzing/</id>
+    <link href="http://zuikyo.github.io/2018/01/06/iOS_reverse_engineering_guide-view_analyzing/"/>
+    <id>http://zuikyo.github.io/2018/01/06/iOS_reverse_engineering_guide-view_analyzing/</id>
     <published>2018-01-05T20:14:00.000Z</published>
     <updated>2018-11-01T20:14:08.230Z</updated>
     
@@ -317,7 +317,7 @@ dumpdecrypted.dylib: required code signature missing for &#39;dumpdecrypted.dyli
 <p>可以再用<code>nextResponder</code>获取<code>UIView</code>对应的 view controller。</p>
 <p>由于看得眼花，所以这个方式我很少用。</p>
 <h4 id="2-直接使用-Xcode-的Debug-View-Hierarchy"><a href="#2-直接使用-Xcode-的Debug-View-Hierarchy" class="headerlink" title="2. 直接使用 Xcode 的Debug View Hierarchy"></a>2. 直接使用 Xcode 的<code>Debug View Hierarchy</code></h4><p>可以用 Xcode 直接调试重签名后的 app，然后就可以用<code>Debug View Hierarchy</code>查看界面层级了。</p>
-<p>参考：<a href="https://zuikyo.github.io/2017/05/04/iOS逆向：用Xcode直接调试第三方app/" target="_blank" rel="external">iOS逆向：用Xcode直接调试第三方app</a></p>
+<p>参考：<a href="https://zuikyo.github.io/2017/05/04/iOS逆向：用Xcode直接调试第三方app/">iOS逆向：用Xcode直接调试第三方app</a></p>
 <h4 id="3-越狱插件：FLEX"><a href="#3-越狱插件：FLEX" class="headerlink" title="3. 越狱插件：FLEX"></a>3. 越狱插件：FLEX</h4><p>可以安装越狱插件，直接注入到 app 中，打印出界面信息。可以去 Cydia 中直接下载安装，也可以去这里编译源码使用：<a href="https://github.com/Flipboard/FLEX" target="_blank" rel="external">FLEX</a>。</p>
 <h2 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h2><p>界面分析对于猜想某个界面的实现方式有很大帮助。想要分析其它功能时，也可以通过界面分析先找到对应的类，再进一步进行静态分析和动态分析。下一篇文章将会讲解如何进行静态分析。</p>
 ]]></content>
@@ -329,17 +329,17 @@ dumpdecrypted.dylib: required code signature missing for &#39;dumpdecrypted.dyli
     
     </summary>
     
-      <category term="逆向工程" scheme="http://yoursite.com/categories/%E9%80%86%E5%90%91%E5%B7%A5%E7%A8%8B/"/>
+      <category term="逆向工程" scheme="http://zuikyo.github.io/categories/%E9%80%86%E5%90%91%E5%B7%A5%E7%A8%8B/"/>
     
     
-      <category term="iOS" scheme="http://yoursite.com/tags/iOS/"/>
+      <category term="iOS" scheme="http://zuikyo.github.io/tags/iOS/"/>
     
   </entry>
   
   <entry>
     <title>iOS VIPER架构实践(三)：面向接口的路由设计</title>
-    <link href="http://yoursite.com/2017/09/27/iOS%20VIPER%E6%9E%B6%E6%9E%84%E5%AE%9E%E8%B7%B5(%E4%B8%89)%EF%BC%9A%E5%9F%BA%E4%BA%8E%E6%8E%A5%E5%8F%A3%E7%9A%84%E8%B7%AF%E7%94%B1%E8%AE%BE%E8%AE%A1/"/>
-    <id>http://yoursite.com/2017/09/27/iOS VIPER架构实践(三)：基于接口的路由设计/</id>
+    <link href="http://zuikyo.github.io/2017/09/27/iOS%20VIPER%E6%9E%B6%E6%9E%84%E5%AE%9E%E8%B7%B5(%E4%B8%89)%EF%BC%9A%E5%9F%BA%E4%BA%8E%E6%8E%A5%E5%8F%A3%E7%9A%84%E8%B7%AF%E7%94%B1%E8%AE%BE%E8%AE%A1/"/>
+    <id>http://zuikyo.github.io/2017/09/27/iOS VIPER架构实践(三)：基于接口的路由设计/</id>
     <published>2017-09-27T15:36:00.000Z</published>
     <updated>2018-01-24T01:47:46.110Z</updated>
     
@@ -707,17 +707,17 @@ dumpdecrypted.dylib: required code signature missing for &#39;dumpdecrypted.dyli
     
     </summary>
     
-      <category term="代码架构" scheme="http://yoursite.com/categories/%E4%BB%A3%E7%A0%81%E6%9E%B6%E6%9E%84/"/>
+      <category term="代码架构" scheme="http://zuikyo.github.io/categories/%E4%BB%A3%E7%A0%81%E6%9E%B6%E6%9E%84/"/>
     
     
-      <category term="iOS" scheme="http://yoursite.com/tags/iOS/"/>
+      <category term="iOS" scheme="http://zuikyo.github.io/tags/iOS/"/>
     
   </entry>
   
   <entry>
     <title>iOS VIPER架构实践(二)：VIPER详解与实现</title>
-    <link href="http://yoursite.com/2017/08/11/iOS%20VIPER%E6%9E%B6%E6%9E%84%E5%AE%9E%E8%B7%B5(%E4%BA%8C)%EF%BC%9AVIPER%E8%AF%A6%E8%A7%A3%E4%B8%8E%E5%AE%9E%E7%8E%B0/"/>
-    <id>http://yoursite.com/2017/08/11/iOS VIPER架构实践(二)：VIPER详解与实现/</id>
+    <link href="http://zuikyo.github.io/2017/08/11/iOS%20VIPER%E6%9E%B6%E6%9E%84%E5%AE%9E%E8%B7%B5(%E4%BA%8C)%EF%BC%9AVIPER%E8%AF%A6%E8%A7%A3%E4%B8%8E%E5%AE%9E%E7%8E%B0/"/>
+    <id>http://zuikyo.github.io/2017/08/11/iOS VIPER架构实践(二)：VIPER详解与实现/</id>
     <published>2017-08-11T08:55:29.000Z</published>
     <updated>2018-01-24T01:45:41.320Z</updated>
     
@@ -954,17 +954,17 @@ dumpdecrypted.dylib: required code signature missing for &#39;dumpdecrypted.dyli
     
     </summary>
     
-      <category term="代码架构" scheme="http://yoursite.com/categories/%E4%BB%A3%E7%A0%81%E6%9E%B6%E6%9E%84/"/>
+      <category term="代码架构" scheme="http://zuikyo.github.io/categories/%E4%BB%A3%E7%A0%81%E6%9E%B6%E6%9E%84/"/>
     
     
-      <category term="iOS" scheme="http://yoursite.com/tags/iOS/"/>
+      <category term="iOS" scheme="http://zuikyo.github.io/tags/iOS/"/>
     
   </entry>
   
   <entry>
     <title>iOS VIPER架构实践(一)：从MVC到MVVM到VIPER</title>
-    <link href="http://yoursite.com/2017/07/21/iOS%20VIPER%E6%9E%B6%E6%9E%84%E5%AE%9E%E8%B7%B5(%E4%B8%80)%EF%BC%9A%E4%BB%8EMVC%E5%88%B0MVVM%E5%88%B0VIPER/"/>
-    <id>http://yoursite.com/2017/07/21/iOS VIPER架构实践(一)：从MVC到MVVM到VIPER/</id>
+    <link href="http://zuikyo.github.io/2017/07/21/iOS%20VIPER%E6%9E%B6%E6%9E%84%E5%AE%9E%E8%B7%B5(%E4%B8%80)%EF%BC%9A%E4%BB%8EMVC%E5%88%B0MVVM%E5%88%B0VIPER/"/>
+    <id>http://zuikyo.github.io/2017/07/21/iOS VIPER架构实践(一)：从MVC到MVVM到VIPER/</id>
     <published>2017-07-21T12:58:29.000Z</published>
     <updated>2017-09-27T15:36:01.030Z</updated>
     
@@ -1080,17 +1080,17 @@ dumpdecrypted.dylib: required code signature missing for &#39;dumpdecrypted.dyli
     
     </summary>
     
-      <category term="代码架构" scheme="http://yoursite.com/categories/%E4%BB%A3%E7%A0%81%E6%9E%B6%E6%9E%84/"/>
+      <category term="代码架构" scheme="http://zuikyo.github.io/categories/%E4%BB%A3%E7%A0%81%E6%9E%B6%E6%9E%84/"/>
     
     
-      <category term="iOS" scheme="http://yoursite.com/tags/iOS/"/>
+      <category term="iOS" scheme="http://zuikyo.github.io/tags/iOS/"/>
     
   </entry>
   
   <entry>
     <title>CFRunloop的多线程隐患</title>
-    <link href="http://yoursite.com/2017/05/22/CFRunloop%E7%9A%84%E5%A4%9A%E7%BA%BF%E7%A8%8B%E9%9A%90%E6%82%A3/"/>
-    <id>http://yoursite.com/2017/05/22/CFRunloop的多线程隐患/</id>
+    <link href="http://zuikyo.github.io/2017/05/22/CFRunloop%E7%9A%84%E5%A4%9A%E7%BA%BF%E7%A8%8B%E9%9A%90%E6%82%A3/"/>
+    <id>http://zuikyo.github.io/2017/05/22/CFRunloop的多线程隐患/</id>
     <published>2017-05-22T08:29:29.000Z</published>
     <updated>2017-08-13T07:25:24.120Z</updated>
     
@@ -1154,14 +1154,14 @@ dumpdecrypted.dylib: required code signature missing for &#39;dumpdecrypted.dyli
     </summary>
     
     
-      <category term="iOS" scheme="http://yoursite.com/tags/iOS/"/>
+      <category term="iOS" scheme="http://zuikyo.github.io/tags/iOS/"/>
     
   </entry>
   
   <entry>
     <title>iOS逆向：在任意app上开启malloc stack追踪内存来源</title>
-    <link href="http://yoursite.com/2017/05/04/iOS%E9%80%86%E5%90%91%EF%BC%9A%E5%9C%A8%E4%BB%BB%E6%84%8Fapp%E4%B8%8A%E5%BC%80%E5%90%AFmalloc%20stack%E8%BF%BD%E8%B8%AA%E5%86%85%E5%AD%98%E6%9D%A5%E6%BA%90/"/>
-    <id>http://yoursite.com/2017/05/04/iOS逆向：在任意app上开启malloc stack追踪内存来源/</id>
+    <link href="http://zuikyo.github.io/2017/05/04/iOS%E9%80%86%E5%90%91%EF%BC%9A%E5%9C%A8%E4%BB%BB%E6%84%8Fapp%E4%B8%8A%E5%BC%80%E5%90%AFmalloc%20stack%E8%BF%BD%E8%B8%AA%E5%86%85%E5%AD%98%E6%9D%A5%E6%BA%90/"/>
+    <id>http://zuikyo.github.io/2017/05/04/iOS逆向：在任意app上开启malloc stack追踪内存来源/</id>
     <published>2017-05-04T12:49:00.000Z</published>
     <updated>2017-10-20T08:02:51.370Z</updated>
     
@@ -1231,7 +1231,7 @@ dumpdecrypted.dylib: required code signature missing for &#39;dumpdecrypted.dyli
 <h3 id="cstr-refs"><a href="#cstr-refs" class="headerlink" title="cstr_refs"></a>cstr_refs</h3><p>在内存中寻找某个C String在哪里被引用。</p>
 <h3 id="find-variable"><a href="#find-variable" class="headerlink" title="find_variable"></a>find_variable</h3><p>在当前栈帧上寻找某个局部变量在哪里被引用。</p>
 <h3 id="objc-refs"><a href="#objc-refs" class="headerlink" title="objc_refs"></a>objc_refs</h3><p>在内存中寻找某个类的实例。</p>
-<h2 id="转到Xcode中调试"><a href="#转到Xcode中调试" class="headerlink" title="转到Xcode中调试"></a>转到Xcode中调试</h2><p>如果想要在Xcode中调试并开启<code>malloc stack</code>，则需要先用<code>debugserver</code>启动app，在终端的lldb里连接上以后，再用<code>process detach</code>断开连接。接下来用Xcode的<code>Attach to Process</code>就可以了，参考：<a href="https://zuikyo.github.io/2017/05/04/iOS逆向：用Xcode直接调试第三方app/" target="_blank" rel="external">iOS逆向：用Xcode直接调试第三方app</a>。</p>
+<h2 id="转到Xcode中调试"><a href="#转到Xcode中调试" class="headerlink" title="转到Xcode中调试"></a>转到Xcode中调试</h2><p>如果想要在Xcode中调试并开启<code>malloc stack</code>，则需要先用<code>debugserver</code>启动app，在终端的lldb里连接上以后，再用<code>process detach</code>断开连接。接下来用Xcode的<code>Attach to Process</code>就可以了，参考：<a href="https://zuikyo.github.io/2017/05/04/iOS逆向：用Xcode直接调试第三方app/">iOS逆向：用Xcode直接调试第三方app</a>。</p>
 ]]></content>
     
     <summary type="html">
@@ -1241,17 +1241,17 @@ dumpdecrypted.dylib: required code signature missing for &#39;dumpdecrypted.dyli
     
     </summary>
     
-      <category term="逆向工程" scheme="http://yoursite.com/categories/%E9%80%86%E5%90%91%E5%B7%A5%E7%A8%8B/"/>
+      <category term="逆向工程" scheme="http://zuikyo.github.io/categories/%E9%80%86%E5%90%91%E5%B7%A5%E7%A8%8B/"/>
     
     
-      <category term="iOS" scheme="http://yoursite.com/tags/iOS/"/>
+      <category term="iOS" scheme="http://zuikyo.github.io/tags/iOS/"/>
     
   </entry>
   
   <entry>
     <title>iOS逆向：用Xcode直接调试第三方app</title>
-    <link href="http://yoursite.com/2017/05/04/iOS%E9%80%86%E5%90%91%EF%BC%9A%E7%94%A8Xcode%E7%9B%B4%E6%8E%A5%E8%B0%83%E8%AF%95%E7%AC%AC%E4%B8%89%E6%96%B9app/"/>
-    <id>http://yoursite.com/2017/05/04/iOS逆向：用Xcode直接调试第三方app/</id>
+    <link href="http://zuikyo.github.io/2017/05/04/iOS%E9%80%86%E5%90%91%EF%BC%9A%E7%94%A8Xcode%E7%9B%B4%E6%8E%A5%E8%B0%83%E8%AF%95%E7%AC%AC%E4%B8%89%E6%96%B9app/"/>
+    <id>http://zuikyo.github.io/2017/05/04/iOS逆向：用Xcode直接调试第三方app/</id>
     <published>2017-05-04T12:48:00.000Z</published>
     <updated>2017-05-05T02:19:48.950Z</updated>
     
@@ -1271,7 +1271,7 @@ dumpdecrypted.dylib: required code signature missing for &#39;dumpdecrypted.dyli
 <h2 id="3-查看UI"><a href="#3-查看UI" class="headerlink" title="3.查看UI"></a>3.查看UI</h2><p>连接上后，就可以点击使用Xcode的<code>Debug UI Hierarchy</code>来查看界面布局：</p>
 <p><img src="http://upload-images.jianshu.io/upload_images/1865432-b3652b738ff07228.jpg" alt="UI Hierarchy"></p>
 <p>注意，<code>Debug UI Hierarchy</code>对Xcode版本似乎有要求，在调试重签名app时，Xcode8.3.2可以，而Xcode8.2就没有这个功能按钮。</p>
-<h2 id="4-查看内存信息"><a href="#4-查看内存信息" class="headerlink" title="4.查看内存信息"></a>4.查看内存信息</h2><p>点击<code>Debug Memory Graph</code>按钮，可以查看当前内存中存在的数据。打印地址，查看引用关系，可以配合<code>malloc stack</code>进行追踪。如果打开了<code>malloc stack</code>，就可以直接在右边显示这个对象的创建堆栈。参考：<a href="https://zuikyo.github.io/2017/05/04/iOS逆向：在任意app上开启malloc%20stack追踪内存来源/" target="_blank" rel="external">iOS逆向：在任意app上开启malloc%20stack追踪内存来源</a>。</p>
+<h2 id="4-查看内存信息"><a href="#4-查看内存信息" class="headerlink" title="4.查看内存信息"></a>4.查看内存信息</h2><p>点击<code>Debug Memory Graph</code>按钮，可以查看当前内存中存在的数据。打印地址，查看引用关系，可以配合<code>malloc stack</code>进行追踪。如果打开了<code>malloc stack</code>，就可以直接在右边显示这个对象的创建堆栈。参考：<a href="https://zuikyo.github.io/2017/05/04/iOS逆向：在任意app上开启malloc%20stack追踪内存来源/">iOS逆向：在任意app上开启malloc%20stack追踪内存来源</a>。</p>
 <p><img src="http://upload-images.jianshu.io/upload_images/1865432-d599a5233b28e245.jpg" alt="Memory Graph"></p>
 <h2 id="5-查看正在使用的文件"><a href="#5-查看正在使用的文件" class="headerlink" title="5.查看正在使用的文件"></a>5.查看正在使用的文件</h2><p><code>debug gauges</code>中的Disk工具可以查看app当前打开的文件。</p>
 <p><img src="http://upload-images.jianshu.io/upload_images/1865432-80d24111380e2e44.jpg" alt="Open Files"></p>
@@ -1287,17 +1287,17 @@ dumpdecrypted.dylib: required code signature missing for &#39;dumpdecrypted.dyli
     
     </summary>
     
-      <category term="逆向工程" scheme="http://yoursite.com/categories/%E9%80%86%E5%90%91%E5%B7%A5%E7%A8%8B/"/>
+      <category term="逆向工程" scheme="http://zuikyo.github.io/categories/%E9%80%86%E5%90%91%E5%B7%A5%E7%A8%8B/"/>
     
     
-      <category term="iOS" scheme="http://yoursite.com/tags/iOS/"/>
+      <category term="iOS" scheme="http://zuikyo.github.io/tags/iOS/"/>
     
   </entry>
   
   <entry>
     <title>私有API-修复iOS10不弹出&quot;是否允许xxx访问数据&quot;导致app无法联网的bug</title>
-    <link href="http://yoursite.com/2017/02/05/%E7%A7%81%E6%9C%89API-%E4%BF%AE%E5%A4%8DiOS%2010%E4%B8%8D%E5%BC%B9%E5%87%BA%E6%98%AF%E5%90%A6%E5%85%81%E8%AE%B8xxx%E8%AE%BF%E9%97%AE%E6%95%B0%E6%8D%AE%E5%AF%BC%E8%87%B4app%E6%97%A0%E6%B3%95%E8%81%94%E7%BD%91%E7%9A%84bug/"/>
-    <id>http://yoursite.com/2017/02/05/私有API-修复iOS 10不弹出是否允许xxx访问数据导致app无法联网的bug/</id>
+    <link href="http://zuikyo.github.io/2017/02/05/%E7%A7%81%E6%9C%89API-%E4%BF%AE%E5%A4%8DiOS%2010%E4%B8%8D%E5%BC%B9%E5%87%BA%E6%98%AF%E5%90%A6%E5%85%81%E8%AE%B8xxx%E8%AE%BF%E9%97%AE%E6%95%B0%E6%8D%AE%E5%AF%BC%E8%87%B4app%E6%97%A0%E6%B3%95%E8%81%94%E7%BD%91%E7%9A%84bug/"/>
+    <id>http://zuikyo.github.io/2017/02/05/私有API-修复iOS 10不弹出是否允许xxx访问数据导致app无法联网的bug/</id>
     <published>2017-02-05T15:38:00.000Z</published>
     <updated>2017-05-03T08:32:26.330Z</updated>
     
@@ -1372,19 +1372,19 @@ dumpdecrypted.dylib: required code signature missing for &#39;dumpdecrypted.dyli
     
     </summary>
     
-      <category term="私有API" scheme="http://yoursite.com/categories/%E7%A7%81%E6%9C%89API/"/>
+      <category term="私有API" scheme="http://zuikyo.github.io/categories/%E7%A7%81%E6%9C%89API/"/>
     
-      <category term="bug修复" scheme="http://yoursite.com/categories/%E7%A7%81%E6%9C%89API/bug%E4%BF%AE%E5%A4%8D/"/>
+      <category term="bug修复" scheme="http://zuikyo.github.io/categories/%E7%A7%81%E6%9C%89API/bug%E4%BF%AE%E5%A4%8D/"/>
     
     
-      <category term="iOS" scheme="http://yoursite.com/tags/iOS/"/>
+      <category term="iOS" scheme="http://zuikyo.github.io/tags/iOS/"/>
     
   </entry>
   
   <entry>
     <title>iOS Crash分析必备：符号化系统库方法</title>
-    <link href="http://yoursite.com/2016/12/18/iOS%20Crash%E6%97%A5%E5%BF%97%E5%88%86%E6%9E%90%E5%BF%85%E5%A4%87%EF%BC%9A%E7%AC%A6%E5%8F%B7%E5%8C%96%E7%B3%BB%E7%BB%9F%E5%BA%93%E6%96%B9%E6%B3%95/"/>
-    <id>http://yoursite.com/2016/12/18/iOS Crash日志分析必备：符号化系统库方法/</id>
+    <link href="http://zuikyo.github.io/2016/12/18/iOS%20Crash%E6%97%A5%E5%BF%97%E5%88%86%E6%9E%90%E5%BF%85%E5%A4%87%EF%BC%9A%E7%AC%A6%E5%8F%B7%E5%8C%96%E7%B3%BB%E7%BB%9F%E5%BA%93%E6%96%B9%E6%B3%95/"/>
+    <id>http://zuikyo.github.io/2016/12/18/iOS Crash日志分析必备：符号化系统库方法/</id>
     <published>2016-12-17T20:52:00.000Z</published>
     <updated>2018-03-29T02:59:04.130Z</updated>
     
@@ -1888,19 +1888,19 @@ dumpdecrypted.dylib: required code signature missing for &#39;dumpdecrypted.dyli
     
     </summary>
     
-      <category term="调试技巧" scheme="http://yoursite.com/categories/%E8%B0%83%E8%AF%95%E6%8A%80%E5%B7%A7/"/>
+      <category term="调试技巧" scheme="http://zuikyo.github.io/categories/%E8%B0%83%E8%AF%95%E6%8A%80%E5%B7%A7/"/>
     
-      <category term="crash分析" scheme="http://yoursite.com/categories/%E8%B0%83%E8%AF%95%E6%8A%80%E5%B7%A7/crash%E5%88%86%E6%9E%90/"/>
+      <category term="crash分析" scheme="http://zuikyo.github.io/categories/%E8%B0%83%E8%AF%95%E6%8A%80%E5%B7%A7/crash%E5%88%86%E6%9E%90/"/>
     
     
-      <category term="iOS" scheme="http://yoursite.com/tags/iOS/"/>
+      <category term="iOS" scheme="http://zuikyo.github.io/tags/iOS/"/>
     
   </entry>
   
   <entry>
     <title>约束冲突调试工具：解决iOS7调试难题</title>
-    <link href="http://yoursite.com/2016/12/13/%E7%BA%A6%E6%9D%9F%E5%86%B2%E7%AA%81%E8%B0%83%E8%AF%95%E5%B7%A5%E5%85%B7/"/>
-    <id>http://yoursite.com/2016/12/13/约束冲突调试工具/</id>
+    <link href="http://zuikyo.github.io/2016/12/13/%E7%BA%A6%E6%9D%9F%E5%86%B2%E7%AA%81%E8%B0%83%E8%AF%95%E5%B7%A5%E5%85%B7/"/>
+    <id>http://zuikyo.github.io/2016/12/13/约束冲突调试工具/</id>
     <published>2016-12-13T13:43:29.000Z</published>
     <updated>2017-05-03T08:35:22.900Z</updated>
     
@@ -1966,17 +1966,17 @@ dumpdecrypted.dylib: required code signature missing for &#39;dumpdecrypted.dyli
     
     </summary>
     
-      <category term="调试技巧" scheme="http://yoursite.com/categories/%E8%B0%83%E8%AF%95%E6%8A%80%E5%B7%A7/"/>
+      <category term="调试技巧" scheme="http://zuikyo.github.io/categories/%E8%B0%83%E8%AF%95%E6%8A%80%E5%B7%A7/"/>
     
     
-      <category term="iOS" scheme="http://yoursite.com/tags/iOS/"/>
+      <category term="iOS" scheme="http://zuikyo.github.io/tags/iOS/"/>
     
   </entry>
   
   <entry>
     <title>@inerface的11条规范写法</title>
-    <link href="http://yoursite.com/2016/12/07/interface%E7%9A%84%E8%A7%84%E8%8C%83%E5%86%99%E6%B3%95/"/>
-    <id>http://yoursite.com/2016/12/07/interface的规范写法/</id>
+    <link href="http://zuikyo.github.io/2016/12/07/interface%E7%9A%84%E8%A7%84%E8%8C%83%E5%86%99%E6%B3%95/"/>
+    <id>http://zuikyo.github.io/2016/12/07/interface的规范写法/</id>
     <published>2016-12-07T00:55:29.000Z</published>
     <updated>2018-03-27T03:07:40.020Z</updated>
     
@@ -2200,17 +2200,17 @@ dumpdecrypted.dylib: required code signature missing for &#39;dumpdecrypted.dyli
     
     </summary>
     
-      <category term="代码规范" scheme="http://yoursite.com/categories/%E4%BB%A3%E7%A0%81%E8%A7%84%E8%8C%83/"/>
+      <category term="代码规范" scheme="http://zuikyo.github.io/categories/%E4%BB%A3%E7%A0%81%E8%A7%84%E8%8C%83/"/>
     
     
-      <category term="iOS" scheme="http://yoursite.com/tags/iOS/"/>
+      <category term="iOS" scheme="http://zuikyo.github.io/tags/iOS/"/>
     
   </entry>
   
   <entry>
     <title>私有API-iOS10 openURL方法跳转到设置界面失效的解决方法</title>
-    <link href="http://yoursite.com/2016/10/10/%E7%A7%81%E6%9C%89API-iOS10%20openURL%E6%96%B9%E6%B3%95%E8%B7%B3%E8%BD%AC%E5%88%B0%E8%AE%BE%E7%BD%AE%E7%95%8C%E9%9D%A2%E5%A4%B1%E6%95%88%E7%9A%84%E8%A7%A3%E5%86%B3%E6%96%B9%E6%B3%95/"/>
-    <id>http://yoursite.com/2016/10/10/私有API-iOS10 openURL方法跳转到设置界面失效的解决方法/</id>
+    <link href="http://zuikyo.github.io/2016/10/10/%E7%A7%81%E6%9C%89API-iOS10%20openURL%E6%96%B9%E6%B3%95%E8%B7%B3%E8%BD%AC%E5%88%B0%E8%AE%BE%E7%BD%AE%E7%95%8C%E9%9D%A2%E5%A4%B1%E6%95%88%E7%9A%84%E8%A7%A3%E5%86%B3%E6%96%B9%E6%B3%95/"/>
+    <id>http://zuikyo.github.io/2016/10/10/私有API-iOS10 openURL方法跳转到设置界面失效的解决方法/</id>
     <published>2016-10-10T00:48:29.000Z</published>
     <updated>2017-05-03T08:23:01.770Z</updated>
     
@@ -2238,10 +2238,10 @@ dumpdecrypted.dylib: required code signature missing for &#39;dumpdecrypted.dyli
     
     </summary>
     
-      <category term="私有API" scheme="http://yoursite.com/categories/%E7%A7%81%E6%9C%89API/"/>
+      <category term="私有API" scheme="http://zuikyo.github.io/categories/%E7%A7%81%E6%9C%89API/"/>
     
     
-      <category term="iOS" scheme="http://yoursite.com/tags/iOS/"/>
+      <category term="iOS" scheme="http://zuikyo.github.io/tags/iOS/"/>
     
   </entry>
   

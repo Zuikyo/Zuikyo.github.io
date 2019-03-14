@@ -52,7 +52,7 @@
 
 
 
-  <link rel="alternate" href="/atom.xml" title="黑超熊猫zuik's blog" type="application/atom+xml" />
+  <link rel="alternate" href="/atom.xml" title="🐼黑超熊猫zuik's blog" type="application/atom+xml" />
 
 
 
@@ -69,8 +69,8 @@
 malloc stack在自己的项目中，要开启malloc st">
 <meta property="og:type" content="article">
 <meta property="og:title" content="iOS逆向：在任意app上开启malloc stack追踪内存来源">
-<meta property="og:url" content="http://yoursite.com/2017/05/04/iOS逆向：在任意app上开启malloc stack追踪内存来源/index.html">
-<meta property="og:site_name" content="黑超熊猫zuik's blog">
+<meta property="og:url" content="http://zuikyo.github.io/2017/05/04/iOS逆向：在任意app上开启malloc stack追踪内存来源/index.html">
+<meta property="og:site_name" content="🐼黑超熊猫zuik's blog">
 <meta property="og:description" content="lldb有一个内存调试工具malloc stack，开启以后就可以查看某个内存地址的malloc和free记录，追踪对象是在哪里创建的。
 这个工具可以打印出对象创建的堆栈，而在逆向时，也经常需要追踪某些方法的调用栈，如果可以随时打印出某个对象的创建记录，也就能直接找到其所在的类和方法，不用再花费大量的时间去打log和动态调试追踪了。
 malloc stack在自己的项目中，要开启malloc st">
@@ -100,9 +100,9 @@ malloc stack在自己的项目中，要开启malloc st">
 
 
 
-  <link rel="canonical" href="http://yoursite.com/2017/05/04/iOS逆向：在任意app上开启malloc stack追踪内存来源/"/>
+  <link rel="canonical" href="http://zuikyo.github.io/2017/05/04/iOS逆向：在任意app上开启malloc stack追踪内存来源/"/>
 
-  <title> iOS逆向：在任意app上开启malloc stack追踪内存来源 | 黑超熊猫zuik's blog </title>
+  <title> iOS逆向：在任意app上开启malloc stack追踪内存来源 | 🐼黑超熊猫zuik's blog </title>
 </head>
 
 <body itemscope itemtype="http://schema.org/WebPage" lang="zh-Hans">
@@ -133,7 +133,7 @@ malloc stack在自己的项目中，要开启malloc st">
   <div class="custom-logo-site-title">
     <a href="/"  class="brand" rel="start">
       <span class="logo-line-before"><i></i></span>
-      <span class="site-title">黑超熊猫zuik's blog</span>
+      <span class="site-title">🐼黑超熊猫zuik's blog</span>
       <span class="logo-line-after"><i></i></span>
     </a>
   </div>
@@ -358,7 +358,7 @@ malloc stack在自己的项目中，要开启malloc st">
 <h3 id="cstr-refs"><a href="#cstr-refs" class="headerlink" title="cstr_refs"></a>cstr_refs</h3><p>在内存中寻找某个C String在哪里被引用。</p>
 <h3 id="find-variable"><a href="#find-variable" class="headerlink" title="find_variable"></a>find_variable</h3><p>在当前栈帧上寻找某个局部变量在哪里被引用。</p>
 <h3 id="objc-refs"><a href="#objc-refs" class="headerlink" title="objc_refs"></a>objc_refs</h3><p>在内存中寻找某个类的实例。</p>
-<h2 id="转到Xcode中调试"><a href="#转到Xcode中调试" class="headerlink" title="转到Xcode中调试"></a>转到Xcode中调试</h2><p>如果想要在Xcode中调试并开启<code>malloc stack</code>，则需要先用<code>debugserver</code>启动app，在终端的lldb里连接上以后，再用<code>process detach</code>断开连接。接下来用Xcode的<code>Attach to Process</code>就可以了，参考：<a href="https://zuikyo.github.io/2017/05/04/iOS逆向：用Xcode直接调试第三方app/" target="_blank" rel="external">iOS逆向：用Xcode直接调试第三方app</a>。</p>
+<h2 id="转到Xcode中调试"><a href="#转到Xcode中调试" class="headerlink" title="转到Xcode中调试"></a>转到Xcode中调试</h2><p>如果想要在Xcode中调试并开启<code>malloc stack</code>，则需要先用<code>debugserver</code>启动app，在终端的lldb里连接上以后，再用<code>process detach</code>断开连接。接下来用Xcode的<code>Attach to Process</code>就可以了，参考：<a href="https://zuikyo.github.io/2017/05/04/iOS逆向：用Xcode直接调试第三方app/">iOS逆向：用Xcode直接调试第三方app</a>。</p>
 
       
     </div>
@@ -465,7 +465,7 @@ malloc stack在自己的项目中，要开启malloc st">
                src="/images/avatar.jpg"
                alt="zuik" />
           <p class="site-author-name" itemprop="name">zuik</p>
-          <p class="site-description motion-element" itemprop="description">zuikxyo@gmail.com🐼https://github.com/Zuikyo</p>
+          <p class="site-description motion-element" itemprop="description">自强不息 厚德载物 zuikxyo@gmail.com https://github.com/Zuikyo</p>
         </div>
         <nav class="site-state motion-element">
           <div class="site-state-item site-state-posts">
