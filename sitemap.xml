@@ -2,6 +2,13 @@
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   
   <url>
+    <loc>http://zuikyo.github.io/2019/07/15/iOS_inrerface_orientation_modularization/</loc>
+    
+    <lastmod>2019-07-14T17:38:41.090Z</lastmod>
+    
+  </url>
+  
+  <url>
     <loc>http://zuikyo.github.io/2018/02/16/iOS_reverse_engineering_guide-static_analyzing/</loc>
     
     <lastmod>2018-11-01T20:15:15.130Z</lastmod>
