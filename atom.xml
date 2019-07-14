@@ -5,7 +5,7 @@
   <link href="/atom.xml" rel="self"/>
   
   <link href="http://zuikyo.github.io/"/>
-  <updated>2019-07-14T17:38:41.090Z</updated>
+  <updated>2019-07-14T18:17:34.430Z</updated>
   <id>http://zuikyo.github.io/</id>
   
   <author>
@@ -20,7 +20,7 @@
     <link href="http://zuikyo.github.io/2019/07/15/iOS_inrerface_orientation_modularization/"/>
     <id>http://zuikyo.github.io/2019/07/15/iOS_inrerface_orientation_modularization/</id>
     <published>2019-07-14T17:33:00.000Z</published>
-    <updated>2019-07-14T17:38:41.090Z</updated>
+    <updated>2019-07-14T18:17:34.430Z</updated>
     
     <content type="html"><![CDATA[<p>关于组件化的探讨已经有不少了，在之前的文章”iOS VIPER架构实践(三)：面向接口的路由设计”中，综合比较了各种方案后，我倾向于使用面向接口的方式进行组件化。</p>
 <p>这是一篇从代码层面讲解模块解耦的文章，会全方位地展示如何实践面向接口的思想，尽量全面地探讨在模块管理和解耦的过程中，需要考虑到的各种问题，并且给出实际的解决方案，以及对应的模块管理开源工具：<a href="https://github.com/Zuikyo/ZIKRouter" target="_blank" rel="external">ZIKRouter</a>。你也可以根据本文的内容改造自己现有的方案。</p>
@@ -203,9 +203,9 @@
 <h2 id="静态路由检查"><a href="#静态路由检查" class="headerlink" title="静态路由检查"></a>静态路由检查</h2><p>ZIKRouter 最特别的功能，就是能够保证所使用的 protocol 一定存在，在编译阶段就能防止使用不存在的模块。这个功能可以让你更安全、更简单地管理所使用的路由接口，不必再用其他复杂的方式进行检查和维护。</p>
 <p>当使用了错误的 protocol 时，会产生编译错误。</p>
 <p>Swift 中使用未声明的 protocol：</p>
-<p><img src="/Users/zhangweike/Documents/code/ZIKRouter/Documentation/Resources/Unroutable-error-Swift.png" alt="Unroutable-error-Swift"></p>
+<p><img src="https://images.xiaozhuanlan.com/photo/2019/a56805369b065650db2f10ccefbadd94.png" alt="Swift路由检查"></p>
 <p>Objective-C 中使用未声明的 protocol：</p>
-<p><img src="/Users/zhangweike/Documents/code/ZIKRouter/Documentation/Resources/Unroutable-error-OC.png" alt="Unroutable-error-OC"></p>
+<p><img src="https://images.xiaozhuanlan.com/photo/2019/53462b3a71a530f39b8042142750cdf3.png" alt="OC路由检查"></p>
 <p>这个特性通过两个机制来实现：</p>
 <ul>
 <li>只有被声明为可路由的 protocol 才能用于路由，否则会产生编译错误</li>
@@ -234,7 +234,7 @@
 <figure class="highlight swift"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div></pre></td><td class="code"><pre><div class="line"><span class="comment">// 泛型为 EditorViewProtocol 的扩展</span></div><div class="line"><span class="class"><span class="keyword">extension</span> <span class="title">RoutableView</span> <span class="title">where</span> <span class="title">Protocol</span> == <span class="title">EditorViewProtocol</span> </span>&#123;</div><div class="line">    <span class="comment">// 允许初始化</span></div><div class="line">    <span class="keyword">init</span>() &#123; &#125;</div><div class="line">&#125;</div></pre></td></tr></table></figure>
 <figure class="highlight swift"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div></pre></td><td class="code"><pre><div class="line"><span class="comment">// 泛型为 EditorViewProtocol 时可以初始化</span></div><div class="line"><span class="type">RoutableView</span>&lt;<span class="type">EditorViewProtocol</span>&gt;()</div><div class="line"></div><div class="line"><span class="comment">// 没有声明过的泛型无法初始化，会产生编译错误</span></div><div class="line"><span class="type">RoutableView</span>&lt;<span class="type">UndeclaredProtocol</span>&gt;()</div></pre></td></tr></table></figure>
 <p>此时 Xcode 还可以给出自动补全，列出所有声明过的 protocol：</p>
-<p><img src="route-auto-completion.png" alt=""></p>
+<p><img src="https://images.xiaozhuanlan.com/photo/2019/6d9bfdfaf3ff341569b51c92ae70ef9e.png" alt="自动补全"></p>
 <h3 id="路由检查"><a href="#路由检查" class="headerlink" title="路由检查"></a>路由检查</h3><p>通过路由声明，我们做到了在编译时对所使用的 protocol 做出限制。下一步就是保证声明过的 protocol 必定有对应的模块，类似于程序在 link 阶段，会检查头文件中声明过的类必定有对应的实现。</p>
 <p>这一步是无法直接在编译阶段实现的，不过可以参考 iOS 在启动时检查动态库的方式，我们可以在启动阶段实现这个功能。</p>
 <h4 id="Objective-C-protocol-遍历"><a href="#Objective-C-protocol-遍历" class="headerlink" title="Objective-C: protocol 遍历"></a>Objective-C: protocol 遍历</h4><p>在 app 以 DEBUG 模式启动时，我们可以遍历所有继承自 ZIKViewRoutable 的 protocol，在注册表中检查是否有对应的 router，如果没有，就给出断言错误。</p>
@@ -272,7 +272,7 @@
 <p>现在我们完成了一套完备的类型检查机制，而且这套检查同时支持 OC 和 Swift。</p>
 <p>至此，一个基于接口的、类型安全的模块管理工具就完成了。使用 <code>makeDestination</code> 创建模块只是最基本的功能，我们可以在父类 router 中进行许多有用的功能扩展，例如依赖注入、界面跳转、接口适配，来更好地进行面向接口的开发。</p>
 <h2 id="模块解耦"><a href="#模块解耦" class="headerlink" title="模块解耦"></a>模块解耦</h2><p>那么在面向接口编程时，我们还需要哪些功能呢？在扩展之前，我们先来讨论一下如何使用接口进行模块解耦，首先从理论层面梳理，再把理论转化为工具。</p>
-<h3 id="模块分类"><a href="#模块分类" class="headerlink" title="模块分类"></a>模块分类</h3><p><img src="Modules.png" alt=""></p>
+<h3 id="模块分类"><a href="#模块分类" class="headerlink" title="模块分类"></a>模块分类</h3><p><img src="https://images.xiaozhuanlan.com/photo/2019/047d9020dc7caf1f81be8a6c60008bc2.png" alt=""></p>
 <p>不同模块对解耦的要求是不同的。模块从层级上可以从低到高分类：</p>
 <ul>
 <li>底层功能模块，功能单一，有一定通用性，例如各种功能组件(日志、数据库)。底层模块的主要目的是复用</li>
@@ -466,7 +466,7 @@
 <details><summary>Objective-C示例</summary><br><br><figure class="highlight objectivec"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div></pre></td><td class="code"><pre><div class="line"><span class="keyword">void</span> registerAdapters() &#123;</div><div class="line">    <span class="comment">// 注册默认的依赖</span></div><div class="line">    registerDefaultDependency();</div><div class="line">    ...</div><div class="line">&#125;</div><div class="line"></div><div class="line"><span class="comment">// 使用默认的适配代码</span></div><div class="line">ADAPT_DEFAULT_DEPENDENCY</div></pre></td></tr></table></figure><br><br></details>
 
 <p>如果宿主 app 需要替换使用另一个 provided 模块，可以关闭宏定义，再写一份另外的适配代码，即可替换依赖。</p>
-<h3 id="模块化"><a href="#模块化" class="headerlink" title="模块化"></a>模块化</h3><p><img src="Required-Provided.png" alt=""></p>
+<h3 id="模块化"><a href="#模块化" class="headerlink" title="模块化"></a>模块化</h3><p><img src="https://images.xiaozhuanlan.com/photo/2019/aaaab3ad9c1df51b288da15f93af0786.png" alt=""></p>
 <p>区分了<code>required protocol</code>和<code>provided protocol</code>后，就可以实现真正的模块化。在调用者声明了所需要的<code>required protocol</code>后，被调用模块就可以随时被替换成另一个相同功能的模块。</p>
 <p>参考 demo 中的<code>ZIKLoginModule</code>示例模块，登录模块依赖于一个弹窗模块，而这个弹窗模块在<code>ZIKRouterDemo</code>和<code>ZIKRouterDemo-macOS</code>中是不同的，而在切换弹窗模块时，登录模块中的代码不需要做任何改变。</p>
 <h3 id="使用-adapter-的规范"><a href="#使用-adapter-的规范" class="headerlink" title="使用 adapter 的规范"></a>使用 adapter 的规范</h3><p>一般来说，并不需要立即把所有的 protocol 都分离为<code>required protocol</code>和<code>provided protocol</code>。调用模块和目的模块可以暂时共用 protocol，或者只是简单地改个名字，让<code>required protocol</code>作为<code>provided protocol</code>的子集，在第一次需要替换模块的时候再用 category、extension、proxy、subclass 等技术进行接口适配。</p>
@@ -481,12 +481,13 @@
 </ul>
 <p>通过<code>required protocol</code>和<code>provided protocol</code>，我们就实现了模块间的完全解耦。</p>
 <h2 id="模块间通信"><a href="#模块间通信" class="headerlink" title="模块间通信"></a>模块间通信</h2><p>模块间通信有多种方式，解耦程度也各有不同。这里只讨论接口交互的方式。</p>
-<h3 id="控制流-input-和-output"><a href="#控制流-input-和-output" class="headerlink" title="控制流 input 和 output"></a>控制流 input 和 output</h3><p>模块的对外接口可以分为 input 和 output。两者的区别主要是控制流的主动权归属不同。</p>
+<h3 id="控制流-input-和-output"><a href="#控制流-input-和-output" class="headerlink" title="控制流 input 和 output"></a>控制流 input 和 output</h3><p><img src="https://images.xiaozhuanlan.com/photo/2019/69b2e2874f7232fb64195380b1eb3e43.png" alt=""></p>
+<p>模块的对外接口可以分为 input 和 output。两者的区别主要是控制流的主动权归属不同。</p>
 <p>Input 是由外部主动调用的接口，控制流的发起者在外部，例如外部调用 view 的 UI 修改接口。</p>
 <p>Output 是模块内部主动调用外部实现的接口，控制流的发起者在内部，需要外部实现 output 所要求的方法。例如输出 UI 事件、事件回调、获取外部的 dataSource。iOS 中常用的 delegate 模式，也是一种 output。</p>
 <h3 id="设置-input-和-output"><a href="#设置-input-和-output" class="headerlink" title="设置 input 和 output"></a>设置 input 和 output</h3><p>模块设计好 input 和 output，然后在模块创建的时候，设置好模块之间的 input 和 output 关系，即可配置好模块间通信，同时充分解耦。</p>
 <figure class="highlight swift"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div></pre></td><td class="code"><pre><div class="line"><span class="class"><span class="keyword">class</span> <span class="title">NoteListViewController</span>: <span class="title">UIViewController</span>, <span class="title">EditorViewOutput</span> </span>&#123;</div><div class="line">    <span class="function"><span class="keyword">func</span> <span class="title">showEditor</span><span class="params">()</span></span> &#123;</div><div class="line">        <span class="keyword">let</span> destination = <span class="type">Router</span>.makeDestination(to: <span class="type">RoutableView</span>&lt;<span class="type">EditorViewInput</span>&gt;(), preparation: &#123; [<span class="keyword">weak</span> <span class="keyword">self</span>] destination <span class="keyword">in</span></div><div class="line">            destination.output = <span class="keyword">self</span></div><div class="line">        &#125;)</div><div class="line">        present(destination, animated: <span class="literal">true</span>)</div><div class="line">    &#125;</div><div class="line">&#125;</div><div class="line"></div><div class="line"><span class="class"><span class="keyword">protocol</span> <span class="title">EditorViewInput</span> </span>&#123;</div><div class="line">    <span class="keyword">weak</span> <span class="keyword">var</span> output: <span class="type">EditorViewOutput</span>? &#123; <span class="keyword">get</span> <span class="keyword">set</span> &#125;</div><div class="line">&#125;</div></pre></td></tr></table></figure>
-<h3 id="子模块"><a href="#子模块" class="headerlink" title="子模块"></a>子模块</h3><p><img src="Submodule.png" alt=""></p>
+<h3 id="子模块"><a href="#子模块" class="headerlink" title="子模块"></a>子模块</h3><p><img src="https://images.xiaozhuanlan.com/photo/2019/99ae2c260a4ed9834d6710d30d987316.png" alt=""></p>
 <p>大部分方案都没有讨论子模块存在的情况。如果使用了 MVVM 或者 VIPER 架构，此时一个 view controller 使用了 child view controller，那多个模块的 view model 和 interactor 之间如何交互？子模块由谁初始化、由谁管理？</p>
 <p>有些方案是直接在父 view model 里创建和使用子 view model，但是这样就导致了 view 的实现方式影响了view model 的实现，如果父 view 里替换使用了另一个子 view，那父 view model 里的代码也需要修改。</p>
 <h4 id="子模块的来源"><a href="#子模块的来源" class="headerlink" title="子模块的来源"></a>子模块的来源</h4><p>子模块的来源有：</p>
