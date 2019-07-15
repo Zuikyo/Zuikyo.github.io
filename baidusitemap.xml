@@ -4,6 +4,46 @@
 
     
   <url>
+    <loc>http://zuikyo.github.io/2018/01/06/iOS_reverse_engineering_guide-view_analyzing/</loc>
+    <lastmod>2019-07-15T14:27:24.380Z</lastmod>
+    <data>
+        <display>
+        <title>iOS逆向指南：界面分析</title>
+        <pubTime>2018-01-05T20:14:00.000Z</pubTime>
+        
+        <tag>iOS</tag>
+         
+         
+           
+             
+              <breadCrumb title="逆向工程" url="http://zuikyo.github.io/categories/%E9%80%86%E5%90%91%E5%B7%A5%E7%A8%8B/"/>
+          
+        </display>
+    </data>
+    </url>
+
+    
+  <url>
+    <loc>http://zuikyo.github.io/2018/05/10/iOS_reverse_engineering_guide-dynamic_analyzing/</loc>
+    <lastmod>2019-07-15T14:17:29.950Z</lastmod>
+    <data>
+        <display>
+        <title>iOS逆向指南：动态分析</title>
+        <pubTime>2018-05-09T16:15:00.000Z</pubTime>
+        
+        <tag>iOS</tag>
+         
+         
+           
+             
+              <breadCrumb title="逆向工程" url="http://zuikyo.github.io/categories/%E9%80%86%E5%90%91%E5%B7%A5%E7%A8%8B/"/>
+          
+        </display>
+    </data>
+    </url>
+
+    
+  <url>
     <loc>http://zuikyo.github.io/2019/07/15/iOS_inrerface_orientation_modularization/</loc>
     <lastmod>2019-07-14T18:17:34.430Z</lastmod>
     <data>
@@ -36,26 +76,6 @@
         <display>
         <title>iOS逆向指南：静态分析</title>
         <pubTime>2018-02-15T18:15:00.000Z</pubTime>
-        
-        <tag>iOS</tag>
-         
-         
-           
-             
-              <breadCrumb title="逆向工程" url="http://zuikyo.github.io/categories/%E9%80%86%E5%90%91%E5%B7%A5%E7%A8%8B/"/>
-          
-        </display>
-    </data>
-    </url>
-
-    
-  <url>
-    <loc>http://zuikyo.github.io/2018/01/06/iOS_reverse_engineering_guide-view_analyzing/</loc>
-    <lastmod>2018-11-01T20:14:08.230Z</lastmod>
-    <data>
-        <display>
-        <title>iOS 逆向指南：界面分析</title>
-        <pubTime>2018-01-05T20:14:00.000Z</pubTime>
         
         <tag>iOS</tag>
          

@@ -372,6 +372,136 @@
             
               
                 
+                <a class="post-title-link" href="/2018/05/10/iOS_reverse_engineering_guide-dynamic_analyzing/" itemprop="url">
+                  iOS逆向指南：动态分析
+                </a>
+              
+            
+          </h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            <span class="post-meta-item-icon">
+              <i class="fa fa-calendar-o"></i>
+            </span>
+            <span class="post-meta-item-text">发表于</span>
+            <time itemprop="dateCreated" datetime="2018-05-10T00:15:00+08:00" content="2018-05-10">
+              2018-05-10
+            </time>
+          </span>
+
+          
+            <span class="post-category" >
+              &nbsp; | &nbsp;
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+              
+                <span itemprop="about" itemscope itemtype="https://schema.org/Thing">
+                  <a href="/categories/逆向工程/" itemprop="url" rel="index">
+                    <span itemprop="name">逆向工程</span>
+                  </a>
+                </span>
+
+                
+                
+
+              
+            </span>
+          
+
+          
+            
+          
+
+          
+
+          
+          
+
+          
+
+        </div>
+      </header>
+    
+
+
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        
+          
+          当静态分析无法获取足够的信息时，就需要进行动态分析，在 app 运行时，追踪方法调用、查看内存信息。最后找到想要分析的关键函数。
+这篇文章包括：
+
+环境搭建
+反调试
+动态调试的思路
+lldb 调试命令与脚本
+cycript 配置与使用
+frida 配置与使用
+IDA 动态调试
+
+环境搭建安装 ope
+          ...
+
+          <div class="post-more-link text-center">
+            <a class="btn" href="/2018/05/10/iOS_reverse_engineering_guide-dynamic_analyzing/#more" rel="contents">
+              阅读全文 &raquo;
+            </a>
+          </div>
+        
+      
+    </div>
+
+    <div>
+      
+    </div>
+
+    <div>
+      
+    </div>
+
+    <footer class="post-footer">
+      
+
+      
+
+      
+      
+        <div class="post-eof"></div>
+      
+    </footer>
+  </article>
+
+
+    
+      
+
+  
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal " itemscope itemtype="http://schema.org/Article">
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">
+            
+            
+              
+                
                 <a class="post-title-link" href="/2018/02/16/iOS_reverse_engineering_guide-static_analyzing/" itemprop="url">
                   iOS逆向指南：静态分析
                 </a>
@@ -494,7 +624,7 @@
               
                 
                 <a class="post-title-link" href="/2018/01/06/iOS_reverse_engineering_guide-view_analyzing/" itemprop="url">
-                  iOS 逆向指南：界面分析
+                  iOS逆向指南：界面分析
                 </a>
               
             
@@ -1303,140 +1433,6 @@ Thread safety varies depending on which API you are using to manipulate your run
 
 
     
-      
-
-  
-  
-
-  
-  
-  
-
-  <article class="post post-type-normal " itemscope itemtype="http://schema.org/Article">
-
-    
-      <header class="post-header">
-
-        
-        
-          <h1 class="post-title" itemprop="name headline">
-            
-            
-              
-                
-                <a class="post-title-link" href="/2017/02/05/私有API-修复iOS 10不弹出是否允许xxx访问数据导致app无法联网的bug/" itemprop="url">
-                  私有API-修复iOS10不弹出"是否允许xxx访问数据"导致app无法联网的bug
-                </a>
-              
-            
-          </h1>
-        
-
-        <div class="post-meta">
-          <span class="post-time">
-            <span class="post-meta-item-icon">
-              <i class="fa fa-calendar-o"></i>
-            </span>
-            <span class="post-meta-item-text">发表于</span>
-            <time itemprop="dateCreated" datetime="2017-02-05T23:38:00+08:00" content="2017-02-05">
-              2017-02-05
-            </time>
-          </span>
-
-          
-            <span class="post-category" >
-              &nbsp; | &nbsp;
-              <span class="post-meta-item-icon">
-                <i class="fa fa-folder-o"></i>
-              </span>
-              <span class="post-meta-item-text">分类于</span>
-              
-                <span itemprop="about" itemscope itemtype="https://schema.org/Thing">
-                  <a href="/categories/私有API/" itemprop="url" rel="index">
-                    <span itemprop="name">私有API</span>
-                  </a>
-                </span>
-
-                
-                
-                  ， 
-                
-
-              
-                <span itemprop="about" itemscope itemtype="https://schema.org/Thing">
-                  <a href="/categories/私有API/bug修复/" itemprop="url" rel="index">
-                    <span itemprop="name">bug修复</span>
-                  </a>
-                </span>
-
-                
-                
-
-              
-            </span>
-          
-
-          
-            
-          
-
-          
-
-          
-          
-
-          
-
-        </div>
-      </header>
-    
-
-
-    <div class="post-body" itemprop="articleBody">
-
-      
-      
-
-      
-        
-          
-          问题描述iOS 10有一个系统bug：app在第一次安装时，第一次联网操作会弹出一个授权框，提示”是否允许xxx访问数据？”。而有时候系统并不会弹出授权框，导致app无法联网。
-详细情况见：
-iOS 10 的坑：新机首次安装 app，请求网络权限“是否允许使用数据”
-iOS 10 不提示「是否允许应
-          ...
-
-          <div class="post-more-link text-center">
-            <a class="btn" href="/2017/02/05/私有API-修复iOS 10不弹出是否允许xxx访问数据导致app无法联网的bug/#more" rel="contents">
-              阅读全文 &raquo;
-            </a>
-          </div>
-        
-      
-    </div>
-
-    <div>
-      
-    </div>
-
-    <div>
-      
-    </div>
-
-    <footer class="post-footer">
-      
-
-      
-
-      
-      
-        <div class="post-eof"></div>
-      
-    </footer>
-  </article>
-
-
-    
   </section>
 
   
@@ -1481,7 +1477,7 @@ iOS 10 不提示「是否允许应
         <nav class="site-state motion-element">
           <div class="site-state-item site-state-posts">
             <a href="/archives">
-              <span class="site-state-item-count">14</span>
+              <span class="site-state-item-count">15</span>
               <span class="site-state-item-name">日志</span>
             </a>
           </div>

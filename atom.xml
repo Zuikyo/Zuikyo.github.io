@@ -646,6 +646,570 @@
   </entry>
   
   <entry>
+    <title>iOS逆向指南：动态分析</title>
+    <link href="http://zuikyo.github.io/2018/05/10/iOS_reverse_engineering_guide-dynamic_analyzing/"/>
+    <id>http://zuikyo.github.io/2018/05/10/iOS_reverse_engineering_guide-dynamic_analyzing/</id>
+    <published>2018-05-09T16:15:00.000Z</published>
+    <updated>2019-07-15T14:17:29.950Z</updated>
+    
+    <content type="html"><![CDATA[<p>当静态分析无法获取足够的信息时，就需要进行动态分析，在 app 运行时，追踪方法调用、查看内存信息。最后找到想要分析的关键函数。</p>
+<p>这篇文章包括：</p>
+<ul>
+<li>环境搭建</li>
+<li>反调试</li>
+<li>动态调试的思路</li>
+<li>lldb 调试命令与脚本</li>
+<li>cycript 配置与使用</li>
+<li>frida 配置与使用</li>
+<li>IDA 动态调试</li>
+</ul>
+<h2 id="环境搭建"><a href="#环境搭建" class="headerlink" title="环境搭建"></a>环境搭建</h2><h3 id="安装-openSSH"><a href="#安装-openSSH" class="headerlink" title="安装 openSSH"></a>安装 openSSH</h3><p>参照静态分析中的<code>安装 openSSH</code>小结。</p>
+<h3 id="用-USB-进行-SSH-连接"><a href="#用-USB-进行-SSH-连接" class="headerlink" title="用 USB 进行 SSH 连接"></a>用 USB 进行 SSH 连接</h3><p>openSSH 默认是用 wifi 连接到 iOS 设备的，但是这样速度慢，不稳定。因此可以安装<code>usbmuxd</code>，用 USB 连接：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line">brew install usbmuxd</div></pre></td></tr></table></figure>
+<p>安装后就可以用<code>iproxy</code>工具，将设备上的端口号映射到电脑上的某一个端口：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line">iproxy 2222 22</div></pre></td></tr></table></figure>
+<p>用 USB 连接设备到 mac 上，之前 openSSH 连接 iOS 的命令是<code>ssh root@10.5.53.182</code>，现在改成<code>ssh root@localhost -p 2222</code>。</p>
+<h3 id="修改-debugserver"><a href="#修改-debugserver" class="headerlink" title="修改 debugserver"></a>修改 debugserver</h3><p>使用 lldb 调试需要准备 debugserver。使用 OSX 中的 lldb 远程连接 iOS 上的 debugserver，由 debugserver 作为 lldb 和 iOS 的中转，执行命令和返回结果。在默认情况下，iOS 上并没有安装 debugserver，只有在设备连接过一次 Xcode，安装了开发者插件后，debugserver 才会被 Xcode 安装到iOS的<code>/Developer/usr/bin/</code>目录下。</p>
+<p>在 iOS 11 越狱之前，需要对 debugserver 进行重签名，在 iOS 11 上可以直接使用<code>/Developer/usr/bin/debugserver</code>，或者直接用 Xcode 对 iOS 上的 app 进行调试。iOS 11 之前用 Xcode 调试需要对 app 进行重签名，而 iOS 11 之后不需要重签名 app 也能调试了。</p>
+<p>iOS 11 之前重签名 debugserver 步骤：</p>
+<p>1.拷贝 debugserver 到本地计算机中：<code>scp root@iOSDeviceIP:/Developer/usr/bin/debugserver ~/debugserver</code>。</p>
+<p>2.然后用 ldid 添加权限。由于 ldid 不支持 fat 二进制文件，所以要给 debugserver 瘦身，通过 lipo 指定要支持的指令类型，例如：<code>lipo -thin arm64 ~/debugserver -output ~/debugserver</code>。</p>
+<p>3.给 debugserver 添加 task_for_pid 权限，保存以下内容为 ent.xml 文件：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div></pre></td><td class="code"><pre><div class="line">&lt;!DOCTYPE plist PUBLIC &quot;-//Apple//DTD PLIST 1.0//EN&quot; &quot;http://www.apple.com/DTDs/PropertyList-1.0.dtd&quot;&gt;</div><div class="line">&lt;plist version=&quot;1.0&quot;&gt;</div><div class="line">&lt;dict&gt;</div><div class="line">        &lt;key&gt;com.apple.springboard.debugapplications&lt;/key&gt;</div><div class="line">        &lt;true/&gt;</div><div class="line">        &lt;key&gt;get-task-allow&lt;/key&gt;</div><div class="line">        &lt;true/&gt;</div><div class="line">        &lt;key&gt;task_for_pid-allow&lt;/key&gt;</div><div class="line">        &lt;true/&gt;</div><div class="line">        &lt;key&gt;run-unsigned-code&lt;/key&gt;</div><div class="line">        &lt;true/&gt;</div><div class="line">&lt;/dict&gt;</div><div class="line">&lt;/plist&gt;</div></pre></td></tr></table></figure>
+<p>然后执行以下命令添加权限：<code>ldid -Sent.xml debugserver</code></p>
+<p>4.给 debugserver 重新签名，保存以下内容为 entitlements.plist 文件：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div></pre></td><td class="code"><pre><div class="line">&lt;?xml version=&quot;1.0&quot; encoding=&quot;UTF-8&quot;?&gt;</div><div class="line"> &lt;!DOCTYPE plist PUBLIC &quot;-//Apple//DTD PLIST 1.0//EN&quot; &quot;http://www.apple.com/DTDs/ PropertyList-1.0.dtd&quot;&gt;</div><div class="line"> &lt;plist version=&quot;1.0&quot;&gt;</div><div class="line"> &lt;dict&gt;</div><div class="line"> &lt;key&gt;com.apple.springboard.debugapplications&lt;/key&gt;</div><div class="line">     &lt;true/&gt;</div><div class="line">     &lt;key&gt;run-unsigned-code&lt;/key&gt;</div><div class="line">     &lt;true/&gt;</div><div class="line">     &lt;key&gt;get-task-allow&lt;/key&gt;</div><div class="line">     &lt;true/&gt;</div><div class="line">     &lt;key&gt;task_for_pid-allow&lt;/key&gt;</div><div class="line">     &lt;true/&gt;</div><div class="line"> &lt;/dict&gt; </div><div class="line"> &lt;/plist&gt;</div></pre></td></tr></table></figure>
+<p>然后运行以下命令给的 debugserver 签名：<code>codesign -s - --entitlements entitlements.plist -f debugserver</code></p>
+<p>5.重新拷贝 debugserver 回手机中：<code>scp ~/debugserver root@iOSDeviceIP:/usr/bin/debugserver</code></p>
+<p>6.第一次使用 debugserver 时需要为其添加可执行权限：<code>chmod +x /usr/bin/debugserver</code></p>
+<h2 id="连接到指定进程进行调试"><a href="#连接到指定进程进行调试" class="headerlink" title="连接到指定进程进行调试"></a>连接到指定进程进行调试</h2><p>准备好 debugserver 后，就可以调试任意第三方 app 了。</p>
+<ol>
+<li><p>SSH 到 iOS，使用 debugserver 来 attach 一个进程，要查看当前正在运行的进程，使用<code>ps -e</code>命令。比如我们要 attach 的进程号为 693，我们可以输入如下命令：<code>debugserver *:1234 -a 693</code></p>
+</li>
+<li><p>iOS 11 上<code>debugserver *:1234</code>中的<code>*:1234</code>要替换成<code>localhost:1234</code>。如果用的是 Electra 越狱，命令变成<code>/Developer/usr/bin/debugserver localhost:1234 -a 693</code>，如果用的是<a href="https://www.abcydia.com/read-16031.html" target="_blank" rel="external">unc0ver</a>越狱，则是<code>debugserver localhost:1234 -a 693</code>。同理，下文中的对应命令也要相应的替换</p>
+</li>
+<li><p>如果要用 debugserver 启动 app，而不是附加到已经启动的 app，则使用<code>debugserver *:1234 &lt;app二进制文件路径&gt;</code>，例如<code>debugserver *:1234 /var/containers/Bundle/Application/107F3307-2900-4720-B9BA-0C7792D89DF2/APP_TO_DEBUG.app/APP_TO_DEBUG</code></p>
+</li>
+<li><p>Mac 端打开终端，输入 lldb，回车，进入 lldb 界面，使用<code>process connect</code>命令连接客户端。<br>用 WiFi 连接到 iOS 设备时：<code>process connect connect://iOSDeviceIP:1234</code>。</p>
+<p>如果要用 usbmux 连接，则先使用<code>iproxy 1234 1234</code>进行一次端口转发，再使用<code>process connect connect://localhost:1234</code>，即可用 USB 连接到 iOS 设备。</p>
+</li>
+</ol>
+<p>回车后需要等待几分钟，时间有点久。</p>
+<p>连接成功后，即可用 lldb 命令进行调试。</p>
+<h2 id="反调试"><a href="#反调试" class="headerlink" title="反调试"></a>反调试</h2><p>有些 app 使用了反调试功能，禁止了动态调试。</p>
+<p>系统提供了禁止调试依附的接口，可以通过<code>ptrace</code> <code>syscall</code> <code>svc指令</code>调用，禁止调试。也可以通过<code>sysctl检查 ptrace</code>  <code>isatty 或者 ioctl 检查终端</code> <code>task_get_exception_ports获取异常端口</code>等方式检查是否正在被调试，之后再让 app 崩溃。</p>
+<p>可以参考<a href="http://iosre.com/t/topic/8179" target="_blank" rel="external">关于反调试&amp;反反调试那些事</a>、<a href="http://bbs.iosre.com/t/topic/9351" target="_blank" rel="external">反调试与绕过的奇淫技巧</a>。</p>
+<p>如果你发现 app 一调试就闪退，多半就是有反调试机制。</p>
+<p>为验证是否调用了 ptrace 可以用 <code>debugserver -x backboard *:1234 binaryPath</code> 启动 app，然后下符号断点 <code>b ptrace</code>，<code>c</code> 之后看 ptrace 第一行代码的位置，然后 <code>p $lr</code> 找到函数返回地址，再根据 <code>image list -o -f</code> 的ASLR偏移，计算出原始地址。最后在 IDA 中找到调用ptrace的代码，分析如何调用的ptrace。其他的反调试类似，参考上面的文章。</p>
+<h2 id="常用的动态调试方法"><a href="#常用的动态调试方法" class="headerlink" title="常用的动态调试方法"></a>常用的动态调试方法</h2><h3 id="断点"><a href="#断点" class="headerlink" title="断点"></a>断点</h3><p>使用lldb的<code>br s -a [地址]</code>命令，在指定地址处下断点。但是动态调试时，无法准确地找到需要断点的地址。可以先静态分析 app 的二进制文件，找到需要研究的方法，再在方法处下断点。</p>
+<h3 id="根据二进制文件中方法的地址，找到需要断点的地址"><a href="#根据二进制文件中方法的地址，找到需要断点的地址" class="headerlink" title="根据二进制文件中方法的地址，找到需要断点的地址"></a>根据二进制文件中方法的地址，找到需要断点的地址</h3><p>app 加载到内存里时，有一个偏移：</p>
+<p>运行时的地址 = 二进制文件中的相对地址 + 偏移量</p>
+<p>使用<code>image list</code>列出所有加载的模块，查看偏移量，找到第一行：</p>
+<p><code>(lldb) image list 
+[0] 7A6179DA-8D91-315A-8BD2-546A54648D37 0x00000001000bc000 /Applications/APP_TO_DEBUG.app/APP_TO_DEBUG</code></p>
+<p>其中的<code>0x00000001000bc000</code>就是加载的基址，偏移量就是<code>0x1000bc000</code>。</p>
+<p>例如，需要分析<code>-[CLoginController keyboardWillShow]</code>方法，方法在二进制文件中的地址为<code>0x0000000100723bcc</code>：<br><img src="https://upload-images.jianshu.io/upload_images/1865432-c0b799b77d413f72.png?imageMogr2/auto-orient/" alt="hopper6"></p>
+<p>而这个二进制文件的基址为<code>0x100000000</code>：<br><img src="https://upload-images.jianshu.io/upload_images/1865432-2f4895a27fda69fc.png?imageMogr2/auto-orient/" alt="hopper7"></p>
+<p>所以此函数在文件中的偏移量是<code>0x0000000100723bcc</code> - <code>0x100000000</code> = <code>0x723bcc</code>。因此当前内存中的运行时地址是<code>0x1000bc000</code> + <code>0x723bcc</code> = <code>0x1007dfbcc</code>。</p>
+<h3 id="反汇编指定地址"><a href="#反汇编指定地址" class="headerlink" title="反汇编指定地址"></a>反汇编指定地址</h3><p>找到地址后，可以使用<code>di --start-address &lt;address&gt; -count 10</code>命令来反汇编找到的地址，如果反汇编结果和静态分析中的汇编代码一致，说明找到的是正确的:</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div></pre></td><td class="code"><pre><div class="line">(lldb) di --start-address 0x1007dfbcc -c 10</div><div class="line">DuoYiIMOrig`-[CLoginController keyboardWillShow:]:</div><div class="line">0x1007dfbcc &lt;+0&gt;:  stp    d11, d10, [sp, #-0x80]!</div><div class="line">0x1007dfbd0 &lt;+4&gt;:  stp    d9, d8, [sp, #0x10]</div><div class="line">0x1007dfbd4 &lt;+8&gt;:  stp    x28, x27, [sp, #0x20]</div><div class="line">0x1007dfbd8 &lt;+12&gt;: stp    x26, x25, [sp, #0x30]</div><div class="line">0x1007dfbdc &lt;+16&gt;: stp    x24, x23, [sp, #0x40]</div><div class="line">0x1007dfbe0 &lt;+20&gt;: stp    x22, x21, [sp, #0x50]</div><div class="line">0x1007dfbe4 &lt;+24&gt;: stp    x20, x19, [sp, #0x60]</div><div class="line">0x1007dfbe8 &lt;+28&gt;: stp    x29, x30, [sp, #0x70]</div><div class="line">0x1007dfbec &lt;+32&gt;: add    x29, sp, #0x70            ; =0x70 </div><div class="line">0x1007dfbf0 &lt;+36&gt;: sub    sp, sp, #0x40             ; =0x40</div></pre></td></tr></table></figure>
+<p>和上面 hooper 中的汇编代码比较，可以看到是一致的。</p>
+<p>在32位设备上，可能会出现反汇编出来的是 arm 指令集，出现很多<code>unknown opcode</code>的指令，和 hopper 中显示的不一致。可以加上<code>-A thumbv7</code>显示 thumb 指令集的反汇编结果：<code>di --start-address 0x1007dfbcc -c 10 -A thumbv7</code>。</p>
+<p>再用<code>br set -a 0x1007dfbcc</code>打断点：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div></pre></td><td class="code"><pre><div class="line">(lldb) br set -a 0x1007dfbcc</div><div class="line">Breakpoint 1: where = DuoYiIMOrig`-[CLoginController keyboardWillShow:] at CLoginController.m:550, address = 0x00000001007dfbcc</div></pre></td></tr></table></figure>
+<h3 id="查看寄存器的值"><a href="#查看寄存器的值" class="headerlink" title="查看寄存器的值"></a>查看寄存器的值</h3><p>当触发了断点后，可以用<code>register read</code>查看当前寄存器的值：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div><div class="line">27</div><div class="line">28</div><div class="line">29</div><div class="line">30</div><div class="line">31</div><div class="line">32</div><div class="line">33</div><div class="line">34</div><div class="line">35</div><div class="line">36</div><div class="line">37</div><div class="line">38</div><div class="line">39</div><div class="line">40</div><div class="line">41</div><div class="line">42</div><div class="line">43</div></pre></td><td class="code"><pre><div class="line">Process 1252 stopped</div><div class="line">* thread #1, queue = &apos;com.apple.main-thread&apos;, stop reason = breakpoint 1.1</div><div class="line">    frame #0: 0x00000001007dfbcc DuoYiIMOrig`-[CLoginController keyboardWillShow:](self=0x0000000123e492f0, _cmd=&quot;keyboardWillShow:&quot;, aNotification=@&quot;UIKeyboardWillShowNotification&quot;) at CLoginController.m:550 [opt]</div><div class="line">    </div><div class="line">(lldb) register read </div><div class="line">General Purpose Registers:</div><div class="line">        x0 = 0x0000000123e492f0</div><div class="line">        x1 = 0x0000000191ad138c</div><div class="line">        x2 = 0x0000000125a81580</div><div class="line">        x3 = 0x00000001a2d26a50  CoreFoundation`__block_literal_global</div><div class="line">        x4 = 0x0000000000000002</div><div class="line">        x5 = 0x0000000000000001</div><div class="line">        x6 = 0x0000000000000000</div><div class="line">        x7 = 0x0000000000000000</div><div class="line">        x8 = 0x0000000125a81580</div><div class="line">        x9 = 0x0000000191ad138c</div><div class="line">       x10 = 0x000000012407f400</div><div class="line">       x11 = 0x0000008a000000ff</div><div class="line">       x12 = 0x000000012407fcc0</div><div class="line">       x13 = 0x000005a1011f1c65</div><div class="line">       x14 = 0x000000000022a802</div><div class="line">       x15 = 0x000000000000358f</div><div class="line">       x16 = 0x00000001011f1c60  (void *)0x000001a1011f1c89</div><div class="line">       x17 = 0x00000001007dfbcc  DuoYiIMOrig`-[CLoginController keyboardWillShow:] at CLoginController.m:550</div><div class="line">       x18 = 0x0000000000000000</div><div class="line">       x19 = 0x0000000125a81580</div><div class="line">       x20 = 0x0000000123da3cb0</div><div class="line">       x21 = 0x0000000000000000</div><div class="line">       x22 = 0x0000000000000000</div><div class="line">       x23 = 0x00000001a8cae000  CoreFoundation`_CFXNotificationPost.samples + 352</div><div class="line">       x24 = 0x00000001a8cae000  CoreFoundation`_CFXNotificationPost.samples + 352</div><div class="line">       x25 = 0x0000000000000000</div><div class="line">       x26 = 0x000000010b651440</div><div class="line">       x27 = 0x00000001a8ca9ef8  __kCFNull</div><div class="line">       x28 = 0x0000000000000001</div><div class="line">        fp = 0x000000016fd3ffe0</div><div class="line">        lr = 0x0000000183be2b10  CoreFoundation`__CFNOTIFICATIONCENTER_IS_CALLING_OUT_TO_AN_OBSERVER__ + 20</div><div class="line">        sp = 0x000000016fd3ffe0</div><div class="line">        pc = 0x00000001007dfbcc  DuoYiIMOrig`-[CLoginController keyboardWillShow:] at CLoginController.m:550</div><div class="line">      cpsr = 0x60000000</div><div class="line"></div><div class="line">(lldb) po 0x0000000123e492f0</div><div class="line">&lt;CLoginController: 0x123e492f0&gt;</div></pre></td></tr></table></figure>
+<p>如果Mac上安装了<a href="https://github.com/facebook/chisel" target="_blank" rel="external">chisel</a>，还可以用<code>pinternals</code>遍历出对象的实例变量。或者调用私有方法<code>_ivarDescription</code>打印实例变量：<code>po [0x0000000123e492f0 _ivarDescription]</code>。</p>
+<h3 id="查看调用堆栈"><a href="#查看调用堆栈" class="headerlink" title="查看调用堆栈"></a>查看调用堆栈</h3><p>用<code>thread backtrace</code>查看调用堆栈，缩写为<code>bt</code>。<code>thread backtrace -e true</code>可以显示线程嵌套的堆栈。</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div><div class="line">27</div><div class="line">28</div><div class="line">29</div><div class="line">30</div><div class="line">31</div><div class="line">32</div><div class="line">33</div><div class="line">34</div><div class="line">35</div><div class="line">36</div><div class="line">37</div><div class="line">38</div><div class="line">39</div><div class="line">40</div><div class="line">41</div><div class="line">42</div></pre></td><td class="code"><pre><div class="line">(lldb) bt</div><div class="line">* thread #1, queue = &apos;com.apple.main-thread&apos;, stop reason = breakpoint 1.1</div><div class="line">  * frame #0: 0x00000001007dfbcc DuoYiIMOrig`-[CLoginController keyboardWillShow:](self=0x0000000123e492f0, _cmd=&quot;keyboardWillShow:&quot;, aNotification=@&quot;UIKeyboardWillShowNotification&quot;) at CLoginController.m:550 [opt]</div><div class="line">    frame #1: 0x0000000183be2214 CoreFoundation`_CFXRegistrationPost + 400</div><div class="line">    frame #2: 0x0000000183be1f90 CoreFoundation`___CFXNotificationPost_block_invoke + 60</div><div class="line">    frame #3: 0x0000000183c51b8c CoreFoundation`-[_CFXNotificationRegistrar find:object:observer:enumerator:] + 1504</div><div class="line">    frame #4: 0x0000000183b23e64 CoreFoundation`_CFXNotificationPost + 376</div><div class="line">    frame #5: 0x0000000184658e0c Foundation`-[NSNotificationCenter postNotificationName:object:userInfo:] + 68</div><div class="line">    frame #6: 0x000000018a4cbb40 UIKit`-[UIInputWindowController postStartNotifications:withInfo:] + 400</div><div class="line">    frame #7: 0x000000018a4cdcf0 UIKit`__77-[UIInputWindowController moveFromPlacement:toPlacement:starting:completion:]_block_invoke.907 + 388</div><div class="line">    frame #8: 0x0000000189b2d0f0 UIKit`+[UIView(UIViewAnimationWithBlocks) _setupAnimationWithDuration:delay:view:options:factory:animations:start:animationStateGenerator:completion:] + 636</div><div class="line">    frame #9: 0x0000000189bfe52c UIKit`+[UIView(UIViewAnimationWithBlocks) _animateWithDuration:delay:options:animations:start:completion:] + 128</div><div class="line">    frame #10: 0x000000018a4cd76c UIKit`-[UIInputWindowController moveFromPlacement:toPlacement:starting:completion:] + 1368</div><div class="line">    frame #11: 0x000000018a4d4268 UIKit`-[UIInputWindowController setInputViewSet:] + 1444</div><div class="line">    frame #12: 0x000000018a4cce38 UIKit`-[UIInputWindowController performOperations:withAnimationStyle:] + 56</div><div class="line">    frame #13: 0x0000000189bbe278 UIKit`-[UIPeripheralHost(UIKitInternal) setInputViews:animationStyle:] + 1276</div><div class="line">    frame #14: 0x0000000189b1da78 UIKit`-[UIResponder(UIResponderInputViewAdditions) reloadInputViews] + 80</div><div class="line">    frame #15: 0x0000000189b7bb4c UIKit`-[UIResponder becomeFirstResponder] + 600</div><div class="line">    frame #16: 0x0000000189b7bebc UIKit`-[UIView(Hierarchy) becomeFirstResponder] + 148</div><div class="line">    frame #17: 0x0000000189bfe0b4 UIKit`-[UITextField becomeFirstResponder] + 60</div><div class="line">    frame #18: 0x0000000189ca5128 UIKit`-[UITextInteractionAssistant(UITextInteractionAssistant_Internal) setFirstResponderIfNecessary] + 192</div><div class="line">    frame #19: 0x0000000189ca4630 UIKit`-[UITextInteractionAssistant(UITextInteractionAssistant_Internal) oneFingerTap:] + 3024</div><div class="line">    frame #20: 0x000000018a0bff80 UIKit`-[UIGestureRecognizerTarget _sendActionWithGestureRecognizer:] + 64</div><div class="line">    frame #21: 0x000000018a0c3688 UIKit`_UIGestureRecognizerSendTargetActions + 124</div><div class="line">    frame #22: 0x0000000189c8a73c UIKit`_UIGestureRecognizerSendActions + 260</div><div class="line">    frame #23: 0x0000000189b290f0 UIKit`-[UIGestureRecognizer _updateGestureWithEvent:buttonEvent:] + 764</div><div class="line">    frame #24: 0x000000018a0b3680 UIKit`_UIGestureEnvironmentUpdate + 1100</div><div class="line">    frame #25: 0x000000018a0b31e0 UIKit`-[UIGestureEnvironment _deliverEvent:toGestureRecognizers:usingBlock:] + 408</div><div class="line">    frame #26: 0x000000018a0b249c UIKit`-[UIGestureEnvironment _updateGesturesForEvent:window:] + 268</div><div class="line">    frame #27: 0x0000000189b2730c UIKit`-[UIWindow sendEvent:] + 2960</div><div class="line">    frame #28: 0x0000000189af7da0 UIKit`-[UIApplication sendEvent:] + 340</div><div class="line">    frame #29: 0x000000018a2e175c UIKit`__dispatchPreprocessedEventFromEventQueue + 2736</div><div class="line">    frame #30: 0x000000018a2db130 UIKit`__handleEventQueue + 784</div><div class="line">    frame #31: 0x0000000183bf6b5c CoreFoundation`__CFRUNLOOP_IS_CALLING_OUT_TO_A_SOURCE0_PERFORM_FUNCTION__ + 24</div><div class="line">    frame #32: 0x0000000183bf64a4 CoreFoundation`__CFRunLoopDoSources0 + 524</div><div class="line">    frame #33: 0x0000000183bf40a4 CoreFoundation`__CFRunLoopRun + 804</div><div class="line">    frame #34: 0x0000000183b222b8 CoreFoundation`CFRunLoopRunSpecific + 444</div><div class="line">    frame #35: 0x00000001855d6198 GraphicsServices`GSEventRunModal + 180</div><div class="line">    frame #36: 0x0000000189b627fc UIKit`-[UIApplication _run] + 684</div><div class="line">    frame #37: 0x0000000189b5d534 UIKit`UIApplicationMain + 208</div><div class="line">    frame #38: 0x00000001000da9a4 DuoYiIMOrig`main(argc=&lt;unavailable&gt;, argv=&lt;unavailable&gt;) at main.m:15 [opt]</div><div class="line">    frame #39: 0x0000000182b055b8 libdyld.dylib`start + 4</div></pre></td></tr></table></figure>
+<h2 id="恢复-OC-符号"><a href="#恢复-OC-符号" class="headerlink" title="恢复 OC 符号"></a>恢复 OC 符号</h2><p>第三方 app 往往都去除了符号，建议进行一下恢复符号表的操作。恢复符号表后，在调试时就能直接在堆栈中看到方法名，免去了计算偏移量然后在 hopper 里查找的麻烦。参考：<a href="http://blog.imjun.net/posts/restore-symbol-of-iOS-app/" target="_blank" rel="external">iOS符号表恢复&amp;逆向支付宝</a>, <a href="https://github.com/tobefuturer/restore-symbol" target="_blank" rel="external">restore-symbol</a>。</p>
+<h2 id="用-Xcode-直接调试"><a href="#用-Xcode-直接调试" class="headerlink" title="用 Xcode 直接调试"></a>用 Xcode 直接调试</h2><p>除了用命令行，也可以直接用 Xcode 进行 lldb 调试，有了图形界面，也能使用<code>Debug UI Hierarchy</code>和<code>Debug Memory Graph</code>工具。参考<a href="https://zuikyo.github.io/2017/05/04/iOS逆向：用Xcode直接调试第三方app/">iOS逆向：用Xcode直接调试第三方app</a>。</p>
+<p>如果是 iOS 11 之前的越狱设备，需要重签名后才能用 Xcode 调试。iOS 11 之后没有限制，可以直接用 Xcode 调试 App Store 上下载的 app。</p>
+<h2 id="lldb常用命令"><a href="#lldb常用命令" class="headerlink" title="lldb常用命令"></a>lldb常用命令</h2><p>要想充分发挥 lldb 的动态调试功能，必须要学会使用 lldb 命令。</p>
+<p>lldb命令可以在官网查看：<a href="http://lldb.llvm.org/lldb-gdb.html" target="_blank" rel="external">GDB to LLDB Command Map</a>。也可以参考：<a href="https://objccn.io/issue-19-2/" target="_blank" rel="external">与调试器共舞 - LLDB 的华尔兹</a>。</p>
+<p>常用命令如下：</p>
+<h3 id="求值、打印"><a href="#求值、打印" class="headerlink" title="求值、打印"></a>求值、打印</h3><ul>
+<li><code>expression</code>, <code>expr</code>, <code>e</code>：后面可以执行一段代码</li>
+<li><code>print</code>, <code>prin</code>, <code>pri</code>, <code>p</code>。是<code>expression --</code>的缩写。可以用<code>p/x</code>, <code>p/t</code>, <code>p/c</code>, <code>p/s</code>分析打印16进制、二进制、字符、字符串格式</li>
+<li><code>po</code>是<code>e -o --</code>的缩写。表示以 对象 (Object) 的格式来打印结果</li>
+<li>求值之后会保存为临时变量，使用变量时以<code>$</code>开头：<code>e int $a = 2</code> <code>p $a * 19</code></li>
+</ul>
+<h3 id="流程控制"><a href="#流程控制" class="headerlink" title="流程控制"></a>流程控制</h3><ul>
+<li><code>process continue</code>, <code>continue</code>, <code>c</code></li>
+<li><code>thread step-over</code>, <code>next</code>, <code>n</code></li>
+<li><code>thread step in</code>, <code>step</code>, <code>s</code></li>
+<li><code>thread step-out</code>, <code>finish</code></li>
+<li><code>thread return &lt;RETURN EXPRESSION&gt;</code>：返回指定值</li>
+</ul>
+<h3 id="断点-1"><a href="#断点-1" class="headerlink" title="断点"></a>断点</h3><ul>
+<li><code>breakpoint list</code>, <code>br li</code>：列出所有断点</li>
+<li><code>breakpoint enable</code>, <code>breakpoint disable</code>, <code>br dis</code>, <code>br del</code>：后面跟断点的序号，打开、关闭某个断点</li>
+<li><code>breakpoint set -f main.m -l 16</code>：在源码文件的某一行断点</li>
+<li><code>b main.m:17</code>。<code>b</code>是<code>_regexp-break</code>的缩写</li>
+<li>符号断点：<code>b isEven</code>, <code>br s -F isEven</code></li>
+<li>用正则表达式进行符号断点：<code>br set -r &#39;正则&#39;</code></li>
+<li>断点条件：<code>breakpoint modify -c &#39;i == 99&#39; 1</code></li>
+<li>断点时附加自定义操作：<code>breakpoint command add 1</code></li>
+</ul>
+<h3 id="监控地址"><a href="#监控地址" class="headerlink" title="监控地址"></a>监控地址</h3><ul>
+<li>内存监控：</li>
+</ul>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div></pre></td><td class="code"><pre><div class="line">// 获取需要监控的内存地址</div><div class="line">p (ptrdiff_t)ivar_getOffset((struct Ivar *)class_getInstanceVariable([MyView class], &quot;_layer&quot;))</div><div class="line"></div><div class="line">(ptrdiff_t) $0 = 8</div></pre></td></tr></table></figure>
+<p><code>watchpoint set expression -- (int *)$myView + 8</code>：监控<code>_layer</code>的地址</p>
+<ul>
+<li>变量监控：<code>watchpoint set variable -w read_write</code></li>
+<li>条件监控：<code>watchpoint modify -c &#39;(global==5)&#39;</code></li>
+</ul>
+<h3 id="内存，栈信息"><a href="#内存，栈信息" class="headerlink" title="内存，栈信息"></a>内存，栈信息</h3><ul>
+<li>打印参数：<code>frame variable</code>, <code>fr v</code></li>
+<li>打印方法名和行数：<code>frame info</code></li>
+<li>打印寄存器的值：<code>register read</code></li>
+<li>修改寄存器的值：<code>register write rax 123</code></li>
+<li>打印栈回溯：<code>thread backtrace</code>, <code>bt</code>, <code>bt all</code></li>
+<li>打印线程嵌套的栈回溯：<code>thread backtrace -e true</code></li>
+<li>读取内存：<code>memory read --size 4 --format x --count 4 0xbffff3c0</code>, <code>me r -s4 -fx -c4 0xbffff3c0</code></li>
+<li>获取内存创建栈：<code>script import lldb.macosx.heap</code> <code>malloc_info --stack-history 0x10010d680</code>。可以快速追溯对象的创建来源，参考<a href="https://zuikyo.github.io/2017/05/04/iOS逆向：在任意app上开启malloc%20stack追踪内存来源/">iOS逆向：在任意app上开启malloc stack追踪内存来源</a></li>
+</ul>
+<h3 id="反汇编"><a href="#反汇编" class="headerlink" title="反汇编"></a>反汇编</h3><ul>
+<li><code>disassemble --start-address 0x1eb8 --end-address 0x1ec3</code></li>
+<li><code>disassemble --start-address 0x1eb8 --count 20</code></li>
+<li><code>disassemble --frame --mixed</code>, <code>di -f -m</code></li>
+<li><code>image list</code></li>
+<li><code>image lookup --address 0x1ec4</code></li>
+</ul>
+<h2 id="lldb-命令扩展"><a href="#lldb-命令扩展" class="headerlink" title="lldb 命令扩展"></a>lldb 命令扩展</h2><p>lldb 可以使用 python 脚本编写自定义功能。可以安装 facebook 的开源库<a href="https://github.com/facebook/chisel" target="_blank" rel="external">chisel</a>，提供了很多非常有用的命令。</p>
+<p>安装步骤如下。</p>
+<p>Mac 中用<code>brew install chisel</code>下载 chisel，默认安装到<code>/usr/local/opt/chisel</code>。</p>
+<p>也可以手动从 github 上下载。</p>
+<p>下载后打开 Mac 上的<code>~/.lldbinit</code>，如果不存在则手动创建一个。在里面添加<code>chisel</code>：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div></pre></td><td class="code"><pre><div class="line"># ~/.lldbinit</div><div class="line"></div><div class="line"># 如果是通过 brew install chisel 安装</div><div class="line">command script import /usr/local/opt/chisel/libexec/fblldb.py</div><div class="line"></div><div class="line"># 如果是手动下载，则填写 chisel 里的 fblldb.py 路径</div><div class="line">command script import /path/to/fblldb.py</div></pre></td></tr></table></figure>
+<p>之后重启 Xcode，就能使用下面这些非常有用的命令了。</p>
+<table>
+<thead>
+<tr>
+<th>命令</th>
+<th>描述</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>目录</strong></td>
+<td></td>
+</tr>
+<tr>
+<td>pdocspath</td>
+<td>打印 app 的沙盒 Documents 目录</td>
+</tr>
+<tr>
+<td>pbundlepath</td>
+<td>打印 app 的 bundle 目录</td>
+</tr>
+<tr>
+<td><strong>对象查找</strong></td>
+<td></td>
+</tr>
+<tr>
+<td>fv</td>
+<td>用正则查找所有类的 view 实例</td>
+</tr>
+<tr>
+<td>fvc</td>
+<td>用正则查找所有类的 view controller 实例</td>
+</tr>
+<tr>
+<td>findinstances</td>
+<td>在内存中查找某个类的所有实例</td>
+</tr>
+<tr>
+<td>flicker</td>
+<td>闪烁某个 view，用于快速定位</td>
+</tr>
+<tr>
+<td><strong>对象分析</strong></td>
+<td></td>
+</tr>
+<tr>
+<td>pinternals</td>
+<td>打印对象内部的所有实例变量</td>
+</tr>
+<tr>
+<td>pkp</td>
+<td>用 <code>-valueForKeyPath:</code>获取对象的数据</td>
+</tr>
+<tr>
+<td>pmethods</td>
+<td>打印类的所有方法</td>
+</tr>
+<tr>
+<td>poobjc</td>
+<td>用 ObjC++ 语言执行和获取表达式的结果，<code>expression -O -l ObjC++ —</code>的缩写</td>
+</tr>
+<tr>
+<td>pproperties</td>
+<td>打印对象或者类的属性</td>
+</tr>
+<tr>
+<td>pivar</td>
+<td>打印对象的某个 ivar</td>
+</tr>
+<tr>
+<td>wivar</td>
+<td>给对象的某个实例变量地址设置 watchpoint，监控变化</td>
+</tr>
+<tr>
+<td>pclass</td>
+<td>打印某个对象的类继承链</td>
+</tr>
+<tr>
+<td>pbcopy</td>
+<td>打印对象并且把结果复制到粘贴板</td>
+</tr>
+<tr>
+<td>pblock</td>
+<td>打印 block 的实现函数地址和签名</td>
+</tr>
+<tr>
+<td>pactions</td>
+<td>打印 UIControl 的 target  和 action</td>
+</tr>
+<tr>
+<td><strong>断点</strong></td>
+<td></td>
+</tr>
+<tr>
+<td>bdisable</td>
+<td>用正则查找并关闭一组断点 </td>
+</tr>
+<tr>
+<td>benable</td>
+<td>用正则查找并开启一组断点</td>
+</tr>
+<tr>
+<td>binside</td>
+<td>用相对地址设置断点，自动加上 ALSR 偏移</td>
+</tr>
+<tr>
+<td>bmessage</td>
+<td>给某个类的 method 设置断点，同时会在其父类上查找 method</td>
+</tr>
+<tr>
+<td>pinvocation</td>
+<td>打印方法调用堆栈，仅支持x86</td>
+</tr>
+<tr>
+<td><strong>视图查找</strong></td>
+<td></td>
+</tr>
+<tr>
+<td>visualize</td>
+<td>显示 UIImage, CGImageRef, UIView 或 CALayer 的图片内容，用 Mac 的预览打开，在调试绘图时非常有用</td>
+</tr>
+<tr>
+<td>taplog</td>
+<td>打印触摸到的 view，用于快速定位</td>
+</tr>
+<tr>
+<td>border</td>
+<td>给 view 加上边框，用于定位某个 view 对象</td>
+</tr>
+<tr>
+<td>unborder</td>
+<td>移除 view 或 layer 的边框</td>
+</tr>
+<tr>
+<td>caflush</td>
+<td>修改 UI 后刷新 Core Animation 界面</td>
+</tr>
+<tr>
+<td>hide</td>
+<td>隐藏 view 或 layer</td>
+</tr>
+<tr>
+<td>show</td>
+<td>显示一个 view 或者 layer，相当于执行<code>view.hidden = NO</code></td>
+</tr>
+<tr>
+<td>mask</td>
+<td>给 view 添加半透明的 mask，可以用来查找被隐藏的 view</td>
+</tr>
+<tr>
+<td>unmask</td>
+<td>移除 view layer 的 mask</td>
+</tr>
+<tr>
+<td>setinput</td>
+<td>给作为 first responder 的  text field 或 text view 输入文本</td>
+</tr>
+<tr>
+<td>slowanim</td>
+<td>减慢动画速度</td>
+</tr>
+<tr>
+<td>unslowanim</td>
+<td>动画速度回复正常</td>
+</tr>
+<tr>
+<td>present</td>
+<td>Present 一个 view controller</td>
+</tr>
+<tr>
+<td>dismiss</td>
+<td>消除 present 出来的 view controller</td>
+</tr>
+<tr>
+<td><strong>视图层级</strong></td>
+<td></td>
+</tr>
+<tr>
+<td>pvc</td>
+<td>循环打印 view controller 的层级</td>
+</tr>
+<tr>
+<td>pviews</td>
+<td>循环打印 view 的层级</td>
+</tr>
+<tr>
+<td>pca</td>
+<td>打印 layer 树</td>
+</tr>
+<tr>
+<td>vs</td>
+<td>在 view 层级中搜索 view</td>
+</tr>
+<tr>
+<td>ptv</td>
+<td>打印最顶层的 table view</td>
+</tr>
+<tr>
+<td>pcells</td>
+<td>打印最顶层 table view 的所有可见的 cell</td>
+</tr>
+<tr>
+<td>presponder</td>
+<td>打印 UIResponder 响应者链</td>
+</tr>
+<tr>
+<td><strong>其他工具</strong></td>
+<td></td>
+</tr>
+<tr>
+<td>sequence</td>
+<td>执行多条命令，用<code>;</code>分隔</td>
+</tr>
+<tr>
+<td>pjson</td>
+<td>打印 NSDictionary 或 NSArray 的 JSON 格式</td>
+</tr>
+<tr>
+<td>pcurl</td>
+<td>用 curl 的格式显示 NSURLRequest (HTTP)</td>
+</tr>
+<tr>
+<td>pdata</td>
+<td>用字符串的形式显示 NSData</td>
+</tr>
+<tr>
+<td>mwarning</td>
+<td>模拟内存警告</td>
+</tr>
+<tr>
+<td><strong>视图调试</strong></td>
+<td></td>
+</tr>
+<tr>
+<td>alamborder</td>
+<td>给有约束错误的 view 加上边框</td>
+</tr>
+<tr>
+<td>alamunborder</td>
+<td>有约束错误的 view 加上边框</td>
+</tr>
+<tr>
+<td>paltrace</td>
+<td>打印 view 的约束信息，相当于调用<code>_autolayoutTrace</code></td>
+</tr>
+<tr>
+<td>panim</td>
+<td>是否正在执行动画，相当于调用<code>[UIView _isInAnimationBlock]</code></td>
+</tr>
+</tbody>
+</table>
+<h2 id="几个有用的私有方法"><a href="#几个有用的私有方法" class="headerlink" title="几个有用的私有方法"></a>几个有用的私有方法</h2><p><code>NSObject</code>有一些很有用的私有方法，可以方便查看对象的内容：</p>
+<ul>
+<li><p><code>_methodDescription</code>：打印对象或者类的整个继承链上的方法列表，同时显示方法的地址，可以直接用于断点</p>
+</li>
+<li><p><code>_shortMethodDescription</code> ：打印对象或者类的方法列表，不显示父类</p>
+</li>
+<li><p><code>_ivarDescription</code>：打印对象或者类的所有实例变量和值</p>
+</li>
+</ul>
+<h2 id="自定义-lldb-脚本"><a href="#自定义-lldb-脚本" class="headerlink" title="自定义 lldb 脚本"></a>自定义 lldb 脚本</h2><p>你可以 用 Python 脚本编写自己的 lldb 命令，可以进一步提升动态调试的效率。</p>
+<h3 id="命令别名"><a href="#命令别名" class="headerlink" title="命令别名"></a>命令别名</h3><p>可以在<code>~/.lldbinit</code>中添加 lldb 的初始化命令，如果没有这个文件就创建一个。</p>
+<p>用<code>command alias</code>添加快捷命令，例如：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div></pre></td><td class="code"><pre><div class="line"># reloadscript 命令：修改脚本文件后，重新加载</div><div class="line">command alias reloadscript command source ~/.lldbinit</div></pre></td></tr></table></figure>
+<p>之后输入<code>reloadscript</code>就相当于输入<code>command source ~/.lldbinit</code>。</p>
+<h3 id="编写自定义脚本"><a href="#编写自定义脚本" class="headerlink" title="编写自定义脚本"></a>编写自定义脚本</h3><p>编写 Python 脚本，格式如下：</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div></pre></td><td class="code"><pre><div class="line"><span class="comment"># some_script.py</span></div><div class="line"><span class="keyword">import</span> lldb</div><div class="line"></div><div class="line"><span class="comment"># 执行命令</span></div><div class="line"><span class="function"><span class="keyword">def</span> <span class="title">run</span><span class="params">(debugger, command, result, internal_dict)</span>:</span></div><div class="line">    <span class="string">"""</span></div><div class="line">    Print root view controller of key window</div><div class="line">    """</div><div class="line">    print(<span class="string">"hello world!"</span>)</div><div class="line">    debugger.HandleCommand(<span class="string">'po (id)[(id)[(id)[UIApplication sharedApplication] keyWindow] rootViewController]'</span>)</div><div class="line">    </div><div class="line"></div><div class="line"><span class="comment"># lldb 启动入口</span></div><div class="line"><span class="function"><span class="keyword">def</span> <span class="title">__lldb_init_module</span><span class="params">(debugger, internal_dict)</span>:</span></div><div class="line">    <span class="comment"># 添加 ptopvc 命令</span></div><div class="line">    debugger.HandleCommand(<span class="string">'command script add -f some_script.run ptopvc'</span>)</div></pre></td></tr></table></figure>
+<p>如果有<code>chisel</code>，可以直接使用<code>chisel</code>里封装好的模块和各种函数：</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div><div class="line">27</div><div class="line">28</div><div class="line">29</div><div class="line">30</div><div class="line">31</div><div class="line">32</div><div class="line">33</div></pre></td><td class="code"><pre><div class="line"><span class="comment"># some_script.py</span></div><div class="line"><span class="keyword">import</span> lldb</div><div class="line"><span class="keyword">import</span> fblldbbase <span class="keyword">as</span> fb</div><div class="line">    </div><div class="line"><span class="comment"># 可以同时声明多个命令</span></div><div class="line"><span class="function"><span class="keyword">def</span> <span class="title">lldbcommands</span><span class="params">()</span>:</span></div><div class="line">  <span class="keyword">return</span> [ SomeCommand() ]</div><div class="line"></div><div class="line"><span class="comment"># 定义命令</span></div><div class="line"><span class="class"><span class="keyword">class</span> <span class="title">SomeCommand</span><span class="params">(fb.FBCommand)</span>:</span></div><div class="line">  </div><div class="line">  <span class="comment"># 命令名</span></div><div class="line">  <span class="function"><span class="keyword">def</span> <span class="title">name</span><span class="params">(self)</span>:</span></div><div class="line">    <span class="keyword">return</span> <span class="string">'ptopvc'</span></div><div class="line"></div><div class="line">  <span class="comment"># 描述</span></div><div class="line">  <span class="function"><span class="keyword">def</span> <span class="title">description</span><span class="params">(self)</span>:</span></div><div class="line">    <span class="keyword">return</span> <span class="string">'Print root view controller of key window'</span></div><div class="line"></div><div class="line">  <span class="comment"># 选项</span></div><div class="line">  <span class="function"><span class="keyword">def</span> <span class="title">options</span><span class="params">(self)</span>:</span></div><div class="line">    <span class="keyword">return</span> [</div><div class="line">      fb.FBCommandArgument(short=<span class="string">'-v'</span>, long=<span class="string">'--verbose'</span>, help=<span class="string">'Show ivar of the result object'</span>, default=<span class="keyword">False</span>, boolean=<span class="keyword">True</span>)</div><div class="line">    ]</div><div class="line"></div><div class="line">  <span class="comment"># 参数</span></div><div class="line">  <span class="function"><span class="keyword">def</span> <span class="title">args</span><span class="params">(self)</span>:</span></div><div class="line">    <span class="keyword">return</span> [ fb.FBCommandArgument(arg=<span class="string">'instance or class'</span>, type=<span class="string">'instance or Class'</span>, help=<span class="string">'an Objective-C Class.'</span>) ]</div><div class="line"></div><div class="line">  <span class="comment"># 执行命令</span></div><div class="line">  <span class="function"><span class="keyword">def</span> <span class="title">run</span><span class="params">(self, arguments, options)</span>:</span></div><div class="line">    print(<span class="string">"hello world!"</span>)</div><div class="line">    fb.evaluateExpression(<span class="string">'(id)[(id)[(id)[UIApplication sharedApplication] keyWindow] rootViewController]'</span>)</div></pre></td></tr></table></figure>
+<p>详情请见<code>chisel</code>代码。</p>
+<p>写脚本时可以随时在 lldb 里调用<code>reloadscript</code>命令重新加载，进行测试。</p>
+<p>脚本提供了操作 lldb 的接口，例如设置断点、执行命令。不过编写命令有些坑：</p>
+<ul>
+<li>大部分 OC 方法和函数都需要明确声明返回值类型</li>
+<li>指针声明时需要初始化，不会默认设为 nil，否则在使用时会出现野指针</li>
+</ul>
+<h3 id="导入自定义脚本"><a href="#导入自定义脚本" class="headerlink" title="导入自定义脚本"></a>导入自定义脚本</h3><p>打开<code>~/.lldbinit</code>添加：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div></pre></td><td class="code"><pre><div class="line"># 导入自定义脚本的路径</div><div class="line">command script import /path/to/some_script.py</div><div class="line"></div><div class="line"># 可以通过 chisel 提供的函数导入目录下的所有脚本</div><div class="line">script fblldb.loadCommandsInDirectory(&apos;/Users/xxx/Documents/code/lldbScript/&apos;)</div></pre></td></tr></table></figure>
+<h2 id="实战演练：追踪block回调"><a href="#实战演练：追踪block回调" class="headerlink" title="实战演练：追踪block回调"></a>实战演练：追踪block回调</h2><p>下面演练一下 lldb 调试的过程。</p>
+<p>有时候逻辑是通过block回调来执行的，追踪调用路径时，需要找出block的执行地址。直接打印block对象并不会显示执行地址，需要分析内存才能找出。下面的分析流程和 lldb 命令<code>pblock</code>是一样的。</p>
+<h3 id="block的结构"><a href="#block的结构" class="headerlink" title="block的结构"></a>block的结构</h3><figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div></pre></td><td class="code"><pre><div class="line">struct Block_literal_1 &#123;</div><div class="line">    void *isa; // initialized to &amp;_NSConcreteStackBlock or &amp;_NSConcreteGlobalBlock</div><div class="line">    int flags;</div><div class="line">    int reserved;</div><div class="line">    void (*invoke)(void *, ...);</div><div class="line">    struct Block_descriptor_1 &#123;</div><div class="line">        unsigned long int reserved;     // NULL</div><div class="line">        unsigned long int size;         // sizeof(struct Block_literal_1)</div><div class="line">        // optional helper functions</div><div class="line">        // void (*copy_helper)(void *dst, void *src);     // IFF (1&lt;&lt;25)</div><div class="line">        // void (*dispose_helper)(void *src);             // IFF (1&lt;&lt;25)</div><div class="line">        // required ABI.2010.3.16</div><div class="line">        // const char *signature;                         // IFF (1&lt;&lt;30)</div><div class="line">        void* rest[1];</div><div class="line">    &#125; *descriptor;</div><div class="line">    // imported variables</div><div class="line">&#125;;</div><div class="line"></div><div class="line">enum &#123;</div><div class="line">    BLOCK_HAS_COPY_DISPOSE =  (1 &lt;&lt; 25),</div><div class="line">    BLOCK_HAS_CTOR =          (1 &lt;&lt; 26), // helpers have C++ code</div><div class="line">    BLOCK_IS_GLOBAL =         (1 &lt;&lt; 28),</div><div class="line">    BLOCK_HAS_STRET =         (1 &lt;&lt; 29), // IFF BLOCK_HAS_SIGNATURE</div><div class="line">    BLOCK_HAS_SIGNATURE =     (1 &lt;&lt; 30),</div><div class="line">&#125;;</div></pre></td></tr></table></figure>
+<h3 id="查看invoke指针的地址"><a href="#查看invoke指针的地址" class="headerlink" title="查看invoke指针的地址"></a>查看invoke指针的地址</h3><p>演示代码如下：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div></pre></td><td class="code"><pre><div class="line">- (void)modifyUIAtBackbround &#123;</div><div class="line">    void(^crash)() = ^ &#123;</div><div class="line">       dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^&#123;</div><div class="line">            [self.view addSubview:[[UIView alloc] init]];</div><div class="line">        &#125;);</div><div class="line">    &#125;;</div><div class="line">    </div><div class="line">    crash();</div><div class="line">&#125;</div></pre></td></tr></table></figure>
+<p>当获取到一个block变量时：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div></pre></td><td class="code"><pre><div class="line">Printing description of $x1:</div><div class="line">&lt;__NSStackBlock__: 0x16fd465b8&gt;</div></pre></td></tr></table></figure>
+<p>查看<code>0x16fd465b8</code>的内存，由于字节对齐的原因，结构体内的数据是按照最大的8字节对齐的：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div></pre></td><td class="code"><pre><div class="line">(lldb) memory read --size 8 --format x 0x16fd465b8</div><div class="line">0x16fd465b8: 0x00000001a94520d8 0x00000000c2000000</div><div class="line">0x16fd465c8: 0x00000001000bf77c 0x000000010012c9f0</div><div class="line">0x16fd465d8: 0x0000000131e0a610 0x00000001700517f0</div><div class="line">0x16fd465e8: 0x00000001700517f0 0x000000016fd46650</div></pre></td></tr></table></figure>
+<p>void *isa 占用8字节，int占用4字节，所以invoke指针的值是<code>0x00000001000bf77c</code>，<code>descriptor</code>的地址是<code>0x000000010012c9f0</code>。</p>
+<p>对地址反汇编：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div><div class="line">27</div><div class="line">28</div><div class="line">29</div><div class="line">30</div><div class="line">31</div><div class="line">32</div><div class="line">33</div><div class="line">34</div><div class="line">35</div><div class="line">36</div><div class="line">37</div><div class="line">38</div><div class="line">39</div><div class="line">40</div><div class="line">41</div><div class="line">42</div><div class="line">43</div><div class="line">44</div></pre></td><td class="code"><pre><div class="line">disassemble -a 0x00000001000bf77c</div><div class="line">MyApp`__38-[ViewController modifyUIAtBackbround]_block_invoke_2:</div><div class="line">    0x1000bf77c &lt;+0&gt;:   sub    sp, sp, #0x30             ; =0x30 </div><div class="line">    0x1000bf780 &lt;+4&gt;:   stp    x29, x30, [sp, #0x20]</div><div class="line">    0x1000bf784 &lt;+8&gt;:   add    x29, sp, #0x20            ; =0x20 </div><div class="line">    0x1000bf788 &lt;+12&gt;:  adrp   x8, 125</div><div class="line">    0x1000bf78c &lt;+16&gt;:  add    x8, x8, #0xe0             ; =0xe0 </div><div class="line">    0x1000bf790 &lt;+20&gt;:  stur   x0, [x29, #-0x8]</div><div class="line">    0x1000bf794 &lt;+24&gt;:  mov    x9, x0</div><div class="line">    0x1000bf798 &lt;+28&gt;:  str    x9, [sp, #0x10]</div><div class="line">    0x1000bf79c &lt;+32&gt;:  ldr    x9, [x0, #0x20]</div><div class="line">    0x1000bf7a0 &lt;+36&gt;:  ldr    x1, [x8]</div><div class="line">    0x1000bf7a4 &lt;+40&gt;:  mov    x0, x9</div><div class="line">    0x1000bf7a8 &lt;+44&gt;:  bl     0x100113e98               ; symbol stub for: objc_msgSend</div><div class="line">    0x1000bf7ac &lt;+48&gt;:  mov    x29, x29</div><div class="line">    0x1000bf7b0 &lt;+52&gt;:  bl     0x100113eec               ; symbol stub for: objc_retainAutoreleasedReturnValue</div><div class="line">    0x1000bf7b4 &lt;+56&gt;:  adrp   x8, 124</div><div class="line">    0x1000bf7b8 &lt;+60&gt;:  add    x8, x8, #0xed0            ; =0xed0 </div><div class="line">    0x1000bf7bc &lt;+64&gt;:  adrp   x9, 126</div><div class="line">    0x1000bf7c0 &lt;+68&gt;:  add    x9, x9, #0x308            ; =0x308 </div><div class="line">    0x1000bf7c4 &lt;+72&gt;:  ldr    x9, [x9]</div><div class="line">    0x1000bf7c8 &lt;+76&gt;:  ldr    x1, [x8]</div><div class="line">    0x1000bf7cc &lt;+80&gt;:  str    x0, [sp, #0x8]</div><div class="line">    0x1000bf7d0 &lt;+84&gt;:  mov    x0, x9</div><div class="line">    0x1000bf7d4 &lt;+88&gt;:  bl     0x100113e98               ; symbol stub for: objc_msgSend</div><div class="line">    0x1000bf7d8 &lt;+92&gt;:  adrp   x8, 124</div><div class="line">    0x1000bf7dc &lt;+96&gt;:  add    x8, x8, #0xed8            ; =0xed8 </div><div class="line">    0x1000bf7e0 &lt;+100&gt;: ldr    x1, [x8]</div><div class="line">    0x1000bf7e4 &lt;+104&gt;: bl     0x100113e98               ; symbol stub for: objc_msgSend</div><div class="line">    0x1000bf7e8 &lt;+108&gt;: adrp   x8, 125</div><div class="line">    0x1000bf7ec &lt;+112&gt;: add    x8, x8, #0xe8             ; =0xe8 </div><div class="line">    0x1000bf7f0 &lt;+116&gt;: ldr    x1, [x8]</div><div class="line">    0x1000bf7f4 &lt;+120&gt;: ldr    x8, [sp, #0x8]</div><div class="line">    0x1000bf7f8 &lt;+124&gt;: str    x0, [sp]</div><div class="line">    0x1000bf7fc &lt;+128&gt;: mov    x0, x8</div><div class="line">    0x1000bf800 &lt;+132&gt;: ldr    x2, [sp]</div><div class="line">    0x1000bf804 &lt;+136&gt;: bl     0x100113e98               ; symbol stub for: objc_msgSend</div><div class="line">    0x1000bf808 &lt;+140&gt;: ldr    x0, [sp]</div><div class="line">    0x1000bf80c &lt;+144&gt;: bl     0x100113ebc               ; symbol stub for: objc_release</div><div class="line">    0x1000bf810 &lt;+148&gt;: ldr    x0, [sp, #0x8]</div><div class="line">    0x1000bf814 &lt;+152&gt;: bl     0x100113ebc               ; symbol stub for: objc_release</div><div class="line">    0x1000bf818 &lt;+156&gt;: ldp    x29, x30, [sp, #0x20]</div><div class="line">    0x1000bf81c &lt;+160&gt;: add    sp, sp, #0x30             ; =0x30 </div><div class="line">    0x1000bf820 &lt;+164&gt;: ret</div></pre></td></tr></table></figure>
+<h3 id="查看block的签名"><a href="#查看block的签名" class="headerlink" title="查看block的签名"></a>查看block的签名</h3><p>如果要进一步查看block的签名，首先检查block的flags，确定内存布局：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div></pre></td><td class="code"><pre><div class="line">(lldb) p (BOOL)(0x00000000c2000000 &amp; (1&lt;&lt;30))</div><div class="line">(BOOL) $37 = YES</div><div class="line">(lldb) p (BOOL)(0x00000000c2000000 &amp; (1&lt;&lt;25))</div><div class="line">(BOOL) $38 = YES</div></pre></td></tr></table></figure>
+<p>flags <code>BLOCK_HAS_COPY_DISPOSE</code>为YES，说明<code>descriptor</code>里有<code>dispose_helper</code>和<code>dispose_helper</code>，<code>signature</code>在第8 + 8 + 8 + 8 = 32个字节。</p>
+<p>查看<code>descriptor</code>的内存，第32个字节的内容：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div></pre></td><td class="code"><pre><div class="line">(lldb) memory read --size 8 --format x 0x000000010012c9f0</div><div class="line">0x10012c9f0: 0x0000000000000000 0x0000000000000028</div><div class="line">0x10012ca00: 0x00000001000bf824 0x00000001000bf870</div><div class="line">0x10012ca10: 0x0000000100115c77 0x0000000000000100</div><div class="line">0x10012ca20: 0x0000000000000000 0x0000000000000028</div><div class="line">(lldb) po (const char *)0x0000000100115c77</div><div class="line">&quot;v8@?0&quot;</div></pre></td></tr></table></figure>
+<p>查看签名：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div></pre></td><td class="code"><pre><div class="line">(lldb) po [NSMethodSignature signatureWithObjCTypes:&quot;v8@?0&quot;]</div><div class="line">&lt;NSMethodSignature: 0x17027bd80&gt;</div><div class="line">    number of arguments = 1</div><div class="line">    frame size = 224</div><div class="line">    is special struct return? NO</div><div class="line">    return value: -------- -------- -------- --------</div><div class="line">        type encoding (v) &apos;v&apos;</div><div class="line">        flags &#123;&#125;</div><div class="line">        modifiers &#123;&#125;</div><div class="line">        frame &#123;offset = 0, offset adjust = 0, size = 0, size adjust = 0&#125;</div><div class="line">        memory &#123;offset = 0, size = 0&#125;</div><div class="line">    argument 0: -------- -------- -------- --------</div><div class="line">        type encoding (@) &apos;@?&apos;</div><div class="line">        flags &#123;isObject, isBlock&#125;</div><div class="line">        modifiers &#123;&#125;</div><div class="line">        frame &#123;offset = 0, offset adjust = 0, size = 8, size adjust = 0&#125;</div><div class="line">        memory &#123;offset = 0, size = 8&#125;</div></pre></td></tr></table></figure>
+<h2 id="Cycript"><a href="#Cycript" class="headerlink" title="Cycript"></a>Cycript</h2><p>Cycript 是 Saruik 大佬开发的动态调试工具，内置了一套 JavaScript 解释器，可以用 js 脚本和 OC 交互，用 js 执行 OC 代码，内置了一些很有用的功能。官网：<a href="http://www.cycript.org" target="_blank" rel="external">http://www.cycript.org</a>，源码地址：<a href="https://git.saurik.com/cycript.git" target="_blank" rel="external">https://git.saurik.com/cycript.git</a>。</p>
+<p>其实 cycript 的大部分功能通过 lldb 都能实现。它的优势是集成了越狱系统中的 substrate 库，可以快速地进行 hook，并且 js 语法写起来比较简单。</p>
+<h3 id="安装"><a href="#安装" class="headerlink" title="安装"></a>安装</h3><p>越狱机去 Cydia 中可以直接搜索下载 cycript。现在 cycript 的兼容性有点问题，没有适配 iOS 11 越狱，因此 iOS 11 在 Cydia 里找不到 cycript。需要自己去使用这个<a href="https://github.com/BishopFox/bfinject" target="_blank" rel="external">bfinject</a>，如果安装失败，则尝试这个分支：<a href="https://github.com/klmitchell2/bfinject" target="_blank" rel="external">klmitchell2/bfinject</a>。</p>
+<p>除了从第三方安装，你也可以去官网下载 cycript 的 SDK 集成到 app 中使用。</p>
+<h3 id="使用"><a href="#使用" class="headerlink" title="使用"></a>使用</h3><p>安装后，ssh 连接到 iOS 设备，使用<code>ps -e</code>找到想要调试的进程，使用<code>cycript -p &lt;pid&gt;</code>连接指定的进程号后，就进入了<code>cycript</code>的调试控制台。</p>
+<p>在控制台里，可以把 js 和 OC 语法混用。</p>
+<h4 id="方法调用和求值"><a href="#方法调用和求值" class="headerlink" title="方法调用和求值"></a>方法调用和求值</h4><p>调用 OC 方法：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div></pre></td><td class="code"><pre><div class="line">cy# UIApplication.sharedApplication().windows[0].contentView().subviews()[0]</div><div class="line">#&quot;&lt;SBFStaticWallpaperView: 0x1590ca730; frame = (0 0; 375 667); autoresize = W+H; layer = &lt;CALayer: 0x1590cabd0&gt;&gt;&quot;</div></pre></td></tr></table></figure>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div></pre></td><td class="code"><pre><div class="line">cy# var c = [[UIApp windows][0] contentView]</div><div class="line">#&quot;&lt;UIView: 0x10e883d40; frame = (0 0; 320 568); layer = &lt;CALayer: 0x10e883e00&gt;&gt;&quot;</div></pre></td></tr></table></figure>
+<p>通过地址获取对象：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div></pre></td><td class="code"><pre><div class="line">cy# c = #0x10e883d40</div><div class="line">#&quot;&lt;UIView: 0x10e883d40; frame = (0 0; 320 568); layer = &lt;CALayer: 0x10e883e00&gt;&gt;&quot;</div></pre></td></tr></table></figure>
+<p>获取实例变量的值：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div></pre></td><td class="code"><pre><div class="line">cy# c-&gt;_subviewCache</div><div class="line">@[#&quot;&lt;SBFStaticWallpaperView: 0x11459fc40; frame = (0 0; 320 568); autoresize = W+H; layer = &lt;CALayer: 0x11459ee70&gt;&gt;&quot;]</div></pre></td></tr></table></figure>
+<p>打印对象的实例变量：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div></pre></td><td class="code"><pre><div class="line">cy# *c</div><div class="line">&#123;isa:&quot;UIView&quot;,_layer:#&quot;&lt;CALayer: 0x10e883e00&gt;&quot;,_gestureInfo:null,_gestureRecognizers:null,_subviewCache:@[#&quot;&lt;SBFStaticWallpaperView: 0x11459fc40; frame = (0 0; 320 568); autoresize = W+H; layer = &lt;CALayer: 0x11459ee70&gt;&gt;&quot;],_charge:0,_tag:0,_viewDelegate:null,_backgroundColorSystemColorName:null,_countOfMotionEffectsInSubtree:1,_viewFlags:@error,_retainCount:8,_tintAdjustmentDimmingCount:0,_shouldArchiveUIAppearanceTags:false,_interactionTintColor:null,_layoutEngine:null,_boundsWidthVariable:null,_boundsHeightVariable:null,_minXVariable:null,_minYVariable:null,_internalConstraints:null,_constraintsExceptingSubviewAutoresizingConstraints:null&#125;</div></pre></td></tr></table></figure>
+<h4 id="调用-C-函数"><a href="#调用-C-函数" class="headerlink" title="调用 C 函数"></a>调用 C 函数</h4><figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div></pre></td><td class="code"><pre><div class="line">cy# extern &quot;C&quot; int getuid();</div><div class="line">(extern &quot;C&quot; int getuid())</div><div class="line">cy# getuid()</div><div class="line">501</div></pre></td></tr></table></figure>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div></pre></td><td class="code"><pre><div class="line">cy# getuid = dlsym(RTLD_DEFAULT, &quot;getuid&quot;)</div><div class="line">(typedef void*)(0x7fff885f95b0)</div><div class="line">cy# getuid()</div><div class="line">throw new Error(&quot;cannot call a pointer to non-function&quot;)</div><div class="line">cy# getuid = (typedef int())(getuid)</div><div class="line">(extern &quot;C&quot; int getuid())</div><div class="line">cy# getuid()</div><div class="line">501</div></pre></td></tr></table></figure>
+<h4 id="添加-category"><a href="#添加-category" class="headerlink" title="添加 category"></a>添加 category</h4><figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div></pre></td><td class="code"><pre><div class="line">cy# @implementation NSObject (MyCategory)</div><div class="line">    - description &#123; return &quot;hello&quot;; &#125;</div><div class="line">    - (double) f:(int)v  &#123; return v * 0.5; &#125;</div><div class="line">    @end</div><div class="line">cy# o = [new NSObject init]</div><div class="line">#&quot;hello&quot;</div><div class="line">cy# [o f:3]</div><div class="line">1.5</div></pre></td></tr></table></figure>
+<h4 id="查找指定类的对象"><a href="#查找指定类的对象" class="headerlink" title="查找指定类的对象"></a>查找指定类的对象</h4><p>Cycript 的<code>choose</code>命令可以列出指定类的所有实例对象，和 lldb 命令<code>findinstances</code>类似：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div></pre></td><td class="code"><pre><div class="line">cy# choose(SBIconModel)</div><div class="line">[#&quot;&lt;SBIconModel: 0x1590c8430&gt;&quot;]</div></pre></td></tr></table></figure>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div></pre></td><td class="code"><pre><div class="line">cy# var views = choose(SBIconView)</div><div class="line">[#&quot;&lt;SBIconView: 0x159460fa0; frame = (27 92; 60 74); opaque = NO; gestureRecognizers = &lt;NSArray: 0x159518ae0&gt;; layer = &lt;CALayer: 0x159461220&gt;&gt;&quot;,#&quot;&lt;SBIconView: 0x159468e50; frame = (114 356; 60 74); opaque = NO; gestureRecognizers = &lt;NSArray: 0x15946d2f0&gt;; layer = &lt;CALayer: 0x1592c9a70&gt;&gt;&quot;,...</div></pre></td></tr></table></figure>
+<h4 id="hook"><a href="#hook" class="headerlink" title="hook"></a>hook</h4><p>通过 js 原型操作对象：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div></pre></td><td class="code"><pre><div class="line">cy# var oldm = NSObject.prototype.description</div><div class="line">(extern &quot;C&quot; id &quot;:description&quot;(id, SEL))</div></pre></td></tr></table></figure>
+<p>修改 prototype 进行 hook：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div></pre></td><td class="code"><pre><div class="line">cy# NSObject.prototype.description = function() &#123; return oldm.call(this) + &apos; (of doom)&apos;; &#125;</div><div class="line">cy# [new NSObject init]</div><div class="line">#&quot;&lt;NSObject: 0x100d11520&gt; (of doom)&quot;</div></pre></td></tr></table></figure>
+<p>Cycript 中也可以使用越狱机上的 hook 框架<code>Cydia Substrate</code>。使用<code>MS.hookMessage</code>hook OC 方法：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div></pre></td><td class="code"><pre><div class="line">cy# @import com.saurik.substrate.MS</div><div class="line">cy# var oldm = &#123;&#125;;</div><div class="line">cy# MS.hookMessage(NSObject, @selector(description), function() &#123;</div><div class="line">        return oldm-&gt;call(this) + &quot; (of doom)&quot;;</div><div class="line">    &#125;, oldm)</div><div class="line">cy# [new NSObject init]</div><div class="line">#&quot;&lt;NSObject: 0x100203d10&gt; (of doom)&quot;</div></pre></td></tr></table></figure>
+<p>使用<code>MS.hookFunction</code>hook C 函数：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div></pre></td><td class="code"><pre><div class="line">cy# @import com.saurik.substrate.MS</div><div class="line">cy# extern &quot;C&quot; void *fopen(char *, char *);</div><div class="line">cy# var oldf = &#123;&#125;</div><div class="line">cy# var log = []</div><div class="line">cy# MS.hookFunction(fopen, function(path, mode) &#123;</div><div class="line">        var file = (*oldf)(path, mode);</div><div class="line">        log.push([path.toString(), mode.toString(), file]);</div><div class="line">        return file;</div><div class="line">    &#125;, oldf)</div><div class="line">cy# fopen(&quot;/etc/passwd&quot;, &quot;r&quot;);</div><div class="line">(typedef void*)(0x7fff774ff2a0)</div><div class="line">cy# log</div><div class="line">[[&quot;/etc/passwd&quot;,&quot;r&quot;,(typedef void*)(0x7fff774ff2a0)]]</div></pre></td></tr></table></figure>
+<h2 id="Frida"><a href="#Frida" class="headerlink" title="Frida"></a>Frida</h2><p>Frida 是一个跨平台的动态调试工具，可以用 js 脚本和 OC 进行交互，从而执行代码、打log、hook 函数。和 cycript 类似，不过兼容性比 cycript 要好。同样的，frida 能做的，用 lldb 基本上也能做到。Frida 的优势是跨平台，以及提供的 js 库、命令行，能够实现脚本化。<a href="https://www.frida.re/docs" target="_blank" rel="external">Frida 官网</a>。</p>
+<h3 id="安装-1"><a href="#安装-1" class="headerlink" title="安装"></a>安装</h3><p>Mac 端安装 frida：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line">pip install --user frida-tools</div></pre></td></tr></table></figure>
+<p>iOS 设备在 Cydia 中添加源： <a href="https://build.frida.re/" target="_blank" rel="external">https://build.frida.re</a>，之后在 Cydia 中搜索 frida 安装。</p>
+<h3 id="使用-1"><a href="#使用-1" class="headerlink" title="使用"></a>使用</h3><h4 id="列出进程"><a href="#列出进程" class="headerlink" title="列出进程"></a>列出进程</h4><p>在 mac 上执行<code>frida-ps -U</code>等待 iOS 设备连接到 USB，连接到后就会列出 iOS 设备上正在运行的进程。</p>
+<p>也可以用<code>frida-ps -Uai</code>列出正在运行的 app。</p>
+<h4 id="调用追踪"><a href="#调用追踪" class="headerlink" title="调用追踪"></a>调用追踪</h4><p>可以使用<code>frida-trace</code>追踪 app 的调用。</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div></pre></td><td class="code"><pre><div class="line"># Trace recv* and send* APIs in Safari</div><div class="line">$ frida-trace -i &quot;recv*&quot; -i &quot;send*&quot; Safari</div><div class="line"></div><div class="line"># Trace ObjC method calls in Safari</div><div class="line">$ frida-trace -m &quot;-[NSView drawRect:]&quot; Safari</div></pre></td></tr></table></figure>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div></pre></td><td class="code"><pre><div class="line">~ $ frida-trace -i &quot;recv*&quot; -i &quot;read*&quot; *twitter*</div><div class="line">recv: Auto-generated handler: …/recv.js</div><div class="line"># (snip)</div><div class="line">recvfrom: Auto-generated handler: …/recvfrom.js</div><div class="line">Started tracing 21 functions. Press Ctrl+C to stop.</div><div class="line">    39 ms	recv()</div><div class="line">   112 ms	recvfrom()</div><div class="line">   128 ms	recvfrom()</div><div class="line">   129 ms	recvfrom()</div></pre></td></tr></table></figure>
+<h3 id="连接指定进程"><a href="#连接指定进程" class="headerlink" title="连接指定进程"></a>连接指定进程</h3><p>使用<code>frida -U &lt;app名&gt;</code>连接到指定进程，也可以同时注入 js 脚本：<code>frida -n Twitter -l demo1.js</code>。</p>
+<p>连接上后，就可以执行 frida 的 js 命令，以及运行注入的 js 脚本。</p>
+<p>Frida 提供了强大的 js 库，可以去官网查看完整的 API 文档：<a href="https://www.frida.re/docs/javascript-api/" target="_blank" rel="external">JavaScript API</a>。这里只列出一些有用的接口。</p>
+<h3 id="执行脚本"><a href="#执行脚本" class="headerlink" title="执行脚本"></a>执行脚本</h3><h4 id="与-OC-交互"><a href="#与-OC-交互" class="headerlink" title="与 OC 交互"></a>与 OC 交互</h4><p>参考<a href="https://www.frida.re/docs/javascript-api/#objc" target="_blank" rel="external">JavaScript API: ObjC</a>。</p>
+<p>获取 OC 类列表：<code>ObjC.classes</code></p>
+<p>获取指定类：<code>var NSString = ObjC.classes.NSString;</code>，并调用类方法：<code>NSString.stringWithString_(&quot;Hello World&quot;);</code></p>
+<p>调用实例方法：<code>NSString.alloc().initWithString_(&quot;Hello World&quot;);</code></p>
+<p>GCD 线程：</p>
+<figure class="highlight javascript"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div></pre></td><td class="code"><pre><div class="line">ObjC.schedule(ObjC.mainQueue, <span class="function"><span class="keyword">function</span> (<span class="params"></span>) </span>&#123;</div><div class="line">    NSString.stringWithString_(<span class="string">"Hello World"</span>);</div><div class="line">&#125;);</div></pre></td></tr></table></figure>
+<p>获取内存中指定类的所有实例：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div></pre></td><td class="code"><pre><div class="line">ObjC.choose(ObjC.classes.UIViewController, &#123;</div><div class="line">            onMatch: function (instance) &#123;</div><div class="line">                console.log(&quot;Found instance: &quot; + instance);</div><div class="line">            &#125;,</div><div class="line">            onComplete: function () &#123; &#125;</div><div class="line">truetruetruetruetruetruetrue// 搜索完毕</div><div class="line">        &#125;);</div></pre></td></tr></table></figure>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line">var viewControllers = ObjC.chooseSync(ObjC.classes.UIViewController)</div></pre></td></tr></table></figure>
+<p>获取 OC 对象：<code>new ObjC.Object(ptr(&quot;0x1234&quot;))</code></p>
+<p>可以通过 js 对象的属性获取 OC 对象的内容：</p>
+<ul>
+<li><code>$kind</code>: string specifying either <code>instance</code>, <code>class</code> or <code>meta-class</code></li>
+<li><code>$super</code>: an <em>ObjC.Object</em> instance used for chaining up to super-class method implementations</li>
+<li><code>$superClass</code>: super-class as an <em>ObjC.Object</em> instance</li>
+<li><code>$class</code>: class of this object as an <em>ObjC.Object</em> instance</li>
+<li><code>$className</code>: string containing the class name of this object</li>
+<li><code>$protocols</code>: object mapping protocol name to <code>ObjC.Protocol</code> instance for each of the protocols that this object conforms to</li>
+<li><code>$methods</code>: array containing native method names exposed by this object’s class and parent classes</li>
+<li><code>$ownMethods</code>: array containing native method names exposed by this object’s class, not including parent classes</li>
+<li><code>$ivars</code>: object mapping each instance variable name to its current value, allowing you to read and write each through access and assignment</li>
+</ul>
+<h4 id="调用-C-函数-1"><a href="#调用-C-函数-1" class="headerlink" title="调用 C 函数"></a>调用 C 函数</h4><p>获取 C 函数指针：</p>
+<figure class="highlight javascript"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div></pre></td><td class="code"><pre><div class="line"><span class="keyword">var</span> sqlite3_sql = Module.getExportByName(<span class="string">'libsqlite3.dylib'</span>, <span class="string">'sqlite3_sql'</span>);</div><div class="line"></div><div class="line"><span class="keyword">var</span> openPtr = Module.findExportByName(<span class="literal">null</span>,<span class="string">"open"</span>);</div></pre></td></tr></table></figure>
+<p>调用 C 函数：</p>
+<figure class="highlight javascript"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div></pre></td><td class="code"><pre><div class="line"><span class="keyword">var</span> sqlite3_sql = <span class="keyword">new</span> NativeFunction(sqlite3_sqlPtr, <span class="string">'char'</span>, [<span class="string">'pointer'</span>]);</div><div class="line">sqlite3_sql(statement);</div><div class="line"></div><div class="line"><span class="keyword">var</span> open = <span class="keyword">new</span> NativeFunction(openPtr, <span class="string">'int'</span>, [<span class="string">'pointer'</span>, <span class="string">'int'</span>]);</div><div class="line"><span class="keyword">var</span> fd = open(Memory.allocUtf8String(<span class="string">'/tmp/test.txt'</span>), <span class="number">0</span>);</div></pre></td></tr></table></figure>
+<h4 id="hook-1"><a href="#hook-1" class="headerlink" title="hook"></a>hook</h4><p>Hook OC 方法：</p>
+<figure class="highlight javascript"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div></pre></td><td class="code"><pre><div class="line"><span class="comment">// Get a reference to the openURL selector</span></div><div class="line"><span class="keyword">var</span> openURL = ObjC.classes.UIApplication[<span class="string">"- openURL:"</span>];</div><div class="line"></div><div class="line"><span class="comment">// Intercept the method</span></div><div class="line">Interceptor.attach(openURL.implementation, &#123;</div><div class="line">  onEnter: <span class="function"><span class="keyword">function</span>(<span class="params">args</span>) </span>&#123;</div><div class="line">    <span class="comment">// 方法执行前调用</span></div><div class="line">    <span class="comment">// As this is an ObjectiveC method, the arguments are as follows:</span></div><div class="line">    <span class="comment">// 0. 'self'</span></div><div class="line">    <span class="comment">// 1. The selector (openURL:)</span></div><div class="line">    <span class="comment">// 2. The first argument to the openURL selector</span></div><div class="line">    <span class="keyword">var</span> myNSURL = <span class="keyword">new</span> ObjC.Object(args[<span class="number">2</span>]);</div><div class="line">    <span class="comment">// Convert it to a JS string</span></div><div class="line">    <span class="keyword">var</span> myJSURL = myNSURL.absoluteString().toString();</div><div class="line">    <span class="comment">// Log it</span></div><div class="line">    <span class="built_in">console</span>.log(<span class="string">"Launching URL: "</span> + myJSURL);</div><div class="line">  &#125;,</div><div class="line">  onLeave: <span class="function"><span class="keyword">function</span> (<span class="params">retval</span>) </span>&#123;</div><div class="line">    <span class="comment">// 执行后调用</span></div><div class="line">    <span class="comment">// 修改返回值</span></div><div class="line">    retval.replace(<span class="number">1</span>)</div><div class="line">  &#125;</div><div class="line">&#125;);</div></pre></td></tr></table></figure>
+<p>替换 C 函数（OC 方法同理）：</p>
+<figure class="highlight javascript"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div></pre></td><td class="code"><pre><div class="line"><span class="keyword">var</span> openPtr = Module.getExportByName(<span class="literal">null</span>, <span class="string">'open'</span>);</div><div class="line"><span class="keyword">var</span> open = <span class="keyword">new</span> NativeFunction(openPtr, <span class="string">'int'</span>, [<span class="string">'pointer'</span>, <span class="string">'int'</span>]);</div><div class="line">Interceptor.replace(openPtr, <span class="keyword">new</span> NativeCallback(<span class="function"><span class="keyword">function</span> (<span class="params">pathPtr, flags</span>) </span>&#123;</div><div class="line">  <span class="keyword">var</span> path = pathPtr.readUtf8String();</div><div class="line">  log(<span class="string">'Opening "'</span> + path + <span class="string">'"'</span>);</div><div class="line">  <span class="keyword">var</span> fd = open(pathPtr, flags);</div><div class="line">  <span class="built_in">console</span>.log(<span class="string">'Got fd: '</span> + fd);</div><div class="line">  <span class="keyword">return</span> fd;</div><div class="line">&#125;, <span class="string">'int'</span>, [<span class="string">'pointer'</span>, <span class="string">'int'</span>]));</div></pre></td></tr></table></figure>
+<p>Hook C 函数：</p>
+<figure class="highlight javascript"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div></pre></td><td class="code"><pre><div class="line">Interceptor.attach(Module.getExportByName(<span class="literal">null</span>, <span class="string">'open'</span>), &#123;</div><div class="line">  onEnter: <span class="function"><span class="keyword">function</span> (<span class="params">args</span>) </span>&#123;</div><div class="line">    <span class="comment">// 执行前调用</span></div><div class="line">    <span class="built_in">console</span>.log(<span class="string">'Context information:'</span>);</div><div class="line">    <span class="built_in">console</span>.log(<span class="string">'Context  : '</span> + <span class="built_in">JSON</span>.stringify(<span class="keyword">this</span>.context));</div><div class="line">    <span class="built_in">console</span>.log(<span class="string">'Return   : '</span> + <span class="keyword">this</span>.returnAddress);</div><div class="line">    <span class="built_in">console</span>.log(<span class="string">'ThreadId : '</span> + <span class="keyword">this</span>.threadId);</div><div class="line">    <span class="built_in">console</span>.log(<span class="string">'Depth    : '</span> + <span class="keyword">this</span>.depth);</div><div class="line">    <span class="built_in">console</span>.log(<span class="string">'Errornr  : '</span> + <span class="keyword">this</span>.err);</div><div class="line"></div><div class="line">    <span class="comment">// Save arguments for processing in onLeave.</span></div><div class="line">    <span class="keyword">this</span>.fd = args[<span class="number">0</span>].toInt32();</div><div class="line">    <span class="keyword">this</span>.buf = args[<span class="number">1</span>];</div><div class="line">    <span class="keyword">this</span>.count = args[<span class="number">2</span>].toInt32();</div><div class="line">  &#125;,</div><div class="line">  onLeave: <span class="function"><span class="keyword">function</span> (<span class="params">result</span>) </span>&#123;</div><div class="line">    <span class="comment">// 执行后调用</span></div><div class="line">    <span class="built_in">console</span>.log(<span class="string">'----------'</span>)</div><div class="line">    <span class="comment">// Show argument 1 (buf), saved during onEnter.</span></div><div class="line">    <span class="keyword">var</span> numBytes = result.toInt32();</div><div class="line">    <span class="keyword">if</span> (numBytes &gt; <span class="number">0</span>) &#123;</div><div class="line">      <span class="built_in">console</span>.log(hexdump(<span class="keyword">this</span>.buf, &#123; length: numBytes, ansi: <span class="literal">true</span> &#125;));</div><div class="line">    &#125;</div><div class="line">    <span class="built_in">console</span>.log(<span class="string">'Result   : '</span> + numBytes);</div><div class="line">  &#125;</div><div class="line">&#125;)</div></pre></td></tr></table></figure>
+<h2 id="IDA-动态调试"><a href="#IDA-动态调试" class="headerlink" title="IDA 动态调试"></a>IDA 动态调试</h2><p>IDA 也有一个动态调试工具，不过没有 lldb 这么多针对 iOS 平台的命令，只要是用来辅助逆向分析，查看控制流，打log。IDA 的 trace 功能可以从指令级别上记录运行时程序的流程，查看寄存器和内存的值，不过 IDA 调试的同时不能使用 lldb，如果想要查看其他详细信息，可以配合 cycript 或 frida。</p>
+<p>如果你想分析代码的控制流，可以使用 IDA 的动态调试。IDA 也有一些第三方插件用于辅助调试。</p>
+<h3 id="配置-debugger"><a href="#配置-debugger" class="headerlink" title="配置 debugger"></a>配置 debugger</h3><p>IDA 提供了 iOS 的 debugger。首先将砸壳后的 app 用 IDA 分析完毕，再重签名后安装到 iOS 设备上，目的是让 IDA 分析的二进制文件和设备上的保持一致。</p>
+<p>之后设置 IDA 的 debugger 配置：</p>
+<ol>
+<li>在 IDA 的<code>Debugger</code>-&gt;<code>Switch Debugger</code>中选择<code>Remote iOS Debugger</code></li>
+<li>配置 debugger：打开<code>Debugger</code>-&gt;<code>Debugger options</code>，在弹出的面板中打开 <code>Set specific options</code><ol>
+<li>设置<code>Symbol path</code>为当前设备的符号文件路径，例如<code>~/Library/Developer/Xcode/iOS DeviceSupport/11.2.2 (15C202)/Symbols/</code></li>
+<li>勾选 <code>Launch debugserver automatically</code> </li>
+</ol>
+</li>
+<li>配置 process：打开<code>Debugger</code>-&gt;<code>Process options</code>，设置 <code>Application</code> 和<code>Input file</code>为 app 二进制文件在 iOS 设备上的路径，例如<code>/var/containers/Bundle/Application/F366E63D-602B-47D9-B92E-1739A347192B/AppToDebug.app/AppToDebug</code></li>
+</ol>
+<p><img src="https://upload-images.jianshu.io/upload_images/1865432-ddd13d66ff9f3f50.png?imageMogr2/auto-orient/" alt=""></p>
+<p><img src="https://upload-images.jianshu.io/upload_images/1865432-76abb56844484f22.png?imageMogr2/auto-orient/" alt=""></p>
+<h3 id="启动调试"><a href="#启动调试" class="headerlink" title="启动调试"></a>启动调试</h3><p>配置完后，在 iOS 设备上 kill 掉 app，就可以用 IDA 的<code>Debugger</code>-&gt;<code>Start Process</code>启动进程进行调试。</p>
+<p>启动前可以先设置断点，在断点上设置 trace，可以用不同颜色表示控制流的路径。</p>
+<p><img src="https://upload-images.jianshu.io/upload_images/1865432-e3aead1e90ed638f.png?imageMogr2/auto-orient/" alt=""></p>
+<h3 id="IDA-动态调试插件"><a href="#IDA-动态调试插件" class="headerlink" title="IDA 动态调试插件"></a>IDA 动态调试插件</h3><p>IDA 有些开源插件用于增强动态调试功能。例如<a href="https://github.com/deresz/funcap" target="_blank" rel="external">funcap</a>可以记录运行时的寄存器信息作为注释，辅助分析。不过这个工具现在只支持 32 位。</p>
+<p>其他的插件你可以自行搜索。不过能用到 iOS 上的动态调试插件并不多。</p>
+<h2 id="结尾"><a href="#结尾" class="headerlink" title="结尾"></a>结尾</h2><p>动态调试的整个流程以及用到的工具大部分都总结在此了。还有一个强力的工具这里没有讲解，就是 tweak 插件。由于内容有点多，留到之后的文章中再展开。</p>
+<h2 id="参考"><a href="#参考" class="headerlink" title="参考"></a>参考</h2><ul>
+<li><a href="http://iosre.com/t/topic/8179" target="_blank" rel="external">关于反调试&amp;反反调试那些事</a></li>
+<li><a href="http://bbs.iosre.com/t/topic/9351" target="_blank" rel="external">反调试与绕过的奇淫技巧</a></li>
+<li><a href="http://blog.imjun.net/posts/restore-symbol-of-iOS-app/" target="_blank" rel="external">iOS符号表恢复&amp;逆向支付宝</a></li>
+<li><a href="https://zuikyo.github.io/2017/05/04/iOS逆向：用Xcode直接调试第三方app/">iOS逆向：用Xcode直接调试第三方app</a></li>
+<li><a href="http://lldb.llvm.org/lldb-gdb.html" target="_blank" rel="external">GDB to LLDB Command Map</a></li>
+<li><a href="https://objccn.io/issue-19-2/" target="_blank" rel="external">与调试器共舞 - LLDB 的华尔兹</a></li>
+<li><a href="https://github.com/facebook/chisel" target="_blank" rel="external">chisel</a></li>
+<li><a href="https://zuikyo.github.io/2017/05/04/iOS逆向：在任意app上开启malloc%20stack追踪内存来源/">iOS逆向：在任意app上开启malloc stack追踪内存来源</a></li>
+<li><a href="http://www.cycript.org" target="_blank" rel="external">http://www.cycript.org</a></li>
+<li><a href="https://github.com/BishopFox/bfinject" target="_blank" rel="external">bfinject</a></li>
+<li><a href="https://www.frida.re/docs" target="_blank" rel="external">Frida 官网</a></li>
+<li><a href="https://www.hex-rays.com/products/ida/support/tutorials/ios_debugger_tutorial.pdf" target="_blank" rel="external">Debugging iOS Applications With IDA</a></li>
+</ul>
+]]></content>
+    
+    <summary type="html">
+    
+      &lt;p&gt;当静态分析无法获取足够的信息时，就需要进行动态分析，在 app 运行时，追踪方法调用、查看内存信息。最后找到想要分析的关键函数。&lt;/p&gt;
+&lt;p&gt;这篇文章包括：&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;环境搭建&lt;/li&gt;
+&lt;li&gt;反调试&lt;/li&gt;
+&lt;li&gt;动态调试的思路&lt;/li&gt;
+&lt;li&gt;
+    
+    </summary>
+    
+      <category term="逆向工程" scheme="http://zuikyo.github.io/categories/%E9%80%86%E5%90%91%E5%B7%A5%E7%A8%8B/"/>
+    
+    
+      <category term="iOS" scheme="http://zuikyo.github.io/tags/iOS/"/>
+    
+  </entry>
+  
+  <entry>
     <title>iOS逆向指南：静态分析</title>
     <link href="http://zuikyo.github.io/2018/02/16/iOS_reverse_engineering_guide-static_analyzing/"/>
     <id>http://zuikyo.github.io/2018/02/16/iOS_reverse_engineering_guide-static_analyzing/</id>
@@ -894,11 +1458,11 @@ dumpdecrypted.dylib: required code signature missing for &#39;dumpdecrypted.dyli
   </entry>
   
   <entry>
-    <title>iOS 逆向指南：界面分析</title>
+    <title>iOS逆向指南：界面分析</title>
     <link href="http://zuikyo.github.io/2018/01/06/iOS_reverse_engineering_guide-view_analyzing/"/>
     <id>http://zuikyo.github.io/2018/01/06/iOS_reverse_engineering_guide-view_analyzing/</id>
     <published>2018-01-05T20:14:00.000Z</published>
-    <updated>2018-11-01T20:14:08.230Z</updated>
+    <updated>2019-07-15T14:27:24.380Z</updated>
     
     <content type="html"><![CDATA[<p>写几篇文章总结一下 iOS 逆向的整个流程，逆向初学者可以作为入门指南。内容包括逆向工具和环境配置、踩坑点、界面分析、砸壳、静态分析、动态分析、lldb 调试、推荐 hopper 和 IDA 插件、IDA 插件的编写、各种分析技巧。</p>
 <h2 id="逆向的作用"><a href="#逆向的作用" class="headerlink" title="逆向的作用"></a>逆向的作用</h2><p>对于 iOS 开发工程师：</p>
