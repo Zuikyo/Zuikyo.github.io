@@ -5,7 +5,7 @@
   <link href="/atom.xml" rel="self"/>
   
   <link href="http://zuikyo.github.io/"/>
-  <updated>2019-07-17T14:23:54.290Z</updated>
+  <updated>2019-07-19T06:53:26.380Z</updated>
   <id>http://zuikyo.github.io/</id>
   
   <author>
@@ -20,10 +20,10 @@
     <link href="http://zuikyo.github.io/2019/07/15/iOS_inrerface_orientation_modularization/"/>
     <id>http://zuikyo.github.io/2019/07/15/iOS_inrerface_orientation_modularization/</id>
     <published>2019-07-14T17:33:00.000Z</published>
-    <updated>2019-07-17T14:23:54.290Z</updated>
+    <updated>2019-07-19T06:53:26.380Z</updated>
     
     <content type="html"><![CDATA[<p>关于组件化的探讨已经有不少了，在之前的文章”iOS VIPER架构实践(三)：面向接口的路由设计”中，综合比较了各种方案后，我倾向于使用面向接口的方式进行组件化。</p>
-<p>这是一篇从代码层面讲解模块解耦的文章，会全方位地展示如何实践面向接口的思想，尽量全面地探讨在模块管理和解耦的过程中，需要考虑到的各种问题，并且给出实际的解决方案，以及对应的模块管理开源工具：<a href="https://github.com/Zuikyo/ZIKRouter" target="_blank" rel="external">ZIKRouter</a>。你也可以根据本文的内容改造自己现有的方案。</p>
+<p>这是一篇从代码层面讲解模块解耦的文章，会全方位地展示如何实践面向接口的思想，尽量全面地探讨在模块管理和解耦的过程中，需要考虑到的各种问题，并且给出实际的解决方案，以及对应的模块管理开源工具：<a href="https://github.com/Zuikyo/ZIKRouter" target="_blank" rel="external">ZIKRouter</a>。你也可以根据本文的内容改造自己现有的方案，即使你的项目不进行组件化，也可以参考本文进行代码解耦。</p>
 <p>文章主要内容：</p>
 <ul>
 <li>如何衡量模块解耦的程度</li>
